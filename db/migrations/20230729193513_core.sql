@@ -18,14 +18,16 @@ create table app_public.gene (
   check (jsonb_typeof(synonyms) = 'object')
 );
 
+create index on app_public.gene using btree (symbol);
+create index on app_public.gene using gin (synonyms);
+
 -- This function can be used to produce a map from a the provided genes to the gene_id
 create function app_public.gene_id_map_from_genes(genes varchar[]) returns jsonb
 as $$
   select coalesce(jsonb_object_agg(t.gene, g.id), '{}'::jsonb)
   from unnest(genes) as t(gene)
-  left join app_public.gene g
-    on g.symbol = t.gene or g.synonyms ? t.gene
-  where g.id is not null;
+  inner join app_public.gene g
+    on g.symbol = t.gene or g.synonyms ? t.gene;
 $$ language sql immutable;
 
 -- This function can be used to produce a set of genes given genes
@@ -47,6 +49,8 @@ create table app_public.gene_set_library (
   check (jsonb_typeof(background_gene_ids) = 'object')
 );
 
+create index on app_public.gene_set_library using btree (name);
+
 -- This is a labeled gene set (effectively a row in a GMT) in a gene_set_library
 create table app_public.gene_set (
   id uuid primary key default uuid_generate_v4(),
@@ -56,6 +60,10 @@ create table app_public.gene_set (
   gene_ids jsonb not null default '{}',
   check (jsonb_typeof(gene_ids) = 'object')
 );
+
+create index on app_public.gene_set using hash (library_id);
+create index on app_public.gene_set using btree (term);
+create index on app_public.gene_set using gin (gene_ids);
 
 -- This function can be used to get the gene records out of the gene_set
 --  which are stored in the gene_ids field
@@ -186,9 +194,9 @@ as $$
     s_row_gene_set = set(json.loads(row['gene_ids'])) & s_background
     s_overlap = s_user_gene_set & s_row_gene_set
     a = len(s_overlap)
-      b = len(s_user_gene_set) - a
-      c = len(s_row_gene_set) - a
-      d = len(s_background) - len(s_user_gene_set) - len(s_row_gene_set) + a
+    b = len(s_user_gene_set) - a
+    c = len(s_row_gene_set) - a
+    d = len(s_background) - len(s_user_gene_set) - len(s_row_gene_set) + a
     a_values.append(a)
     b_values.append(b)
     c_values.append(c)
