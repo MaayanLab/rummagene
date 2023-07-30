@@ -110,6 +110,16 @@ as $$
   where gs.id = gene_set_library_enrichment_result.gene_set_id;
 $$ language sql immutable;
 
+--- This function can be used to get the overlapping genes out of the enrichment results type
+create function app_public.gene_set_library_enrichment_result_overlap_genes(
+  gene_set_library_enrichment_result app_public.gene_set_library_enrichment_result
+) returns setof app_public.gene
+as $$
+  select g.*
+  from unnest(gene_set_library_enrichment_result.overlap_gene_ids) t(gene_id)
+  inner join app_public.gene g on t.gene_id = g.id;
+$$ language sql immutable;
+
 -- This function lets you do enrichment analysis on a gene_set, for a given
 --  gene_set_library. It supports providing background genes, and specifying
 --  fpr/pvalue/adj pvalue cutoffs

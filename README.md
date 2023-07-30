@@ -44,6 +44,11 @@ query EnrichmentQuery($libraryName: String, $genes: [String]) {
           geneSet {
             term
           }
+          overlapGenes {
+            nodes {
+              symbol
+            }
+          }
         }
       }
     }
