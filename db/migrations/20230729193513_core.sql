@@ -28,7 +28,7 @@ as $$
   from unnest(genes) as t(gene)
   inner join app_public.gene g
     on g.symbol = t.gene or g.synonyms ? t.gene;
-$$ language sql immutable;
+$$ language sql immutable strict parallel safe;
 
 -- This function can be used to produce a set of genes given genes
 create function app_public.gene_record_from_genes(genes varchar[]) returns setof app_public.gene
@@ -37,7 +37,7 @@ as $$
   from unnest(genes) as t(gene)
   inner join app_public.gene g
     on g.symbol = t.gene or g.synonyms ? t.gene;
-$$ language sql immutable;
+$$ language sql immutable strict parallel safe;
 
 -- This table stores gene set libraries, containing a bunch of gene sets
 create table app_public.gene_set_library (
@@ -72,7 +72,7 @@ as $$
   select distinct g.*
   from jsonb_each(gene.gene_ids) t(key, value)
   left join app_public.gene g on g.id = t.key::uuid
-$$ language sql immutable;
+$$ language sql immutable strict parallel safe;
 
 -- This function can be used to return all gene sets with some set of terms present
 create function app_public.gene_set_term_search(terms varchar[]) returns setof app_public.gene_set
@@ -84,7 +84,7 @@ as $$
     from unnest(terms) q(term)
     where gs.term ilike ('%' || q.term || '%')
   );
-$$ language sql immutable;
+$$ language sql immutable strict parallel safe;
 
 -- This function can be used to return all gene sets containing some set of genes
 create function app_public.gene_set_gene_search(genes varchar[]) returns setof app_public.gene_set
@@ -96,7 +96,7 @@ as $$
   select gs.*
   from app_public.gene_set gs, query q
   where gs.gene_ids @> q.gene_ids;
-$$ language sql immutable;
+$$ language sql immutable strict parallel safe;
 
 -- Enrichment results for a given gene_set
 create type app_public.gene_set_library_enrichment_result as (
@@ -115,7 +115,7 @@ as $$
   select *
   from app_public.gene_set gs
   where gs.id = gene_set_library_enrichment_result.gene_set_id;
-$$ language sql immutable;
+$$ language sql immutable strict parallel safe;
 
 --- This function can be used to get the overlapping genes out of the enrichment results type
 create function app_public.gene_set_library_enrichment_result_overlap_genes(
@@ -125,7 +125,7 @@ as $$
   select g.*
   from unnest(gene_set_library_enrichment_result.overlap_gene_ids) t(gene_id)
   inner join app_public.gene g on t.gene_id = g.id;
-$$ language sql immutable;
+$$ language sql immutable strict parallel safe;
 
 -- This function lets you do enrichment analysis on a gene_set, for a given
 --  gene_set_library. It supports providing background genes, and specifying
@@ -236,7 +236,7 @@ as $$
       and record['overlap'] > overlap_greater_than
     ):
       yield record
-$$ language plpython3u immutable;
+$$ language plpython3u immutable parallel safe cost 1000 rows 1000;
 
 -- This function helps you import a gene set library by url
 create function app_public.import_gene_set_library(
