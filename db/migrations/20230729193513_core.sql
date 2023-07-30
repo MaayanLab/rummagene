@@ -245,6 +245,7 @@ create function app_public.import_gene_set_library(
   description varchar
 ) returns app_public.gene_set_library
 as $$
+  import re
   import uuid
   import json
   import fsspec
@@ -255,7 +256,12 @@ as $$
   background_genes = set()
   with fsspec.open(download_url, 'r') as fr:
     for line in filter(None, map(str.strip, fr)):
-      term, description, *genes = line.split('\t')
+      term, description, *raw_genes = line.split('\t')
+      genes = [
+        re.split(r'[,:\s]', raw_gene)[0]
+        for raw_gene in map(str.strip, raw_genes)
+        if raw_gene
+      ]
       new_gene_sets.append((term, description, genes))
       background_genes.update(genes)
 
