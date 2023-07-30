@@ -37,7 +37,6 @@ query EnrichmentQuery($libraryName: String, $genes: [String]) {
     nodes {
       enrich(genes: $genes, returnOverlapGeneIds: true) {
         nodes {
-          statistic
           pvalue
           adjPvalue
           overlap

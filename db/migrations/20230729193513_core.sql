@@ -93,7 +93,6 @@ $$ language sql immutable;
 -- Enrichment results for a given gene_set
 create type app_public.gene_set_library_enrichment_result as (
   gene_set_id uuid,-- references app_public.gene_set (id),
-  statistic double precision,
   pvalue double precision,
   adj_pvalue double precision,
   overlap integer,
@@ -135,9 +134,8 @@ create function app_public.gene_set_library_enrich(
 ) returns setof app_public.gene_set_library_enrichment_result
 as $$
   import json
-  import functools
+  import fisher
   import numpy as np
-  import scipy.stats
   import statsmodels.stats.multitest
 
   # convert genes to gene_ids
@@ -171,10 +169,12 @@ as $$
   s_user_gene_set = set(gene_ids) & s_background
 
   result_gene_sets = []
-  result_statistics = []
   result_pvalues = []
-  result_overlaps = []
   result_overlap_gene_ids = []
+  a_values = []
+  b_values = []
+  c_values = []
+  d_values = []
   for row in plpy.cursor(
     plpy.prepare(
       'select * from app_public.gene_set gs where gs.library_id = $1',
@@ -186,23 +186,22 @@ as $$
     s_row_gene_set = set(json.loads(row['gene_ids'])) & s_background
     s_overlap = s_user_gene_set & s_row_gene_set
     a = len(s_overlap)
-    if not a:
-      statistic = 0.0
-      pvalue = 1.0
-    else:
       b = len(s_user_gene_set) - a
       c = len(s_row_gene_set) - a
       d = len(s_background) - len(s_user_gene_set) - len(s_row_gene_set) + a
-      statistic, pvalue = scipy.stats.fisher_exact([[a, b], [c, d]], 'greater')
-    if return_overlap_gene_ids and pvalue <= pvalue_less_than and a > overlap_greater_than:
+    a_values.append(a)
+    b_values.append(b)
+    c_values.append(c)
+    d_values.append(d)
+    if return_overlap_gene_ids and a > overlap_greater_than:
       overlap_gene_ids = list(s_overlap)
     else:
       overlap_gene_ids = None
-    result_statistics.append(statistic)
-    result_pvalues.append(pvalue)
-    result_overlaps.append(a)
     result_overlap_gene_ids.append(overlap_gene_ids)
-  
+  _, result_pvalues, _ = fisher.pvalue_npy(
+    np.array(a_values, dtype=np.uint), np.array(b_values, dtype=np.uint),
+    np.array(c_values, dtype=np.uint), np.array(d_values, dtype=np.uint)
+  )
   try:
     reject, result_adj_pvalues, alphacSidak, alphacBonf = statsmodels.stats.multitest.multipletests(
       result_pvalues,
@@ -212,18 +211,15 @@ as $$
     result_adj_pvalues = np.nan_to_num(result_adj_pvalues, nan=1.0)
   except:
     result_adj_pvalues = np.ones(len(result_pvalues))
-
-  result_statistics = np.nan_to_num(result_statistics, nan=0.0)
   result_pvalues = np.nan_to_num(result_pvalues, nan=1.0)
 
   # return the results in sorted order (lowest pvalue first)
   for i in np.argsort(result_pvalues)[::-1]:
     record = dict(
       gene_set_id=result_gene_sets[i],
-      statistic=result_statistics[i],
       pvalue=result_pvalues[i],
       adj_pvalue=result_adj_pvalues[i],
-      overlap=result_overlaps[i],
+      overlap=a_values[i],
       overlap_gene_ids=result_overlap_gene_ids[i],
     )
     if (

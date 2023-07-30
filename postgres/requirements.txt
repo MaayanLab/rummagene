@@ -1,4 +1,5 @@
 aiohttp
+fisher
 fsspec
 h5py
 more-itertools
