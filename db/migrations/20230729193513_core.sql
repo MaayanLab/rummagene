@@ -143,13 +143,14 @@ as $$
   # convert genes to gene_ids
   gene_ids, = plpy.cursor(
     plpy.prepare(
-      'select array_agg(id) from app_public.gene_record_from_genes($1)',
+      'select array_agg(id) as gene_ids from app_public.gene_record_from_genes($1)',
       [
         'varchar[]',
       ]
     ),
     [genes]
   )
+  gene_ids = gene_ids['gene_ids']
 
   s_gene_set_library_background = set(json.loads(gene_set_library['background_gene_ids']))
   if background_genes is None:
@@ -158,14 +159,15 @@ as $$
   else:
     background_gene_ids, = plpy.cursor(
       plpy.prepare(
-        'select array_agg(id) from app_public.gene_record_from_genes($1)',
+        'select array_agg(id) as background_gene_ids from app_public.gene_record_from_genes($1)',
         [
           'varchar[]',
         ]
       ),
       background_genes
     )
-    s_background = set(json.loads(user_background['gene_ids'])) & s_gene_set_library_background
+    background_gene_ids = background_gene_ids['background_gene_ids']
+    s_background = set(background_gene_ids) & s_gene_set_library_background
   s_user_gene_set = set(gene_ids) & s_background
 
   result_gene_sets = []
@@ -184,9 +186,9 @@ as $$
     s_row_gene_set = set(json.loads(row['gene_ids'])) & s_background
     s_overlap = s_user_gene_set & s_row_gene_set
     a = len(s_overlap)
-    if a:
-      statistic = np.nan
-      pvalues = 1.0
+    if not a:
+      statistic = 0.0
+      pvalue = 1.0
     else:
       b = len(s_user_gene_set) - a
       c = len(s_row_gene_set) - a
@@ -207,11 +209,15 @@ as $$
       fdr,
       'fdr_bh',
     )
+    result_adj_pvalues = np.nan_to_num(result_adj_pvalues, nan=1.0)
   except:
-    result_adj_pvalues = [float('nan')]*len(result_pvalues)
+    result_adj_pvalues = np.ones(len(result_pvalues))
+
+  result_statistics = np.nan_to_num(result_statistics, nan=0.0)
+  result_pvalues = np.nan_to_num(result_pvalues, nan=1.0)
 
   # return the results in sorted order (lowest pvalue first)
-  for i in np.argsort(pvalue)[::-1]:
+  for i in np.argsort(result_pvalues)[::-1]:
     record = dict(
       gene_set_id=result_gene_sets[i],
       statistic=result_statistics[i],
