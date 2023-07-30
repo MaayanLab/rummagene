@@ -1,0 +1,10 @@
+aiohttp
+fsspec
+h5py
+more-itertools
+numpy
+pandas
+requests
+s3fs
+scipy
+statsmodels
