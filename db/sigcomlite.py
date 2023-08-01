@@ -49,13 +49,13 @@ def gene_set_library_enrich(
   d_values = []
   for row in plpy.cursor(
     plpy.prepare(
-      'select * from app_public.gene_set gs where gs.library_id = $1',
+      'select id, jsonb_object_keys(gs.gene_ids) as gene_ids from app_public.gene_set gs where gs.library_id = $1',
       ['uuid']
     ),
     [gene_set_library['id']]
   ):
     result_gene_sets.append(row['id'])
-    s_row_gene_set = set(json.loads(row['gene_ids'])) & s_background
+    s_row_gene_set = set(row['gene_ids']) & s_background
     s_overlap = s_user_gene_set & s_row_gene_set
     a = len(s_overlap)
     b = len(s_user_gene_set) - a
@@ -144,7 +144,7 @@ def import_gene_set_library(
         gene['symbol']: gene['id']
         for gene in plpy.cursor(
           plpy.prepare(
-            'insert into app_public.gene (symbol) select * from unnest($1) returning *',
+            'insert into app_public.gene (symbol) select * from unnest($1) returning id, symbol',
             ['varchar[]']
           ),
           [list(some_new_genes)]
