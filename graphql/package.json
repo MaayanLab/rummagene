@@ -1,0 +1,15 @@
+{
+  "name": "graphql",
+  "version": "1.0.0",
+  "description": "",
+  "main": "postgraphile.js",
+  "scripts": {
+    "start": "node postgraphile.js"
+  },
+  "author": "Daniel J. B. Clarke <danieljbclarkemssm@gmail.com>",
+  "dependencies": {
+    "@graphile-contrib/pg-simplify-inflector": "^6.1.0",
+    "postgraphile": "^4.13.0",
+    "uuid": "^9.0.0"
+  }
+}

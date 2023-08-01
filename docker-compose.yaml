@@ -3,18 +3,12 @@ services:
   graphql:
     build: graphql
     image: maayanlab/sigcom-lite-graphql
-    command:
-    - --connection
-    - postgres://$POSTGRES_USER:$POSTGRES_PASSWORD@postgres/$POSTGRES_DB
-    - --schema
-    - app_public
-    - --disable-default-mutations
-    - --watch
-    - --enhance-graphiql
+    environment:
+      - DATABASE_URL=postgres://$POSTGRES_USER:$POSTGRES_PASSWORD@postgres/$POSTGRES_DB
+      - AUTHORIZATION_HEADER=$AUTHORIZATION_HEADER
+      - NODE_ENV=development
     ports:
       - 5000:5000
-    environment:
-      - DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
   postgres:
     build: db
     image: maayanlab/sigcom-lite-postgres
