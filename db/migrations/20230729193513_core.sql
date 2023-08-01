@@ -11,6 +11,7 @@ alter default privileges revoke execute on functions from public;
 
 -- Everything in this schema is exposed via postgraphile
 create schema app_public;
+create schema internal;
 
 -- We'll use this role to distinguish permissions for public/authenticated access
 create role guest nologin;
@@ -224,8 +225,186 @@ grant execute on function app_public.import_gene_set_library(
   description varchar
 ) to authenticated;
 
+create function internal.jsonb_set_length(a jsonb) returns bigint
+as $$
+  select count(*)
+  from jsonb_object_keys(a);
+$$ language sql strict immutable parallel safe;
+create function internal.jsonb_set_intersection(a jsonb, b jsonb) returns jsonb
+as $$
+  select coalesce(jsonb_object_agg(A.k, null), '{}'::jsonb)
+  from jsonb_each(a) A(k)
+  inner join jsonb_each(b) B(k) on A.k = B.k;
+$$ language sql strict immutable parallel safe;
+
+create function internal.jsonb_set_diff(a jsonb, b jsonb) returns jsonb
+as $$
+  select a #- array_agg(B.k)
+  from jsonb_object_keys(b) B(k);
+$$ language sql strict immutable parallel safe;
+
+create type internal.gene_set_library_overlap_stats_result as (
+  gene_set_id uuid,-- references app_public.gene_set (id),
+  pvalue double precision,
+  adj_pvalue double precision
+);
+
+create function internal.gene_set_library_overlap_stats(
+  gene_set_ids uuid[],
+  a double precision[],
+  b double precision[],
+  c double precision[],
+  d double precision[],
+  fdr double precision default 0.05, 
+  pvalue_less_than double precision default 0.05,
+  adj_pvalue_less_than double precision default 0.05
+) returns internal.gene_set_library_overlap_stats_result
+as $$
+  import fisher
+  import numpy as np
+
+  _left_side, pvalues, _two_sided = fisher.pvalue_npy(
+    np.array(a_values, dtype=np.uint), np.array(b_values, dtype=np.uint),
+    np.array(c_values, dtype=np.uint), np.array(d_values, dtype=np.uint)
+  )
+  try:
+    _reject, adj_pvalues, _alphacSidak, _alphacBonf = statsmodels.stats.multitest.multipletests(
+      pvalues,
+      fdr,
+      'fdr_bh',
+    )
+    adj_pvalues = np.nan_to_num(adj_pvalues, nan=1.0)
+  except:
+    adj_pvalues = np.ones(len(pvalues))
+  pvalues = np.nan_to_num(pvalues, nan=1.0)
+  for i in np.argsort(pvalues)[::-1]:
+    if pvalues[i] <= pvalue_less_than and adj_pvalues[i] < adj_pvalue_less_than:
+      yield dict(
+        gene_set_id=gene_set_ids[i],
+        pvalue=pvalues[i],
+        adj_pvalue=adj_pvalues[i],
+      )
+$$ language plpython3u strict immutable parallel safe;
+
+create type internal.enrich_result as (
+  library_id uuid,
+  gene_set_id uuid,
+  pvalue double precision,
+  adj_pvalue double precision,
+  overlap_gene_ids uuid[]
+);
+
+create function internal.enrich(
+  gene_set_library_ids uuid[],
+  gene_ids uuid[],
+  background_gene_ids uuid[],
+  fdr double precision default 0.05, 
+  pvalue_less_than double precision default 0.05,
+  adj_pvalue_less_than double precision default 0.05
+) returns internal.enrich_result
+as $$
+  with user_input as (
+    -- convert array to jsonb_sets
+    select
+      (select jsonb_object_agg(t.gene_id, null) from unnest(gene_ids) t(gene_id)) as gene_ids,
+      (select jsonb_object_agg(t.background_gene_id, null) from unnest(enrich.background_gene_ids) t(background_gene_id)) as background_gene_ids
+  ), prep as (
+    -- prepare relevant sets (user gene set, gene set from library) & n_background_genes
+    select
+      gs.id as gene_set_id,
+      gs.library_id as library_id,
+      internal.jsonb_set_intersection(
+        user_input.gene_ids,
+        internal.jsonb_set_intersection(
+          user_input.background_gene_ids, gsl.background_gene_ids
+        )
+      ) as user_gene_ids,
+      internal.jsonb_set_intersection(
+        gs.gene_ids,
+        internal.jsonb_set_intersection(
+          user_input.background_gene_ids, gsl.background_gene_ids
+        )
+      ) as gs_gene_ids,
+      internal.jsonb_set_intersection(
+        user_input.gene_ids,
+        internal.jsonb_set_intersection(
+          gs.gene_ids,
+          internal.jsonb_set_intersection(user_input.background_gene_ids, gsl.background_gene_ids)
+        )
+      ) as overlap_gene_ids,
+      internal.jsonb_set_length(internal.jsonb_set_intersection(user_input.background_gene_ids, gsl.background_gene_ids)) as n_background_gene_ids
+    from
+      user_input,
+      app_public.gene_set_library gsl
+      left join app_public.gene_set gs on gs.library_id = gsl.id
+    where gsl.id = any(gene_set_library_ids)
+  ), agg as (
+    -- for each library, prepare a, b, c, d vectors ready for fisher testing
+    select
+      prep.library_id,
+      count(prep.gene_set_id)
+      array_agg(prep.gene_set_id) as gene_set_ids,
+      array_agg(internal.jsonb_set_length(prep.overlap_gene_ids)) as a,
+      array_agg(internal.jsonb_set_length(prep.user_gene_ids) - internal.jsonb_set_length(prep.overlap_gene_ids)) as b,
+      array_agg(internal.jsonb_set_length(prep.gs_gene_ids) - internal.jsonb_set_length(prep.overlap_gene_ids)) as c,
+      array_agg(prep.n_background_gene_ids - internal.jsonb_set_length(prep.user_gene_ids) - internal.jsonb_set_length(prep.gs_gene_ids) + internal.jsonb_set_length(prep.overlap_gene_ids)) as d
+    from prep
+    group by prep.library_id
+  )
+  -- after computing the overlap_stats for each library, construct the final results
+  select
+    agg.library_id,
+    s.gene_set_id,
+    s.pvalue,
+    s.adj_pvalue,
+    jsonb_object_keys(prep.overlap_gene_ids)::uuid[]
+  from
+    agg,
+    internal.gene_set_library_overlap_stats(
+      agg.gene_set_ids, agg.a, agg.b, agg.c, agg.d,
+      fdr, pvalue_less_than, adj_pvalue_less_than
+    ) s
+    inner join prep on s.gene_set_id = prep.gene_set_id;
+$$ language sql strict immutable parallel safe;
+
+create or replace function app_public.gene_set_library_test(
+  gene_set_library app_public.gene_set_library,
+  genes varchar[],
+  background_genes varchar[] default null,
+  fdr double precision default 0.05,
+  pvalue_less_than double precision default 0.05,
+  adj_pvalue_less_than double precision default 0.05,
+  return_overlap_gene_ids boolean default false,
+  overlap_greater_than integer default 0
+) returns setof app_public.gene_set_library_enrichment_result
+as $$
+  select
+    r.gene_set_id,
+    r.pvalue,
+    r.adj_pvalue,
+    array_length(r.overlap_gene_ids, 1) as overlap,
+    r.overlap_gene_ids
+  from internal.enrich(
+    array[gene_set_library.id],
+    (select array_agg(id) from app_public.gene_record_from_genes(genes)),
+    (select array_agg(id) from app_public.gene_record_from_genes(background_genes))
+  ) r;
+$$ language sql immutable parallel safe security definer;
+
+grant execute on function app_public.gene_set_library_test(
+  gene_set_library app_public.gene_set_library,
+  genes varchar[],
+  background_genes varchar[],
+  fdr double precision,
+  pvalue_less_than double precision,
+  adj_pvalue_less_than double precision,
+  return_overlap_gene_ids boolean,
+  overlap_greater_than integer
+) to guest, authenticated;
+
 -- migrate:down
 
 drop schema app_public cascade;
+drop schema internal cascade;
 drop role guest;
 drop role authenticated;
