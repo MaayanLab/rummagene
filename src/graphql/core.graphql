@@ -1,0 +1,63 @@
+query GeneSetLibraries {
+  geneSetLibraries {
+    nodes {
+      name
+    }
+  }
+}
+
+# Perform enrichment analysis against a specific library
+query EnrichmentQuery($libraryName: String!, $genes: [String]!) {
+  geneSetLibraries(condition: {name: $libraryName}) {
+    nodes {
+      enrichFixedBackgroundSize(
+        genes: $genes
+        pvalueLessThan: 1
+        adjPvalueLessThan: 1
+        overlapGreaterThan: "0"
+        backgroundSize: "20000"
+        first: 10
+      ) {
+        edges {
+          node {
+            pvalue
+            adjPvalue
+            oddsRatio
+            geneSet {
+              term
+            }
+            overlapGenes {
+              nodes {
+                symbol
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+# Gene search: find all genesets containing certain gene(s)
+query GeneSetGeneSearch($genes: [String]!) {
+  geneSetGeneSearch(genes: $genes) {
+    nodes {
+      term
+      library {
+        name
+      }
+    }
+  }
+}
+
+# Term search: find all genesets containing certain term(s)
+query GeneSetTermSearch($terms: [String]!) {
+  geneSetTermSearch(terms: $terms) {
+    nodes {
+      term
+      library {
+        name
+      }
+    }
+  }
+}

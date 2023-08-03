@@ -10,6 +10,7 @@ http
       process.env.DATABASE_URL,
       "app_public",
       {
+        enableCors: true,
         retryOnInitFail: process.env.NODE_ENV === 'production' ? true : false,
         dynamicJson: true,
         watchPg: process.env.NODE_ENV === 'production' ? false : true,

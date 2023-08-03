@@ -1,12 +1,21 @@
 version: '3.9'
 services:
+  app:
+    build: .
+    image: maayanlab/pmc-enrichr
+    environment:
+      - DATABASE_URL=postgres://$POSTGRES_USER:$POSTGRES_PASSWORD@postgres/$POSTGRES_DB
+      - AUTHORIZATION_HEADER=$AUTHORIZATION_HEADER
+      - NODE_ENV=production
+    ports:
+      - 3000:3000
   graphql:
     build: graphql
     image: maayanlab/sigcom-lite-graphql
     environment:
       - DATABASE_URL=postgres://$POSTGRES_USER:$POSTGRES_PASSWORD@postgres/$POSTGRES_DB
       - AUTHORIZATION_HEADER=$AUTHORIZATION_HEADER
-      - NODE_ENV=development
+      - NODE_ENV=production
     ports:
       - 5000:5000
   postgres:
