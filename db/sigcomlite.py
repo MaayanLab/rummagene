@@ -92,28 +92,27 @@ def import_gene_set_library(
   # create the gene_set_library
   gene_set_library, = plpy.cursor(
     plpy.prepare(
-      'insert into app_public.gene_set_library (name, description, background_gene_ids) values ($1, $2, $3) returning *',
-      ['varchar', 'varchar', 'jsonb']
+      'insert into app_public.gene_set_library (name, description) values ($1, $2) returning *',
+      ['varchar', 'varchar']
     ),
-    [name, description, json.dumps({ gene_id_map[gene]: None for gene in background_genes })],
+    [name, description],
   )
 
   # create the gene_sets
   for some_new_gene_sets in mit.chunked(new_gene_sets, 100):
     plpy.execute(
       plpy.prepare(
-        'insert into app_public.gene_set (id, library_id, term, description) select * from jsonb_to_recordset($1) as t(id uuid, library_id uuid, term varchar, description varchar)',
+        'insert into app_public.gene_set (id, library_id, term) select * from jsonb_to_recordset($1) as t(id uuid, library_id uuid, term varchar)',
         ['jsonb']
       ),
       [json.dumps([
         dict(
           id=id,
           library_id=gene_set_library['id'],
-          term=term,
+          term='\t'.join(filter(None, (term, description))),
           description=description,
         )
         for id, term, description, _gene_set in some_new_gene_sets
-        if len(term) < 200
       ])]
     )
     plpy.execute(
@@ -126,12 +125,11 @@ def import_gene_set_library(
           gene_set_id=id,
           gene_id=gene_id,
         )
-        for id, term, _description, gene_set in some_new_gene_sets
+        for id, _term, _description, gene_set in some_new_gene_sets
         for gene_id in set(
           gene_id_map[gene]
           for gene in gene_set
         )
-        if len(term) < 200
       ])]
     )
 
