@@ -31,12 +31,11 @@ grant all privileges on table app_public.gene to authenticated;
 
 create table app_public.gene_synonym (
   gene_id uuid not null references app_public.gene (id),
-  synonym varchar not null,
+  synonym varchar not null unique,
   primary key (gene_id, synonym)
 );
 
-create index on app_public.gene_synonym (gene_id);
-create index on app_public.gene_synonym (synonym);
+create index gene_synonym_gene_id_idx on app_public.gene_synonym (gene_id);
 
 grant select on table app_public.gene_synonym to guest;
 grant all privileges on table app_public.gene_synonym to authenticated;
@@ -86,8 +85,8 @@ create table app_public.gene_set (
   unique (library_id, term)
 );
 
-create index on app_public.gene_set (library_id);
-create index on app_public.gene_set (term);
+create index gene_set_library_id_idx on app_public.gene_set (library_id);
+create index gene_set_term_idx on app_public.gene_set (term);
 
 grant select on table app_public.gene_set to guest;
 grant all privileges on table app_public.gene_set to authenticated;
@@ -98,8 +97,8 @@ create table app_public.gene_set_gene (
   primary key (gene_set_id, gene_id)
 );
 
-create index on app_public.gene_set_gene (gene_set_id);
-create index on app_public.gene_set_gene (gene_id);
+create index gene_set_gene_set_id_idx on app_public.gene_set_gene (gene_set_id);
+create index gene_set_gene_id_idx on app_public.gene_set_gene (gene_id);
 
 grant select on table app_public.gene_set_gene to guest;
 grant all privileges on table app_public.gene_set_gene to authenticated;
@@ -111,9 +110,9 @@ from app_public.gene_set_library gsl
 inner join app_public.gene_set gs on gs.library_id = gsl.id
 inner join app_public.gene_set_gene gsg on gsg.gene_set_id = gs.id;
 
-create index on app_public.gene_set_library_gene (library_id);
-create index on app_public.gene_set_library_gene (gene_id);
-create index on app_public.gene_set_library_gene (library_id, gene_id);
+create index gene_set_library_gene_library_id_idx on app_public.gene_set_library_gene (library_id);
+create index gene_set_library_gene_gene_id_idx on app_public.gene_set_library_gene (gene_id);
+create unique index gene_set_library_gene_library_id_gene_id_idx on app_public.gene_set_library_gene (library_id, gene_id);
 
 grant select on table app_public.gene_set_library_gene to guest;
 grant all privileges on table app_public.gene_set_library_gene to authenticated;
