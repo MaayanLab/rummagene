@@ -6,30 +6,48 @@ query GeneSetLibraries {
   }
 }
 
+query Stats {
+  userGeneSets {
+    totalCount
+  }
+  geneSets {
+    totalCount
+  }
+  geneSetLibraries {
+    totalCount
+  }
+}
+
+
+query FetchUserGeneSet($id: UUID!) {
+  userGeneSet(id: $id) {
+    genes
+    description
+  }
+}
+
 # Perform enrichment analysis against a specific library
-query EnrichmentQuery($libraryName: String!, $genes: [String]!) {
-  geneSetLibraries(condition: {name: $libraryName}) {
+query EnrichmentQuery($genes: [String]!) {
+  geneSetLibraries {
     nodes {
-      enrichFixedBackgroundSize(
+      name
+      enrichLibraryBackground(
         genes: $genes
         pvalueLessThan: 1
         adjPvalueLessThan: 1
         overlapGreaterThan: "0"
-        backgroundSize: "20000"
         first: 10
       ) {
-        edges {
-          node {
-            pvalue
-            adjPvalue
-            oddsRatio
-            geneSet {
-              term
-            }
-            overlapGenes {
-              nodes {
-                symbol
-              }
+        nodes {
+          pvalue
+          adjPvalue
+          oddsRatio
+          geneSet {
+            term
+          }
+          overlapGenes {
+            nodes {
+              symbol
             }
           }
         }
@@ -39,25 +57,37 @@ query EnrichmentQuery($libraryName: String!, $genes: [String]!) {
 }
 
 # Gene search: find all genesets containing certain gene(s)
-query GeneSetGeneSearch($genes: [String]!) {
-  geneSetGeneSearch(genes: $genes) {
+query GeneSetLibraryGeneSearch($genes: [String]!) {
+  geneSetLibraries {
     nodes {
-      term
-      library {
-        name
+      name
+      geneSearch(genes: $genes) {
+        nodes {
+          term
+        }
       }
     }
   }
 }
 
 # Term search: find all genesets containing certain term(s)
-query GeneSetTermSearch($terms: [String]!) {
-  geneSetTermSearch(terms: $terms) {
+query GeneSetLibraryTermSearch($terms: [String]!) {
+  geneSetLibraries {
     nodes {
-      term
-      library {
-        name
+      name
+      termSearch(terms: $terms) {
+        nodes {
+          term
+        }
       }
+    }
+  }
+}
+
+mutation AddUserGeneSet($genes: [String], $description: String = "") {
+  addUserGeneSet(input: {genes: $genes, description: $description}) {
+    userGeneSet {
+      id
     }
   }
 }
