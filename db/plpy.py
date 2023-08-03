@@ -1,12 +1,7 @@
-import os
 import re
+import os
 import json
-import pytest
 import psycopg2, psycopg2.extras
-try:
-  from dotenv import load_dotenv; load_dotenv()
-except ImportError:
-  print('Install python-dotenv for .env support')
 
 class PlPyCompat:
   ''' An object that works like `plpy` does when running over plpython3u
@@ -26,8 +21,13 @@ class PlPyCompat:
       cur.execute(query, args)
   def prepare(self, query, arg_types):
     return re.sub(r'\$\d+', '%s', query)
+  def rollback(self):
+    self.conn.rollback()
 
-@pytest.fixture()
-def plpy():
-  conn = psycopg2.connect(os.environ['DATABASE_URL'])
-  return PlPyCompat(conn)
+try:
+  from dotenv import load_dotenv; load_dotenv()
+except ImportError:
+  print('Install python-dotenv for .env support')
+  
+conn = psycopg2.connect(os.environ['DATABASE_URL'])
+plpy = PlPyCompat(conn)

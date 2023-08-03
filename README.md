@@ -18,6 +18,11 @@ docker-compose up -d
 dbmate up
 ```
 
+## Provisioning
+```bash
+python ingest.py -i your-gmt.gmt -n 'Your GMT' -d 'Your description'
+```
+
 ## Example Queries
 ```gql
 # Add a gene set library to the database

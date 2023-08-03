@@ -523,24 +523,6 @@ $$ language sql immutable strict parallel safe;
 
 grant execute on function app_public.gene_set_library_enrich_result_overlap_genes to guest, authenticated;
 
--- This function helps you import a gene set library by url
-create function app_public.import_gene_set_library(
-  download_url varchar,
-  name varchar,
-  description varchar
-) returns app_public.gene_set_library
-as $$
-  import sigcomlite
-  return sigcomlite.import_gene_set_library(
-    plpy,
-    download_url,
-    name,
-    description,
-  )
-$$ language plpython3u strict;
-
-grant execute on function app_public.import_gene_set_library to authenticated;
-
 -- migrate:down
 
 drop schema app_public cascade;
