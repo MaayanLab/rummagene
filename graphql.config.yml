@@ -1,5 +1,5 @@
 schema:
-  - http://localhost:5000/graphql
+  - http://localhost:3000/graphql
 documents:
   - ./src/graphql/**/*.graphql
 generates:
