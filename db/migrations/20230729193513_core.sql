@@ -116,6 +116,33 @@ create index gene_set_gene_id_idx on app_public.gene_set_gene (gene_id);
 grant select on table app_public.gene_set_gene to guest;
 grant all privileges on table app_public.gene_set_gene to authenticated;
 
+create table app_public.user_gene_set (
+  id uuid primary key default uuid_generate_v4(),
+  genes varchar[],
+  description varchar default '',
+  created timestamp not null default now()
+);
+
+grant select on table app_public.user_gene_set to guest;
+grant all privileges on table app_public.user_gene_set to authenticated;
+
+create or replace function app_public.add_user_gene_set(
+  genes varchar[],
+  description varchar default ''
+) returns app_public.user_gene_set
+as $$
+  insert into app_public.user_gene_set (genes, description)
+  select
+    (
+      select array_agg(ug.gene order by ug.gene)
+      from unnest(add_user_gene_set.genes) ug(gene)
+    ) as genes,
+    add_user_gene_set.description
+  returning *;
+$$ language sql security definer;
+
+grant execute on function app_public.add_user_gene_set to guest, authenticated;
+
 -- here figure out the gene_set_library's background (the distinct set of genes in all of its genesets)
 create materialized view app_public.gene_set_library_gene as
 select distinct gsl.id as library_id, gsg.gene_id
