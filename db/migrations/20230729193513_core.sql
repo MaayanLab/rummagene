@@ -175,10 +175,23 @@ as $$
   inner join unnest(terms) ut(term) on gs.term ilike ('%' || ut.term || '%');
 $$ language sql immutable strict parallel safe;
 
-grant execute on function app_public.gene_set_term_search(terms varchar[]) to guest, authenticated;
+grant execute on function app_public.gene_set_term_search to guest, authenticated;
 
 -- This function can be used to return all gene sets containing some set of genes
-create or replace function app_public.gene_set_gene_search(genes varchar[]) returns setof app_public.gene_set
+create or replace function app_public.gene_set_library_term_search(gene_set_library app_public.gene_set_library, terms varchar[]) returns setof app_public.gene_set
+as $$
+  select distinct gs.*
+  from
+    app_public.gene_set gs
+    inner join unnest(terms) ut(term) on gs.term ilike ('%' || ut.term || '%')
+  where
+    gs.library_id = gene_set_library.id;
+$$ language sql immutable strict parallel safe;
+
+grant execute on function app_public.gene_set_library_term_search to guest, authenticated;
+
+-- This function can be used to return all gene sets containing some set of genes
+create or replace function app_public.gene_set_gene_search returns setof app_public.gene_set
 as $$
   select distinct gs.*
   from
@@ -187,7 +200,21 @@ as $$
     inner join app_public.gene_set gs on gs.id = gsg.gene_set_id;
 $$ language sql immutable strict parallel safe;
 
-grant execute on function app_public.gene_set_gene_search(genes varchar[]) to guest, authenticated;
+grant execute on function app_public.gene_set_gene_search to guest, authenticated;
+
+-- This function can be used to return all gene sets containing some set of genes
+create or replace function app_public.gene_set_library_gene_search(gene_set_library app_public.gene_set_library, genes varchar[]) returns setof app_public.gene_set
+as $$
+  select distinct gs.*
+  from
+    app_public.gene_records_from_genes(genes) g
+    inner join app_public.gene_set_gene gsg on gsg.gene_id = g.id
+    inner join app_public.gene_set gs on gs.id = gsg.gene_set_id
+  where
+    gs.library_id = gene_set_library.id;
+$$ language sql immutable strict parallel safe;
+
+grant execute on function app_public.gene_set_library_gene_search to guest, authenticated;
 
 
 -- step 1: overlap: compute overlapping genes, n_user_genes, n_gene_set_genes, n_background
