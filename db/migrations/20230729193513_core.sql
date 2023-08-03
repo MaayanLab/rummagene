@@ -43,11 +43,16 @@ grant all privileges on table app_public.gene_synonym to authenticated;
 -- This function can be used to produce a map from a the provided genes to the gene_id
 create or replace function internal.gene_id_map_from_genes(genes varchar[]) returns jsonb
 as $$
-  select coalesce(jsonb_object_agg(ug.gene, g.id), '{}'::jsonb)
+  select coalesce(
+    jsonb_object_agg(ug.gene, coalesce(g.id, gs.gene_id)),
+    '{}'::jsonb
+  )
   from
-    app_public.gene g
-    left join app_public.gene_synonym gs on gs.gene_id = g.id
-    inner join unnest(genes) as ug(gene) on ug.gene = g.symbol or ug.gene = gs.synonym
+    unnest(genes) ug(gene)
+    left join app_public.gene g on g.symbol = ug.gene
+    left join app_public.gene_synonym gs on gs.synonym = ug.gene
+  where
+    g.id is not null or gs.gene_id is not null
   ;
 $$ language sql immutable strict parallel safe;
 
@@ -56,11 +61,19 @@ grant execute on function internal.gene_id_map_from_genes(genes varchar[]) to gu
 -- This function can be used to produce a set of genes given genes
 create or replace function app_public.gene_records_from_genes(genes varchar[]) returns setof app_public.gene
 as $$
+  with cte as (
+    select distinct coalesce(g.id, gs.gene_id) as gene_id
+    from
+      unnest(genes) ug(gene)
+      left join app_public.gene g on g.symbol = ug.gene
+      left join app_public.gene_synonym gs on gs.synonym = ug.gene
+    where
+      g.id is not null or gs.gene_id is not null
+  )
   select distinct g.*
   from
-    app_public.gene g
-    left join app_public.gene_synonym gs on gs.gene_id = g.id
-    inner join unnest(genes) as ug(gene) on ug.gene = g.symbol or ug.gene = gs.synonym
+    cte
+    inner join app_public.gene g on g.id = cte.gene_id
   ;
 $$ language sql immutable strict parallel safe;
 
