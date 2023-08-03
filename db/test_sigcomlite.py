@@ -1,7 +1,8 @@
 import os
 import re
+import json
 import pytest
-import psycopg2
+import psycopg2, psycopg2.extras
 try:
   from dotenv import load_dotenv; load_dotenv()
 except ImportError:
@@ -10,12 +11,16 @@ except ImportError:
 class PlPyCompat:
   ''' An object that works like `plpy` does when running over plpython3u
   '''
-  def __init__(self, *args, **kwargs) -> None:
-    self.conn = psycopg2.connect(*args, **kwargs)
+  def __init__(self, conn) -> None:
+    self.conn = conn
   def cursor(self, query, args):
-    with self.conn.cursor() as cur:
+    with self.conn.cursor(cursor_factory=psycopg2.extras.DictCursor) as cur:
       cur.execute(query, args)
-      yield from cur.fetchall()
+      for row in cur.fetchall():
+        yield {
+          k: json.dumps(v) if type(v) == dict else v
+          for k, v in row.items()
+        }
   def execute(self, query, args):
     with self.conn.cursor() as cur:
       cur.execute(query, args)
@@ -24,4 +29,5 @@ class PlPyCompat:
 
 @pytest.fixture()
 def plpy():
-  return PlPyCompat(os.environ['DATABASE_URL'])
+  conn = psycopg2.connect(os.environ['DATABASE_URL'])
+  return PlPyCompat(conn)
