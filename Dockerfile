@@ -3,7 +3,6 @@ WORKDIR /app
 ADD package.json .
 ADD package-lock.json .
 RUN npm i
-ADD public .
-ADD src .
+ADD . .
 RUN npm run build
 CMD ["npm", "start"]
