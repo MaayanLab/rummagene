@@ -25,32 +25,30 @@ python ingest.py -i your-gmt.gmt -n 'Your GMT' -d 'Your description'
 
 ## Example Queries
 ```gql
-# Add a gene set library to the database
-mutation ImportGeneSetLibrary($downloadUrl: String, $name: String, $description: String) {
-  importGeneSetLibrary(
-    input: {downloadUrl: $downloadUrl, name: $name, description: $description}
-  ) {
-    geneSetLibrary {
-      id
-    }
-  }
-}
-
 # Perform enrichment analysis against a specific library
 query EnrichmentQuery($libraryName: String, $genes: [String]) {
-  allGeneSetLibraries(condition: {name: $libraryName}) {
+  geneSetLibraries(condition: {name: $libraryName}) {
     nodes {
-      enrich(genes: $genes, returnOverlapGeneIds: true) {
-        nodes {
-          pvalue
-          adjPvalue
-          overlap
-          geneSet {
-            term
-          }
-          overlapGenes {
-            nodes {
-              symbol
+      enrichFixedBackgroundSize(
+        genes: $genes
+        pvalueLessThan: 1
+        adjPvalueLessThan: 1
+        overlapGreaterThan: "0"
+        backgroundSize: "20000"
+        first: 10
+      ) {
+        edges {
+          node {
+            pvalue
+            adjPvalue
+            oddsRatio
+            geneSet {
+              term
+            }
+            overlapGenes {
+              nodes {
+                symbol
+              }
             }
           }
         }
@@ -64,7 +62,7 @@ query GeneSetGeneSearch($genes: [String]) {
   geneSetGeneSearch(genes: $genes) {
     nodes {
       term
-      geneSetLibraryByLibraryId {
+      library {
         name
       }
     }
@@ -76,11 +74,10 @@ query GeneSetTermSearch($terms: [String]) {
   geneSetTermSearch(terms: $terms) {
     nodes {
       term
-      geneSetLibraryByLibraryId {
+      library {
         name
       }
     }
   }
 }
-
 ```
