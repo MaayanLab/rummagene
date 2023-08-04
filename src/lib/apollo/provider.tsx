@@ -14,7 +14,17 @@ function makeClient() {
   });
 
   return new NextSSRApolloClient({
-    cache: new NextSSRInMemoryCache(),
+    cache: new NextSSRInMemoryCache({
+      typePolicies: {
+        Query: {
+          fields: {
+            geneSetLibraries: {
+              merge: true
+            }
+          }
+        }
+      }
+    }),
     link:
       typeof window === 'undefined'
         ? ApolloLink.from([
