@@ -1,9 +1,9 @@
 'use client'
-import client from '@/lib/apollo-client'
-import { useGeneSetLibrariesQuery } from "@/graphql"
+import { useSuspenseQuery } from '@apollo/experimental-nextjs-app-support/ssr'
+import { GeneSetLibrariesQuery, GeneSetLibrariesDocument } from "@/graphql"
 
 export default function LibrariesPage() {
-  const { data } = useGeneSetLibrariesQuery({ client })
+  const { data } = useSuspenseQuery<GeneSetLibrariesQuery>(GeneSetLibrariesDocument)
   return (
     <div className="overflow-x">
       <table className="table table-sm">

@@ -10,7 +10,8 @@
     "generate": "graphql-codegen --config graphql.config.yml"
   },
   "dependencies": {
-    "@apollo/client": "^3.7.17",
+    "@apollo/client": "^3.8.0-rc.2",
+    "@apollo/experimental-nextjs-app-support": "^0.4.1",
     "@graphile-contrib/pg-simplify-inflector": "^6.1.0",
     "@types/node": "20.4.6",
     "@types/react": "18.2.18",

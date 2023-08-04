@@ -1,8 +1,12 @@
 'use client'
 import React from 'react'
-import classNames from 'classnames'
-import client from '@/lib/apollo-client'
-import { useEnrichmentQueryQuery, useFetchUserGeneSetQuery } from "@/graphql"
+import { useSuspenseQuery } from '@apollo/experimental-nextjs-app-support/ssr'
+import {
+  EnrichmentQueryDocument,
+  EnrichmentQueryQuery,
+  FetchUserGeneSetDocument,
+  FetchUserGeneSetQuery
+} from '@/graphql'
 import ensureArray from "@/utils/ensureArray"
 import LinkedTerm from '@/components/linkedTerm'
 
@@ -14,13 +18,11 @@ export default function Enrich({
   },
 }) {
   const dataset = ensureArray(searchParams.dataset)[0]
-  const { data: userGeneSet, loading: userGeneSetLoading } = useFetchUserGeneSetQuery({
-    client,
+  const { data: userGeneSet } = useSuspenseQuery<FetchUserGeneSetQuery>(FetchUserGeneSetDocument, {
     skip: !dataset,
     variables: { id: dataset },
   })
-  const { data: enrichmentResults, loading: enrichmentResultsLoading } = useEnrichmentQueryQuery({
-    client,
+  const { data: enrichmentResults } = useSuspenseQuery<EnrichmentQueryQuery>(EnrichmentQueryDocument, {
     skip: !userGeneSet?.userGeneSet?.genes,
     variables: {
       genes: ensureArray(userGeneSet?.userGeneSet?.genes).filter((gene): gene is string => !!gene).map(gene => gene.toUpperCase()),
@@ -43,7 +45,6 @@ export default function Enrich({
         >{userGeneSet?.userGeneSet?.description || 'Gene set'} ({userGeneSet?.userGeneSet?.genes?.length ?? '?'} genes)</label>
 
       </div>
-      <progress className={classNames("progress w-full", { 'hidden': !userGeneSetLoading && !enrichmentResultsLoading })}></progress>
       <div className="flex flex-row flex-wrap">
         {enrichmentResults?.geneSetLibraries?.nodes.map((geneSetLibrary, i) => (
           <div key={i} className="collapse collapse-arrow">

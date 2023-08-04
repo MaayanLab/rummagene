@@ -1,7 +1,7 @@
 'use client'
 import React from 'react'
-import client from '@/lib/apollo-client'
-import { useGeneSetLibraryGeneSearchQuery } from "@/graphql"
+import { useSuspenseQuery } from '@apollo/experimental-nextjs-app-support/ssr'
+import { GeneSetLibraryGeneSearchDocument, GeneSetLibraryGeneSearchQuery } from '@/graphql'
 import ensureArray from '@/utils/ensureArray'
 import { useRouter } from 'next/navigation'
 import LinkedTerm from '@/components/linkedTerm'
@@ -15,9 +15,11 @@ export default function GeneSearchPage({
 }) {
   const router = useRouter()
   const [genes, setGenes] = React.useState(ensureArray(searchParams.q)[0] ?? '')
-  const { data } = useGeneSetLibraryGeneSearchQuery({ client, variables: {
-    genes: ensureArray(searchParams.q)
-  } })
+  const { data } = useSuspenseQuery<GeneSetLibraryGeneSearchQuery>(GeneSetLibraryGeneSearchDocument, {
+    variables: {
+      genes: ensureArray(searchParams.q)
+    }
+  })
   return (
     <>
       <form

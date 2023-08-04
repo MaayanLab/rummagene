@@ -1,6 +1,5 @@
 'use client'
 import React from 'react'
-import client from '@/lib/apollo-client'
 import example from './example.json'
 import uniqueArray from '@/utils/uniqueArray'
 import { useAddUserGeneSetMutation } from '@/graphql'
@@ -11,7 +10,7 @@ export default function InputForm() {
   const router = useRouter()
   const [rawGenes, setRawGenes] = React.useState('')
   const genes = React.useMemo(() => uniqueArray(rawGenes.split(/[;,\t\r\n\s]+/).filter(v => v)), [rawGenes])
-  const [addUserGeneSetMutation, { loading, error }] = useAddUserGeneSetMutation({ client })
+  const [addUserGeneSetMutation, { loading, error }] = useAddUserGeneSetMutation()
   return (
     <>
       <h1 className="text-xl">Input data</h1>
