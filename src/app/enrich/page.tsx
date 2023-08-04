@@ -1,9 +1,10 @@
 'use client'
 import React from 'react'
+import classNames from 'classnames'
 import client from '@/lib/apollo-client'
 import { useEnrichmentQueryQuery, useFetchUserGeneSetQuery } from "@/graphql"
 import ensureArray from "@/utils/ensureArray"
-import classNames from 'classnames'
+import LinkedTerm from '@/components/linkedTerm'
 
 export default function Enrich({
   searchParams
@@ -64,7 +65,7 @@ export default function Enrich({
                 <tbody>
                   {geneSetLibrary.enrichLibraryBackground.nodes.map((enrichmentResult, j) => (
                     <tr key={j}>
-                      <th>{enrichmentResult.geneSet?.term ?? null}</th>
+                      <th><LinkedTerm term={enrichmentResult.geneSet?.term} /></th>
                       <td className="whitespace-nowrap text-underline cursor-pointer">
                         <label
                           htmlFor="geneSetModal"
@@ -101,7 +102,7 @@ export default function Enrich({
       <div className="modal">
         <div className="modal-box">
           <h3 className="text-lg font-bold">
-            {modelGeneSet?.description}
+            <LinkedTerm term={modelGeneSet?.description} />
           </h3>
           <textarea
             className="w-full"

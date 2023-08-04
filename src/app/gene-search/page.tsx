@@ -4,6 +4,7 @@ import client from '@/lib/apollo-client'
 import { useGeneSetLibraryGeneSearchQuery } from "@/graphql"
 import ensureArray from '@/utils/ensureArray'
 import { useRouter } from 'next/navigation'
+import LinkedTerm from '@/components/linkedTerm'
 
 export default function GeneSearchPage({
   searchParams
@@ -52,7 +53,7 @@ export default function GeneSearchPage({
                 <ul>
                   {geneSetLibrary.geneSearch.nodes.map((geneSet, j) => (
                     <li key={j}>
-                      {geneSet.term}
+                      <LinkedTerm term={geneSet.term} />
                     </li>
                   ))}
                 </ul>
