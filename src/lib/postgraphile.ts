@@ -28,7 +28,11 @@ export default postgraphile(
     },
     pgSettings(req) {
       const role = req.headers.authorization === AUTHORIZATION_HEADER ? 'authenticated' : 'guest'
-      return { role }
+      return {
+        role,
+        // this increases the performance of Gene search substantially
+        random_page_cost: 1.1,
+      }
     }
   }
 )

@@ -33,13 +33,13 @@ query FetchUserGeneSet($id: UUID!) {
 }
 
 # Perform enrichment analysis against a specific library
-query EnrichmentQuery($genes: [String]!, $offset: Int = 0, $first: Int = 10) {
+query EnrichmentQuery($genes: [String]!, $overlapGreaterThan: BigInt = "0", $offset: Int = 0, $first: Int = 10) {
   geneSetLibraries {
     nodes {
       name
       enrichLibraryBackground(
         genes: $genes
-        overlapGreaterThan: "0"
+        overlapGreaterThan: $overlapGreaterThan
         offset: $offset
         first: $first
       ) {

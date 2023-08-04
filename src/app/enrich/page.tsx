@@ -11,10 +11,16 @@ import ensureArray from "@/utils/ensureArray"
 import LinkedTerm from '@/components/linkedTerm'
 
 function EnrichmentResults({ userGeneSet, setModelGeneSet }: { userGeneSet?: FetchUserGeneSetQuery, setModelGeneSet: any }) {
+  const genes = React.useMemo(() =>
+    ensureArray(userGeneSet?.userGeneSet?.genes).filter((gene): gene is string => !!gene).map(gene => gene.toUpperCase()),
+    [userGeneSet]
+  )
   const { data: enrichmentResults } = useSuspenseQuery<EnrichmentQueryQuery>(EnrichmentQueryDocument, {
-    skip: !userGeneSet?.userGeneSet?.genes,
+    skip: genes.length === 0,
     variables: {
-      genes: ensureArray(userGeneSet?.userGeneSet?.genes).filter((gene): gene is string => !!gene).map(gene => gene.toUpperCase()),
+      genes,
+      // TODO: not ideal since it can lose some results, but speeds it up
+      overlapGreaterThan: Math.floor(0.05*genes.length),
     }
   })
   return (
