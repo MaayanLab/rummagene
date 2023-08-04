@@ -50,7 +50,7 @@ export default function GeneSearchPage({
   [searchParams.q])
   const [rawTerms, setRawTerms] = React.useState(terms.join(' '))
   return (
-    <div className="mx-64">
+    <>
       <form
         onSubmit={evt => {
           evt.preventDefault()
@@ -74,6 +74,6 @@ export default function GeneSearchPage({
       <React.Suspense fallback={<div className="text-center"><span className="loading loading-ring loading-lg"></span></div>}>
         <TermSearchResults terms={terms} />
       </React.Suspense>
-    </div>
+    </>
   )
 }

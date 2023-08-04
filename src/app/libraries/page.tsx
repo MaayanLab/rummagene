@@ -5,7 +5,7 @@ import { GeneSetLibrariesQuery, GeneSetLibrariesDocument } from "@/graphql"
 export default function LibrariesPage() {
   const { data } = useSuspenseQuery<GeneSetLibrariesQuery>(GeneSetLibrariesDocument)
   return (
-    <div className="mx-64">
+    <>
       <div className="overflow-x">
         <table className="table table-sm">
           <thead>
@@ -28,6 +28,6 @@ export default function LibrariesPage() {
           </tbody>
         </table>
       </div>
-    </div>
+    </>
   )
 }
