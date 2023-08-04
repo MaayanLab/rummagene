@@ -125,6 +125,17 @@ def import_gene_set_library(
       for new_gene in new_genes.values()
     })
 
+  if append:
+    existing_terms = {
+      row['term']
+      for row in plpy.cursor(
+        plpy.prepare('select term from app_public.gene_set where library_id = $1', ['uuid']),
+        [gene_set_library['id']]
+      )
+    }
+  else:
+    existing_terms = set()
+
   copy_from_records(
     plpy.conn, 'app_public.gene_set', ('id', 'library_id', 'term',),
     tqdm((
@@ -134,6 +145,7 @@ def import_gene_set_library(
         term=gene_set['term'],
       )
       for gene_set in new_gene_sets
+      if gene_set['term'] not in existing_terms
     ),
     total=len(new_gene_sets),
     desc='Inserting new genesets...'),
@@ -146,6 +158,7 @@ def import_gene_set_library(
         gene_id=gene_id,
       )
       for gene_set in new_gene_sets
+      if gene_set['term'] not in existing_terms
       for gene_id in set(
         gene_id_map[gene]
         for gene in gene_set['genes']
