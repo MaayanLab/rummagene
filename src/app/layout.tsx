@@ -38,7 +38,7 @@ export default function RootLayout({
                 </React.Suspense>
               </div>
             </div>
-            <div className="mx-auto">
+            <div className="container mx-auto">
               <React.Suspense fallback={<span className="loading loading-ring loading-lg"></span>}>
                 {children}
               </React.Suspense>
