@@ -52,6 +52,7 @@ export default function GeneSearchPage({
   return (
     <>
       <form
+        className="flex flex-row items-center gap-2"
         onSubmit={evt => {
           evt.preventDefault()
           router.push(`/term-search?q=${encodeURIComponent(rawTerms)}`, {
@@ -59,8 +60,11 @@ export default function GeneSearchPage({
           })
         }}
       >
-        Term: <input
+        <span className="label-text text-lg">Term</span>
+        <input
           type="text"
+          className="input input-bordered"
+          placeholder="STAT3"
           value={rawTerms}
           onChange={evt => {
             setRawTerms(evt.currentTarget.value)
@@ -68,8 +72,8 @@ export default function GeneSearchPage({
         />
         <button
           type="submit"
-          className="btn"
-        >Find knowledge</button>
+          className="btn normal-case"
+        >Search gene sets</button>
       </form>
       <React.Suspense fallback={<div className="text-center"><span className="loading loading-ring loading-lg"></span></div>}>
         <TermSearchResults terms={terms} />
