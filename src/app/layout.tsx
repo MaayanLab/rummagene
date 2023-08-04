@@ -5,8 +5,8 @@ import Nav from './nav'
 import Stats from './stats'
 
 export const metadata: Metadata = {
-  title: 'PMC Enrichr',
-  description: 'Enrich PMC Articles',
+  title: 'BioTableMind',
+  description: 'Find published gene sets',
 }
 
 export default function RootLayout({
@@ -23,7 +23,7 @@ export default function RootLayout({
               <Link
                 className="btn btn-ghost normal-case text-xl"
                 href="/"
-              >PMC Enrichr</Link>
+              >BioTableMind</Link>
               <ul className="menu menu-horizontal gap-3">
                 <Nav />
               </ul>
