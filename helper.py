@@ -169,6 +169,7 @@ def import_gene_set_library(
   )
 
   plpy.execute('refresh materialized view concurrently app_public.gene_set_library_gene', [])
+  plpy.execute('refresh materialized view concurrently app_public.gene_set_pmc', [])
 
   return gene_set_library
 

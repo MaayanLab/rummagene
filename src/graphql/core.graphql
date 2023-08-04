@@ -19,7 +19,7 @@ query Stats {
   geneSets {
     totalCount
   }
-  geneSetLibraries {
+  pmcs {
     totalCount
   }
 }

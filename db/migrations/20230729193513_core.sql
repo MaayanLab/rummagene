@@ -577,6 +577,24 @@ $$ language sql immutable strict parallel safe;
 
 grant execute on function app_public.gene_set_library_enrich_result_overlap_genes to guest, authenticated;
 
+create materialized view app_public.gene_set_pmc as
+select gs.id, regexp_replace(gs.term, '^(^PMC\d+)(.*)$', '\1') as pmc
+from app_public.gene_set gs;
+comment on materialized view app_public.gene_set_pmc is E'@foreignKey (id) references app_public.gene_set (id)';
+
+create unique index gene_set_pmc_id_pmc_idx on app_public.gene_set_pmc (id, pmc);
+create index gene_set_pmc_id_idx on app_public.gene_set_pmc (id);
+create index gene_set_pmc_pmc_idx on app_public.gene_set_pmc (pmc);
+
+grant select on app_public.gene_set_pmc to guest;
+grant all privileges on app_public.gene_set_pmc to authenticated;
+
+create view app_public.pmc as select distinct pmc from app_public.gene_set_pmc;
+comment on view app_public.pmc is E'@foreignKey (pmc) references app_public.gene_set_pmc (pmc)';
+
+grant select on app_public.pmc to guest;
+grant all privileges on app_public.pmc to authenticated;
+
 -- migrate:down
 
 drop schema app_public cascade;
