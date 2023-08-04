@@ -12,7 +12,6 @@ export default function LibrariesPage() {
             <th>Gene-set Library</th>
             <th>Terms</th>
             <th>Gene Coverage</th>
-            <th>Genes per Term</th>
             <th></th>
           </tr>
         </thead>
@@ -20,9 +19,9 @@ export default function LibrariesPage() {
           {data?.geneSetLibraries?.nodes.map(library => (
             <tr key={library.name}>
               <td>{library.name}</td>
-              <td></td>
-              <td></td>
-              <td></td>
+              <td>{library.geneSetsByLibraryId.totalCount}</td>
+              <td>{library.backgroundGenes.totalCount}</td>
+              <td><button className="btn btn-ghost text-4xl">⭳</button></td>
             </tr>
           )) ?? null}
         </tbody>
