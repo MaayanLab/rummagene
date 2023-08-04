@@ -1,4 +1,5 @@
 import './globals.css'
+import React from 'react'
 import type { Metadata } from 'next'
 import Link from "next/link"
 import { ApolloWrapper } from '@/lib/apollo/provider'
@@ -32,11 +33,15 @@ export default function RootLayout({
               </div>
               <div className="flex-1"></div>
               <div className="flex-none flex-col place-items-end">
-                <Stats />
+                <React.Suspense fallback={<span className="loading loading-ring loading-lg"></span>}>
+                  <Stats />
+                </React.Suspense>
               </div>
             </div>
             <div className="mx-auto">
-              {children}
+              <React.Suspense fallback={<span className="loading loading-ring loading-lg"></span>}>
+                {children}
+              </React.Suspense>
             </div>
           </main>
           <footer className="flex-none footer p-10 bg-neutral text-neutral-content flex place-content-evenly">

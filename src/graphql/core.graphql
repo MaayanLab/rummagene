@@ -33,16 +33,15 @@ query FetchUserGeneSet($id: UUID!) {
 }
 
 # Perform enrichment analysis against a specific library
-query EnrichmentQuery($genes: [String]!) {
+query EnrichmentQuery($genes: [String]!, $offset: Int = 0, $first: Int = 10) {
   geneSetLibraries {
     nodes {
       name
       enrichLibraryBackground(
         genes: $genes
-        pvalueLessThan: 1
-        adjPvalueLessThan: 1
         overlapGreaterThan: "0"
-        first: 10
+        offset: $offset
+        first: $first
       ) {
         nodes {
           pvalue
@@ -57,34 +56,37 @@ query EnrichmentQuery($genes: [String]!) {
             }
           }
         }
+        totalCount
       }
     }
   }
 }
 
 # Gene search: find all genesets containing certain gene(s)
-query GeneSetLibraryGeneSearch($genes: [String]!) {
+query GeneSetLibraryGeneSearch($genes: [String]!, $offset: Int = 0, $first: Int = 10) {
   geneSetLibraries {
     nodes {
       name
-      geneSearch(genes: $genes) {
+      geneSearch(genes: $genes, offset: $offset, first: $first) {
         nodes {
           term
         }
+        totalCount
       }
     }
   }
 }
 
 # Term search: find all genesets containing certain term(s)
-query GeneSetLibraryTermSearch($terms: [String]!) {
+query GeneSetLibraryTermSearch($terms: [String]!, $offset: Int = 0, $first: Int = 10) {
   geneSetLibraries {
     nodes {
       name
-      termSearch(terms: $terms) {
+      termSearch(terms: $terms, offset: $offset, first: $first) {
         nodes {
           term
         }
+        totalCount
       }
     }
   }

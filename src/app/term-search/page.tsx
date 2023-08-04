@@ -6,6 +6,37 @@ import ensureArray from '@/utils/ensureArray'
 import { useRouter } from 'next/navigation'
 import LinkedTerm from '@/components/linkedTerm'
 
+function TermSearchResults({ terms }: { terms: string[] }) {
+  const { data } = useSuspenseQuery<GeneSetLibraryTermSearchQuery>(GeneSetLibraryTermSearchDocument, {
+    variables: {
+      terms
+    }
+  })
+  return (
+    <ul>
+      {data?.geneSetLibraries?.nodes
+        .filter(geneSetLibrary => geneSetLibrary.termSearch.nodes.length > 0)
+        .map((geneSetLibrary, i) => (
+          <div key={i} className="collapse collapse-plus">
+            <input type="checkbox" /> 
+            <div className="collapse-title text-xl font-medium">
+              {geneSetLibrary.name} ({geneSetLibrary.termSearch.totalCount})
+            </div>
+            <div className="collapse-content"> 
+              <ul>
+                {geneSetLibrary.termSearch.nodes.map((geneSet, j) => (
+                  <li key={j}>
+                    <LinkedTerm term={geneSet.term} />
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+      )) ?? null}
+    </ul>
+  )
+}
+
 export default function GeneSearchPage({
   searchParams
 }: {
@@ -14,27 +45,25 @@ export default function GeneSearchPage({
   },
 }) {
   const router = useRouter()
-  const [terms, setTerms] = React.useState(ensureArray(searchParams.q)[0] ?? '')
-  const { data } = useSuspenseQuery<GeneSetLibraryTermSearchQuery>(GeneSetLibraryTermSearchDocument, {
-    variables: {
-      terms: ensureArray(searchParams.q)
-    }
-  })
+  const terms = React.useMemo(() =>
+    ensureArray(searchParams.q).flatMap(el => el.split(/\s+/g)),
+  [searchParams.q])
+  const [rawTerms, setRawTerms] = React.useState(terms.join(' '))
   return (
     <>
       <form
         onSubmit={evt => {
           evt.preventDefault()
-          router.push(`/term-search?q=${terms}`, {
+          router.push(`/term-search?q=${encodeURIComponent(rawTerms)}`, {
             scroll: false,
           })
         }}
       >
         Term: <input
           type="text"
-          value={terms}
+          value={rawTerms}
           onChange={evt => {
-            setTerms(evt.currentTarget.value)
+            setRawTerms(evt.currentTarget.value)
           }}
         />
         <button
@@ -42,27 +71,9 @@ export default function GeneSearchPage({
           className="btn"
         >Find knowledge</button>
       </form>
-      <ul>
-        {data?.geneSetLibraries?.nodes
-          .filter(geneSetLibrary => geneSetLibrary.termSearch.nodes.length > 0)
-          .map((geneSetLibrary, i) => (
-            <div key={i} className="collapse collapse-plus">
-              <input type="checkbox" /> 
-              <div className="collapse-title text-xl font-medium">
-                {geneSetLibrary.name} ({geneSetLibrary.termSearch.nodes.length})
-              </div>
-              <div className="collapse-content"> 
-                <ul>
-                  {geneSetLibrary.termSearch.nodes.map((geneSet, j) => (
-                    <li key={j}>
-                      <LinkedTerm term={geneSet.term} />
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-        )) ?? null}
-      </ul>
+      <React.Suspense fallback={<div className="text-center"><span className="loading loading-ring loading-lg"></span></div>}>
+        <TermSearchResults terms={terms} />
+      </React.Suspense>
     </>
   )
 }

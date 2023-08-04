@@ -10,6 +10,62 @@ import {
 import ensureArray from "@/utils/ensureArray"
 import LinkedTerm from '@/components/linkedTerm'
 
+function EnrichmentResults({ userGeneSet, setModelGeneSet }: { userGeneSet?: FetchUserGeneSetQuery, setModelGeneSet: any }) {
+  const { data: enrichmentResults } = useSuspenseQuery<EnrichmentQueryQuery>(EnrichmentQueryDocument, {
+    skip: !userGeneSet?.userGeneSet?.genes,
+    variables: {
+      genes: ensureArray(userGeneSet?.userGeneSet?.genes).filter((gene): gene is string => !!gene).map(gene => gene.toUpperCase()),
+    }
+  })
+  return (
+    <div className="flex flex-row flex-wrap">
+      {enrichmentResults?.geneSetLibraries?.nodes.map((geneSetLibrary, i) => (
+        <div key={i} className="collapse collapse-arrow">
+          <input type="checkbox" defaultChecked /> 
+          <h2 className="collapse-title text-xl font-medium">
+            {geneSetLibrary.name} ({geneSetLibrary.enrichLibraryBackground.totalCount})
+          </h2>
+          <div className="collapse-content overflow-x-auto">
+            <table className="table table-xs">
+              <thead>
+                <tr>
+                  <th>Term</th>
+                  <th>Overlap</th>
+                  <th>Odds</th>
+                  <th>PValue</th>
+                  <th>AdjPValue</th>
+                </tr>
+              </thead>
+              <tbody>
+                {geneSetLibrary.enrichLibraryBackground.nodes.map((enrichmentResult, j) => (
+                  <tr key={j}>
+                    <th><LinkedTerm term={enrichmentResult.geneSet?.term} /></th>
+                    <td className="whitespace-nowrap text-underline cursor-pointer">
+                      <label
+                        htmlFor="geneSetModal"
+                        className="prose underline cursor-pointer"
+                        onClick={evt => {
+                          setModelGeneSet({
+                            genes: enrichmentResult.overlapGenes.nodes.map(gene => gene.symbol) ?? [],
+                            description: enrichmentResult.geneSet?.term ?? '',
+                          })
+                        }}
+                      >{enrichmentResult.overlapGenes.nodes.length}</label>
+                    </td>
+                    <td className="whitespace-nowrap">{enrichmentResult.oddsRatio?.toPrecision(3)}</td>
+                    <td className="whitespace-nowrap">{enrichmentResult.pvalue?.toPrecision(3)}</td>
+                    <td className="whitespace-nowrap">{enrichmentResult.adjPvalue?.toPrecision(3)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )) ?? null}
+    </div>
+  )
+}
+
 export default function Enrich({
   searchParams
 }: {
@@ -21,12 +77,6 @@ export default function Enrich({
   const { data: userGeneSet } = useSuspenseQuery<FetchUserGeneSetQuery>(FetchUserGeneSetDocument, {
     skip: !dataset,
     variables: { id: dataset },
-  })
-  const { data: enrichmentResults } = useSuspenseQuery<EnrichmentQueryQuery>(EnrichmentQueryDocument, {
-    skip: !userGeneSet?.userGeneSet?.genes,
-    variables: {
-      genes: ensureArray(userGeneSet?.userGeneSet?.genes).filter((gene): gene is string => !!gene).map(gene => gene.toUpperCase()),
-    }
   })
   const [modelGeneSet, setModelGeneSet] = React.useState<{ description: string, genes: string[] }>()
   return (
@@ -43,52 +93,11 @@ export default function Enrich({
             })
           }}
         >{userGeneSet?.userGeneSet?.description || 'Gene set'} ({userGeneSet?.userGeneSet?.genes?.length ?? '?'} genes)</label>
-
       </div>
-      <div className="flex flex-row flex-wrap">
-        {enrichmentResults?.geneSetLibraries?.nodes.map((geneSetLibrary, i) => (
-          <div key={i} className="collapse collapse-arrow">
-            <input type="checkbox" defaultChecked /> 
-            <h2 className="collapse-title text-xl font-medium">
-              {geneSetLibrary.name}
-            </h2>
-            <div className="collapse-content overflow-x-auto">
-              <table className="table table-xs">
-                <thead>
-                  <tr>
-                    <th>Term</th>
-                    <th>Overlap</th>
-                    <th>Odds</th>
-                    <th>PValue</th>
-                    <th>AdjPValue</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {geneSetLibrary.enrichLibraryBackground.nodes.map((enrichmentResult, j) => (
-                    <tr key={j}>
-                      <th><LinkedTerm term={enrichmentResult.geneSet?.term} /></th>
-                      <td className="whitespace-nowrap text-underline cursor-pointer">
-                        <label
-                          htmlFor="geneSetModal"
-                          className="prose underline cursor-pointer"
-                          onClick={evt => {
-                            setModelGeneSet({
-                              genes: enrichmentResult.overlapGenes.nodes.map(gene => gene.symbol) ?? [],
-                              description: enrichmentResult.geneSet?.term ?? '',
-                            })
-                          }}
-                        >{enrichmentResult.overlapGenes.nodes.length}</label>
-                      </td>
-                      <td className="whitespace-nowrap">{enrichmentResult.oddsRatio?.toPrecision(3)}</td>
-                      <td className="whitespace-nowrap">{enrichmentResult.pvalue?.toPrecision(3)}</td>
-                      <td className="whitespace-nowrap">{enrichmentResult.adjPvalue?.toPrecision(3)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )) ?? null}
+      <div className="container mx-auto">
+        <React.Suspense fallback={<div className="text-center"><span className="loading loading-ring loading-lg"></span></div>}>
+          <EnrichmentResults userGeneSet={userGeneSet} setModelGeneSet={setModelGeneSet} />
+        </React.Suspense>
       </div>
       <input
         type="checkbox"
