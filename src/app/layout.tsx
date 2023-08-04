@@ -16,8 +16,8 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>
-        <main className="flex flex-col">
+      <body className="min-h-screen flex flex-col">
+        <main className="flex-1 flex flex-col">
           <div className="navbar">
             <div className="flex flex-col items-start">
               <Link
@@ -33,10 +33,27 @@ export default function RootLayout({
               <Stats />
             </div>
           </div>
-          <div className="container mx-auto">
+          <div className="mx-auto">
             {children}
           </div>
         </main>
+        <footer className="flex-none footer p-10 bg-neutral text-neutral-content flex place-content-evenly">
+          <div className="text-center">
+            <ul>
+              <li><Link href="/">Contact Us</Link></li>
+              <li><Link href="/">Usage License</Link></li>
+            </ul>
+          </div>
+          <div className="text-center">
+            <p><Link href="https://labs.icahn.mssm.edu/maayanlab/">Ma&apos;yan Lab</Link></p>
+          </div>
+          <div className="text-center">
+            <ul>
+              <li><Link href="/">View Source Code</Link></li>
+              <li><Link href="/">Submit an Issue</Link></li>
+            </ul>
+          </div> 
+        </footer>
       </body>
     </html>
   )

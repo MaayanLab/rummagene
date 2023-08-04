@@ -44,7 +44,7 @@ export default function GeneSearchPage({
         {data?.geneSetLibraries?.nodes
           .filter(geneSetLibrary => geneSetLibrary.termSearch.nodes.length > 0)
           .map((geneSetLibrary, i) => (
-            <div key={i} className="collapse collapse-plus bg-base-200">
+            <div key={i} className="collapse collapse-plus">
               <input type="checkbox" /> 
               <div className="collapse-title text-xl font-medium">
                 {geneSetLibrary.name} ({geneSetLibrary.termSearch.nodes.length})
