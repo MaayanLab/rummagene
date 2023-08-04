@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "concurrently \"next dev\" \"npm run generate -- --watch ./src/graphql/**/*.graphql\"",
-    "build": "next build",
+    "build": "concurrently -k -s first \"next build\" \"npm run start:graphql\"",
+    "start:graphql": "npx ts-node src/cli/graphql.ts",
     "start": "next start",
     "lint": "next lint",
     "generate": "graphql-codegen --config graphql.config.yml"
@@ -18,6 +19,7 @@
     "@types/react-dom": "18.2.7",
     "autoprefixer": "10.4.14",
     "classnames": "^2.3.2",
+    "dotenv": "^16.3.1",
     "eslint": "8.46.0",
     "eslint-config-next": "13.4.12",
     "graphql": "^15.8.0",
@@ -39,6 +41,8 @@
     "@parcel/watcher": "^2.2.0",
     "@types/uuid": "^9.0.2",
     "concurrently": "^8.2.0",
-    "daisyui": "^3.5.1"
+    "daisyui": "^3.5.1",
+    "ts-node": "^10.9.1",
+    "tsconfig-paths": "^4.2.0"
   }
 }
