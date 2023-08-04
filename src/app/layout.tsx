@@ -52,7 +52,7 @@ export default function RootLayout({
               </ul>
             </div>
             <div className="text-center">
-              <p><Link href="https://labs.icahn.mssm.edu/maayanlab/">Ma&apos;yan Lab</Link></p>
+              <p><Link href="https://labs.icahn.mssm.edu/maayanlab/">Ma&apos;ayan Lab</Link></p>
             </div>
             <div className="text-center">
               <ul>
