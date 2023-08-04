@@ -5,6 +5,11 @@ module.exports = {
     './src/components/**/*.{js,ts,jsx,tsx,mdx}',
     './src/app/**/*.{js,ts,jsx,tsx,mdx}',
   ],
-  theme: {},
+  theme: {
+    fontFamily: {
+      sans: ["Comic Sans MS", "Comic Sans", "system-ui"],
+      mono: ["Comic Mono", "system-ui"],
+    }
+  },
   plugins: [require("daisyui")],
 }
