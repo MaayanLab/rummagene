@@ -149,6 +149,7 @@ select distinct gsl.id as library_id, gsg.gene_id
 from app_public.gene_set_library gsl
 inner join app_public.gene_set gs on gs.library_id = gsl.id
 inner join app_public.gene_set_gene gsg on gsg.gene_set_id = gs.id;
+comment on materialized view app_public.gene_set_library_gene is E'@foreignKey (library_id) references app_public.gene_set_library (id)\n@foreignKey (gene_id) references app_public.gene (id)';
 
 create index gene_set_library_gene_library_id_idx on app_public.gene_set_library_gene (library_id);
 create index gene_set_library_gene_gene_id_idx on app_public.gene_set_library_gene (gene_id);
@@ -442,9 +443,12 @@ as $$
     r.pvalue,
     r.adj_pvalue
   from
-    vectorized,
-    internal.fishers_exact(vectorized.ids, vectorized.a, vectorized.b, vectorized.c, vectorized.d, vectorized.n, fdr, pvalue_less_than, adj_pvalue_less_than) r
-    left join overlap o on o.gene_set_id = r.id
+    overlap o
+    inner join (
+      select r.*
+      from vectorized, internal.fishers_exact(vectorized.ids, vectorized.a, vectorized.b, vectorized.c, vectorized.d, vectorized.n, fdr, pvalue_less_than, adj_pvalue_less_than) r
+    ) r on o.gene_set_id = r.id
+  order by r.pvalue asc
   ;
 $$ language sql immutable strict parallel safe security definer;
 

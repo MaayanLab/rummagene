@@ -31,10 +31,10 @@ def fishers_exact(
   except:
     adj_pvalues = np.ones(len(pvalues))
   pvalues = np.nan_to_num(pvalues, nan=1.0)
-  for i in np.argsort(pvalues):
-    if pvalues[i] <= pvalue_less_than and adj_pvalues[i] <= adj_pvalue_less_than and i < len(ids):
+  for i, id in enumerate(ids):
+    if pvalues[i] <= pvalue_less_than and adj_pvalues[i] <= adj_pvalue_less_than:
       yield dict(
-        id=ids[i],
+        id=id,
         pvalue=pvalues[i],
         adj_pvalue=adj_pvalues[i],
       )
