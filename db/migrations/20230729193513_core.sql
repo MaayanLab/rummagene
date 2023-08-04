@@ -191,7 +191,7 @@ $$ language sql immutable strict parallel safe;
 grant execute on function app_public.gene_set_library_term_search to guest, authenticated;
 
 -- This function can be used to return all gene sets containing some set of genes
-create or replace function app_public.gene_set_gene_search returns setof app_public.gene_set
+create or replace function app_public.gene_set_gene_search(genes varchar[]) returns setof app_public.gene_set
 as $$
   select distinct gs.*
   from
