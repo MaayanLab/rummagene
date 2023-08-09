@@ -1,14 +1,13 @@
 'use client'
-import { useSuspenseQuery } from '@apollo/experimental-nextjs-app-support/ssr'
-import { StatsDocument, StatsQuery } from '@/graphql'
+import { useStatsQuery } from '@/graphql'
 
 export default function Stats() {
-  const { data } = useSuspenseQuery<StatsQuery>(StatsDocument)
+  const { data } = useStatsQuery({ pollInterval: 601000 })
   return (
     <>
-      <div><span className="font-bold">{data?.userGeneSets?.totalCount ?? '?'}</span> sets analyzed</div>
-      <div><span className="font-bold">{data?.geneSets?.totalCount ?? '?'}</span> gene sets</div>
-      <div><span className="font-bold">{data?.pmcs?.totalCount ?? '?'}</span> papers</div>
+      {data?.userGeneSets?.totalCount ? <div><span className="font-bold">{data.userGeneSets.totalCount}</span> sets analyzed</div> : null}
+      {data?.geneSets?.totalCount ? <div><span className="font-bold">{data.geneSets.totalCount}</span> gene sets</div> : null}
+      {data?.pmcs?.totalCount ? <div><span className="font-bold">{data.pmcs.totalCount}</span> papers</div> : null}
     </>
   )
 }
