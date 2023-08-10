@@ -2,10 +2,9 @@
 import React from 'react'
 import { useSuspenseQuery } from '@apollo/experimental-nextjs-app-support/ssr'
 import {
-  EnrichmentQueryDocument,
-  EnrichmentQueryQuery,
   FetchUserGeneSetDocument,
-  FetchUserGeneSetQuery
+  FetchUserGeneSetQuery,
+  useEnrichmentQueryQuery
 } from '@/graphql'
 import ensureArray from "@/utils/ensureArray"
 import LinkedTerm from '@/components/linkedTerm'
@@ -15,13 +14,13 @@ function EnrichmentResults({ userGeneSet, setModelGeneSet }: { userGeneSet?: Fet
     ensureArray(userGeneSet?.userGeneSet?.genes).filter((gene): gene is string => !!gene).map(gene => gene.toUpperCase()),
     [userGeneSet]
   )
-  const { data: enrichmentResults } = useSuspenseQuery<EnrichmentQueryQuery>(EnrichmentQueryDocument, {
+  const { data: enrichmentResults } = useEnrichmentQueryQuery({
     skip: genes.length === 0,
     variables: {
       genes,
       // TODO: not ideal since it can lose some results, but speeds it up
       overlapGreaterThan: Math.floor(0.05*genes.length),
-    }
+    },
   })
   return (
     <div className="flex flex-row flex-wrap">
@@ -67,7 +66,7 @@ function EnrichmentResults({ userGeneSet, setModelGeneSet }: { userGeneSet?: Fet
             </table>
           </div>
         </div>
-      )) ?? null}
+      )) ?? <div className="text-center"><span className="loading loading-ring loading-lg"></span></div>}
     </div>
   )
 }
