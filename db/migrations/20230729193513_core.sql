@@ -448,8 +448,7 @@ as $$
       select r.*
       from vectorized, internal.fishers_exact(vectorized.ids, vectorized.a, vectorized.b, vectorized.c, vectorized.d, vectorized.n, fdr, pvalue_less_than, adj_pvalue_less_than) r
     ) r on o.gene_set_id = r.id
-  order by r.pvalue asc
-  ;
+  order by r.pvalue asc;
 $$ language sql immutable strict parallel safe security definer;
 
 grant execute on function app_public.gene_set_library_enrich_fixed_background_size to guest, authenticated;
@@ -497,10 +496,12 @@ as $$
     r.pvalue,
     r.adj_pvalue
   from
-    vectorized,
-    internal.fishers_exact(vectorized.ids, vectorized.a, vectorized.b, vectorized.c, vectorized.d, vectorized.n, fdr, pvalue_less_than, adj_pvalue_less_than) r
-    left join overlap o on o.gene_set_id = r.id
-  ;
+    overlap o
+    inner join (
+      select r.*
+      from vectorized, internal.fishers_exact(vectorized.ids, vectorized.a, vectorized.b, vectorized.c, vectorized.d, vectorized.n, fdr, pvalue_less_than, adj_pvalue_less_than) r
+    ) r on o.gene_set_id = r.id
+  order by r.pvalue asc;
 $$ language sql immutable strict parallel safe security definer;
 
 grant execute on function app_public.gene_set_library_enrich_library_background to guest, authenticated;
@@ -549,10 +550,12 @@ as $$
     r.pvalue,
     r.adj_pvalue
   from
-    vectorized,
-    internal.fishers_exact(vectorized.ids, vectorized.a, vectorized.b, vectorized.c, vectorized.d, vectorized.n, fdr, pvalue_less_than, adj_pvalue_less_than) r
-    left join overlap o on o.gene_set_id = r.id
-  ;
+    overlap o
+    inner join (
+      select r.*
+      from vectorized, internal.fishers_exact(vectorized.ids, vectorized.a, vectorized.b, vectorized.c, vectorized.d, vectorized.n, fdr, pvalue_less_than, adj_pvalue_less_than) r
+    ) r on o.gene_set_id = r.id
+  order by r.pvalue asc;
 $$ language sql immutable strict parallel safe security definer;
 
 grant execute on function app_public.gene_set_library_enrich_user_background to guest, authenticated;
