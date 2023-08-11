@@ -36,3 +36,9 @@ See `src/graphql/core.graphql`
   - DOIs can be used to extract more information with datacite
   - [ ] use this information to enrich the website
 - [ ] proper pagination support throughout the UI
+
+## Future Directions
+I expect to work on this when I get back - daniel
+
+- [ ] originally I was using gene_ids in a jsonb field, I want to go back to this since it's simpler, faster to load, & performs better, the only reason I moved to fully normalized was in an attempt to speed up enrichment analysis, but in the end I don't think it helped.
+- [ ] I have code for very fast queries using precomputed bitvectors, just need to work out computation of those bitvectors on ingest, keeping them up to date, and using them for enrichment queries.
