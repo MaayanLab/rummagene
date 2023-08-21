@@ -10,12 +10,12 @@ export default function Home() {
               <InputForm />
             </div>
           </div>
-          <div className="text-center lg:text-left">
+          <div className="text-center lg:text-center p-5">
             <h1 className="text-2xl font-bold">
               <span className="whitespace-nowrap"> Rummage through 642,389 gene sets
               </span> </h1><span className="whitespace-nowrap">extracted from supporting tables of</span>
               <span className="whitespace-nowrap"> 121,237 publications</span>
-              <p>that contain tables that match your gene set</p>
+              <p>to find the most similar gene sets that match your query.</p>
           </div>
         </div>
       </div>
