@@ -66,10 +66,7 @@ export default function InputForm() {
             className="block w-full mb-5 text-xs text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 dark:text-gray-400 focus:outline-none dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400"
             id="fileUpload"
             type="file"
-            onChange={(e) => {
-              //console.log(e.target.files?.[0]); 
-              //setFile(e.target.files?.[0] || null); 
-              handleFileChosen(e.target.files?.[0] || null)}}/>
+            onChange={(e) => {handleFileChosen(e.target.files?.[0] || null)}}/>
         {genes.length} gene(s) entered
         <button className="btn" type="submit">Submit</button>
         <progress className={classNames("w-full", { 'hidden': !loading })}></progress>
