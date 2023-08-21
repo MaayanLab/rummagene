@@ -28,13 +28,13 @@ function EnrichmentResults({ userGeneSet, setModelGeneSet }: { userGeneSet?: Fet
         <div key={i} className="collapse collapse-arrow">
           <input type="checkbox" defaultChecked /> 
           <h2 className="collapse-title text-xl font-medium">
-            {geneSetLibrary.name} ({geneSetLibrary.enrichLibraryBackground.totalCount})
+            Matching gene sets {geneSetLibrary.name} ({geneSetLibrary.enrichLibraryBackground.totalCount})
           </h2>
           <div className="collapse-content overflow-x-auto">
             <table className="table table-xs">
               <thead>
                 <tr>
-                  <th>Term</th>
+                  <th>Supporting tables containing matching gene sets</th>
                   <th>Overlap</th>
                   <th>Odds</th>
                   <th>PValue</th>
@@ -87,7 +87,7 @@ export default function Enrich({
   return (
     <>
       <div className="flex flex-row gap-2 alert">
-        <span className="prose">Description:</span>
+        <span className="prose">Input:</span>
         <label
           htmlFor="geneSetModal"
           className="prose underline cursor-pointer"

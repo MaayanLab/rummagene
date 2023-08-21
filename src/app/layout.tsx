@@ -7,7 +7,7 @@ import Nav from './nav'
 import Stats from './stats'
 
 export const metadata: Metadata = {
-  title: 'BioTableMind',
+  title: 'Rummagene',
   description: 'Find published gene sets',
 }
 
@@ -26,7 +26,7 @@ export default function RootLayout({
                 <Link
                   className="btn btn-ghost normal-case text-xl"
                   href="/"
-                >BioTableMind</Link>
+                >Rummagene</Link>
                 <ul className="menu menu-horizontal gap-3">
                   <Nav />
                 </ul>

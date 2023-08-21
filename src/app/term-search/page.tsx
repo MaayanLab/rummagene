@@ -20,7 +20,7 @@ function TermSearchResults({ terms }: { terms: string[] }) {
           <div key={i} className="collapse collapse-plus">
             <input type="checkbox" /> 
             <div className="collapse-title text-xl font-medium">
-              {geneSetLibrary.name} ({geneSetLibrary.termSearch.totalCount})
+            Matching gene sets {geneSetLibrary.name} ({geneSetLibrary.termSearch.totalCount})
             </div>
             <div className="collapse-content"> 
               <ul>

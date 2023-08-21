@@ -1,4 +1,5 @@
 .env
+env
 data
 __pycache__
 src/graphql/index.ts

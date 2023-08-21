@@ -20,7 +20,7 @@ function GeneSearchResults({ genes }: { genes: string[] }) {
           <div key={i} className="collapse collapse-plus">
             <input type="checkbox" /> 
             <div className="collapse-title text-xl font-medium">
-              {geneSetLibrary.name} ({geneSetLibrary.geneSearch.totalCount})
+            Matching gene sets {geneSetLibrary.name} ({geneSetLibrary.geneSearch.totalCount})
             </div>
             <div className="collapse-content"> 
               <ul>

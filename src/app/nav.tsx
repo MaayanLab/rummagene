@@ -12,12 +12,12 @@ export default function Nav() {
         <Link
           href="/"
           className={classNames({ 'active': pathname === '/' || pathname === '/enrich' })}
-          shallow>Analyze</Link></li>
-      <li>
+          shallow>Gene set search</Link></li>
+      {/* <li>
         <Link
           href="/libraries"
           className={classNames({ 'active': pathname === '/libraries' })}
-          shallow>Libraries</Link></li>
+          shallow>Libraries</Link></li> */}
       <li>
         <Link
           href="/gene-search"
