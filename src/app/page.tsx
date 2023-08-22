@@ -27,8 +27,8 @@ export default function Home() {
             </div>
             <p>to find the most similar gene sets that match your query.</p>
             <div className="mt-5">
-              <span className="whitespace-nowrap">We scanned supporting materials from <span className="font-bold">5,448,589 </span>listed on </span>
-              <div>PubMed Central (PMC) to identify and extract gene sets.</div>
+              <span className="whitespace-nowrap">We scanned supporting materials from <span className="font-bold">5,448,589 </span>publications </span>
+              <div><span className="whitespace-nowrap">listed on PubMed Central (PMC) to identify and extract gene sets.</span></div>
             </div>
             </div>
         </div>
