@@ -5,6 +5,8 @@ import Link from "next/link"
 import { ApolloWrapper } from '@/lib/apollo/provider'
 import Nav from './nav'
 import Stats from './stats'
+import Image from 'next/image'
+import { relative } from 'path'
 
 export const metadata: Metadata = {
   title: 'Rummagene',
@@ -23,11 +25,7 @@ export default function RootLayout({
           <main className="flex-1 flex flex-col">
             <div className="navbar">
               <div className="flex flex-col items-start">
-                <Link
-                  className="btn btn-ghost normal-case text-xl"
-                  href="/"
-                >Rummagene</Link>
-                <ul className="menu menu-horizontal gap-3">
+                <ul className="menu menu-horizontal gap-3 text-lg">
                   <Nav />
                 </ul>
               </div>
@@ -44,17 +42,17 @@ export default function RootLayout({
               </React.Suspense>
             </div>
           </main>
-          <footer className="flex-none footer p-10 bg-neutral text-neutral-content flex place-content-evenly">
-            <div className="text-center">
+          <footer className="flex-none footer p-5 bg-neutral text-neutral-content flex place-content-evenly">
+            <div className="text-center pt-5">
               <ul>
                 <li><Link href="/">Contact Us</Link></li>
                 <li><Link href="/">Usage License</Link></li>
               </ul>
             </div>
             <div className="text-center">
-              <p><Link href="https://labs.icahn.mssm.edu/maayanlab/">Ma&apos;ayan Lab</Link></p>
+             <p><Link href="https://labs.icahn.mssm.edu/maayanlab/"><Image className={'rounded'} src={'/images/maayanlab.png'} width={80} height={80} alt={'Ma&apos;ayan Lab'}/></Link></p>
             </div>
-            <div className="text-center">
+            <div className="text-center pt-5">
               <ul>
                 <li><Link href="/">View Source Code</Link></li>
                 <li><Link href="/">Submit an Issue</Link></li>
