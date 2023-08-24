@@ -64,7 +64,7 @@ export default function GeneSearchPage({
         <input
           type="text"
           className="input input-bordered"
-          placeholder="STAT3"
+          placeholder="neuron"
           value={rawTerms}
           onChange={evt => {
             setRawTerms(evt.currentTarget.value)

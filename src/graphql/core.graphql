@@ -12,6 +12,15 @@ query GeneSetLibraries {
   }
 }
 
+query PMCs {
+  pmcs {
+    nodes {
+      pmc
+    }
+    totalCount
+  }
+}
+
 query Stats {
   userGeneSets {
     totalCount

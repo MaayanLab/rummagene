@@ -8,6 +8,7 @@ import Stats from './stats'
 import Image from 'next/image'
 import { relative } from 'path'
 
+
 export const metadata: Metadata = {
   title: 'Rummagene',
   description: 'Find published gene sets',
@@ -30,7 +31,7 @@ export default function RootLayout({
                 </ul>
               </div>
               <div className="flex-1"></div>
-              <div className="flex-none flex-col place-items-end">
+              <div className="flex-none flex-col place-items-end p-3">
                 <React.Suspense fallback={<span className="loading loading-ring loading-lg"></span>}>
                   <Stats />
                 </React.Suspense>
@@ -50,7 +51,7 @@ export default function RootLayout({
               </ul>
             </div>
             <div className="text-center">
-             <p><Link href="https://labs.icahn.mssm.edu/maayanlab/"><Image className={'rounded'} src={'/images/maayanlab_white.png'} width={150} height={80} alt={'Ma&apos;ayan Lab'}/></Link></p>
+             <p><Link href="https://labs.icahn.mssm.edu/maayanlab/"><Image className={'rounded'} src={'/images/maayanlab_white.png'} width={150} height={250} alt={'Ma&apos;ayan Lab'}/></Link></p>
             </div>
             <div className="text-center pt-3">
               <ul>
