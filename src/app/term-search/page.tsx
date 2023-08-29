@@ -5,39 +5,36 @@ import { GeneSetLibraryTermSearchDocument, GeneSetLibraryTermSearchQuery } from 
 import ensureArray from '@/utils/ensureArray'
 import { useRouter } from 'next/navigation'
 import LinkedTerm from '@/components/linkedTerm'
+import TermTable from '@/components/termTable'
 
 function TermSearchResults({ terms }: { terms: string[] }) {
   const { data } = useSuspenseQuery<GeneSetLibraryTermSearchQuery>(GeneSetLibraryTermSearchDocument, {
     variables: {
-      terms
+      terms,
+      first: 1000
     }
   })
+  console.log(data)
   return (
     <ul>
       {data?.geneSetLibraries?.nodes
         .filter(geneSetLibrary => geneSetLibrary.termSearch.nodes.length > 0)
         .map((geneSetLibrary, i) => (
           <div key={i} className="collapse collapse-plus">
-            <input type="checkbox" /> 
+            <input type="checkbox" />
             <div className="collapse-title text-xl font-medium">
-            Matching gene sets {geneSetLibrary.name} ({geneSetLibrary.termSearch.totalCount})
+              Matching gene sets {geneSetLibrary.name} ({geneSetLibrary.termSearch.totalCount})
             </div>
-            <div className="collapse-content"> 
-              <ul>
-                {geneSetLibrary.termSearch.nodes.map((geneSet, j) => (
-                  <li key={j}>
-                    <LinkedTerm term={geneSet.term} />
-                  </li>
-                ))}
-              </ul>
+            <div className="collapse-content">
+            <TermTable terms={geneSetLibrary.termSearch.nodes}></TermTable>
+              </div>
             </div>
-          </div>
-      )) ?? null}
+        )) ?? null}
     </ul>
   )
 }
 
-export default function GeneSearchPage({
+export default function TermSearchPage({
   searchParams
 }: {
   searchParams: {
@@ -47,7 +44,7 @@ export default function GeneSearchPage({
   const router = useRouter()
   const terms = React.useMemo(() =>
     ensureArray(searchParams.q).flatMap(el => el.split(/\s+/g)),
-  [searchParams.q])
+    [searchParams.q])
   const [rawTerms, setRawTerms] = React.useState(terms.join(' '))
   return (
     <>
