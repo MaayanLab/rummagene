@@ -12,14 +12,6 @@ query GeneSetLibraries {
   }
 }
 
-query PMCs {
-  pmcs {
-    nodes {
-      pmc
-    }
-    totalCount
-  }
-}
 
 query Stats {
   userGeneSets {
@@ -94,6 +86,7 @@ query GeneSetLibraryTermSearch($terms: [String]!, $offset: Int = 0, $first: Int 
       termSearch(terms: $terms, offset: $offset, first: $first) {
         nodes {
           term
+          id
         }
         totalCount
       }
@@ -106,5 +99,33 @@ mutation AddUserGeneSet($genes: [String], $description: String = "") {
     userGeneSet {
       id
     }
+  }
+}
+
+
+query GetPmcInfoByIds($pmcids: [String]!){
+  getPmcInfoByIds(pmcids: $pmcids) {
+    nodes {
+      pmcid
+      title
+      yr
+      doi
+    }
+  }
+}
+
+query TermsPmcs($pmcids: [String]!) {
+  termsPmcs(pmcids: $pmcids) {
+    nodes {
+      pmc
+      term
+      id
+    }
+  }
+}
+
+query ViewGeneSet($id: UUID!) {
+  viewGeneSet(gsid: $id) {
+    nodes
   }
 }

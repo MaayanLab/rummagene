@@ -173,6 +173,50 @@ def import_gene_set_library(
 
   return gene_set_library
 
+def import_paper_info(plpy):
+  import pandas as pd
+  import requests
+  import re
+
+  # retrieve all pmc ids from gene sets
+  all_pmcs = {r['pmc'] for r in plpy.cursor('select * from app_public.pmc', [])}
+  # retrieve all pmc ids already enriched with info
+  pmc_info_ingested = {r['pmcid'] for r in plpy.cursor('select pmcid from app_public.pmc_info', [])}
+
+  # find subset to add info to
+  to_ingest = list(all_pmcs - pmc_info_ingested)
+
+  # use information from bulk download metadata table (https://ftp.ncbi.nlm.nih.gov/pub/pmc/)
+  try:
+    pmc_meta = pd.read_csv('data/PMC-ids.csv', usecols=['PMCID', 'Year', 'DOI'], index_col='PMCID')
+    pmc_meta = pmc_meta[pmc_meta.index.isin(to_ingest)]
+  except:
+    print('PMC metadata not found... you can download the latest verision from: https://ftp.ncbi.nlm.nih.gov/pub/pmc/')
+  
+  title_dict = {}
+  for i in tqdm(range(0, len(to_ingest), 250), 'Pulling titles...'):
+     while True:
+        try:
+          ids_string = ",".join([re.sub("[^0-9]", "", id) for id in to_ingest[i:i+250]])
+          res = requests.get(f'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=pmc&retmode=json&id={ids_string}')
+          ids_info = res.json()
+          for id in ids_info['result']['uids']:
+            title_dict[f'PMC{id}'] = ids_info['result'][id]['title']
+        except Exception as e:
+            print(e)
+            print('Error resolving info. Retrying...')
+            continue
+        break
+    
+
+  for pmc in tqdm(pmc_meta.index.values, desc='Inserting PMC info..'):
+    pmc_info = pmc_meta.loc[pmc]
+    plpy.execute(
+      'insert into app_public.pmc_info (pmcid, yr, doi, title) values (%s, %s, %s, %s)',
+      [pmc, int(pmc_info['Year']), pmc_info['DOI'], title_dict[pmc]],
+    )
+  
+
 @click.group()
 def cli(): pass
 
@@ -224,6 +268,17 @@ def ingest(input, name, description, append):
   from plpy import plpy
   try:
     import_gene_set_library(plpy, input, name, description, append)
+  except:
+    plpy.conn.rollback()
+    raise
+  else:
+    plpy.conn.commit()
+
+@cli.command()
+def ingest_paper_info():
+  from plpy import plpy
+  try:
+    import_paper_info(plpy)
   except:
     plpy.conn.rollback()
     raise
