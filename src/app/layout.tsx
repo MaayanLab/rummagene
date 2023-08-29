@@ -44,16 +44,19 @@ export default function RootLayout({
             </div>
           </main>
           <footer className="flex-none footer p-5 bg-neutral text-neutral-content flex place-content-evenly">
-            <div className="text-center pt-3">
+            <div className="text-center pt-5">
               <ul>
                 <li><Link href="/">Contact Us</Link></li>
                 <li><Link href="/">Usage License</Link></li>
               </ul>
             </div>
             <div className="text-center">
-             <p><Link href="https://labs.icahn.mssm.edu/maayanlab/"><Image className={'rounded'} src={'/images/maayanlab_white.png'} width={150} height={250} alt={'Ma&apos;ayan Lab'}/></Link></p>
+             <p><Link href="https://labs.icahn.mssm.edu/"><Image src={'/images/ismms_white.png'} width={150} height={250} alt={'Ma&apos;ayan Lab'}/></Link></p>
             </div>
-            <div className="text-center pt-3">
+            <div className="text-center pt-5">
+             <p><Link href="https://labs.icahn.mssm.edu/maayanlab/"><Image className={'rounded'} src={'/images/maayanlab_white.png'} width={125} height={250} alt={'Ma&apos;ayan Lab'}/></Link></p>
+            </div>
+            <div className="text-center pt-5">
               <ul>
                 <li><Link href="/">View Source Code</Link></li>
                 <li><Link href="/">Submit an Issue</Link></li>

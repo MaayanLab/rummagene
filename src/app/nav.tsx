@@ -15,11 +15,6 @@ export default function Nav() {
           shallow>Gene set search</Link></li>
       <li>
         <Link
-          href="/abstract-search"
-          className={classNames({ 'active': pathname === '/abstract-search' })}
-          shallow>Abstract search</Link></li>
-      <li>
-        <Link
           href="/pubmed-search"
           className={classNames({ 'active': pathname === '/pubmed-search' })}
           shallow>PubMed search</Link></li>
@@ -27,12 +22,28 @@ export default function Nav() {
         <Link
           href="/term-search"
           className={classNames({ 'active': pathname === '/term-search' })}
-          shallow>Named entity search</Link></li>
+          shallow>Search table titles</Link></li>
+      <li>
+        <Link
+          href="/abstract-search"
+          className={classNames({ 'active': pathname === '/abstract-search' })}
+          shallow>Abstract search</Link></li>
       <li>
         <Link
           href="/about"
           className={ classNames({ 'active': pathname === '/about' })}
           shallow>About</Link></li>
+
+      <li>
+        <Link
+          href="/"
+          className={ classNames({ 'active': pathname === '/api' })}
+          shallow>API</Link></li>
+      <li>
+        <Link
+          href="/download"
+          className={ classNames({ 'active': pathname === '/download' })}
+          shallow>Download</Link></li>
     </>
   )
 }

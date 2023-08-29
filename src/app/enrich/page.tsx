@@ -8,6 +8,7 @@ import {
 } from '@/graphql'
 import ensureArray from "@/utils/ensureArray"
 import LinkedTerm from '@/components/linkedTerm'
+import Image from 'next/image'
 
 function EnrichmentResults({ userGeneSet, setModelGeneSet }: { userGeneSet?: FetchUserGeneSetQuery, setModelGeneSet: any }) {
   const genes = React.useMemo(() =>
@@ -66,7 +67,7 @@ function EnrichmentResults({ userGeneSet, setModelGeneSet }: { userGeneSet?: Fet
             </table>
           </div>
         </div>
-      )) ?? <div className="text-center"><span className="loading loading-ring loading-lg"></span></div>}
+      )) ?? <div className="mx-auto p-5"><Image className={'rounded mx-auto'} src={'/images/loading.gif'} width={125} height={250} alt={'Loading...'}/> </div>}
     </div>
   )
 }
@@ -100,7 +101,7 @@ export default function Enrich({
         >{userGeneSet?.userGeneSet?.description || 'Gene set'} ({userGeneSet?.userGeneSet?.genes?.length ?? '?'} genes)</label>
       </div>
       <div className="container mx-auto">
-        <React.Suspense fallback={<div className="text-center"><span className="loading loading-ring loading-lg"></span></div>}>
+        <React.Suspense fallback={<div className="mx-auto p-5"><Image className={'rounded mx-auto'} src={'/images/loading.gif'} width={125} height={250} alt={'Loading...'}/> </div>}>
           <EnrichmentResults userGeneSet={userGeneSet} setModelGeneSet={setModelGeneSet} />
         </React.Suspense>
       </div>
