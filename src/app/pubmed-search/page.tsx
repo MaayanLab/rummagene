@@ -3,8 +3,10 @@ import React from 'react'
 import ensureArray from '@/utils/ensureArray'
 import { useRouter } from 'next/navigation'
 import useSWR, { Fetcher } from 'swr'
-import LinkedTerm from '@/components/linkedTerm'
-import { usePmCsQuery } from '@/graphql'
+import {TermsPmcsDocument, TermsPmcsQuery} from '@/graphql';
+import { useSuspenseQuery } from '@apollo/client'
+import PmcSearchColumns from '@/components/pmcSearchColumns'
+import Image from 'next/image'
 
 
 interface esearchResult {
@@ -17,6 +19,7 @@ interface eutilsResult {
   esearchresult: esearchResult;
 }
 
+
 const fetcher: Fetcher<eutilsResult> = async (endpoint: string) => fetch(endpoint).then(async (res) => {
   const data = await res.json()
   console.log(data)
@@ -24,44 +27,55 @@ const fetcher: Fetcher<eutilsResult> = async (endpoint: string) => fetch(endpoin
 })
 
 
-async function PubMedSearchResults({ pmcData, isLoading, error}:
-  { pmcData: eutilsResult | undefined, isLoading: boolean, error: any}) {
+function PubMedSearchResults({ pmcData, isLoading, error }:
+  { pmcData: eutilsResult | undefined, isLoading: boolean, error: any }) {
+  console.log(pmcData?.esearchresult?.idlist?.map(id => 'PMC' + id.toString()))
+  const { data } = useSuspenseQuery<TermsPmcsQuery>(TermsPmcsDocument, {
+    variables: {pmcids: pmcData?.esearchresult?.idlist?.map(id => 'PMC' + id.toString()) || []},
+  })
 
-  if (error) return <div className="text-center p-5">Failed to fetch articles from PubMed Central... trying again in a few seconds.<div className="text-center"><span className="loading loading-ring loading-lg"></span></div></div>
-  if (isLoading) return <div className="text-center p-5"><span className="loading loading-ring loading-lg"></span></div>
-
-  const data = usePmCsQuery({ nextFetchPolicy: 'standby' })
   console.log(data)
-  const pmcsInDb = data?.data?.pmcs?.nodes.map((el: { pmc: string }) => el?.pmc?.replace(/[A-Z]/g, '')) || ['']
-  const pmcsReturned = pmcData?.esearchresult?.idlist?.filter(el => pmcsInDb.includes(el))
 
-  if (!pmcsReturned) return <></>
-  if (pmcsReturned?.length < 1) return <div>Your query returned {pmcData?.esearchresult?.count} articles, but none are contained in the Rummagene database.</div>
+  var pmcsInDb: Set<string | undefined | null>;
 
-  console.log(pmcsReturned)
+  pmcsInDb = new Set(data?.termsPmcs?.nodes?.map((el) => el?.pmc))
+
+  if (error) return <div className="text-center p-5">Failed to fetch articles from PubMed Central... trying again in a few seconds.<div className="text-center"><Image className={'rounded mx-auto'} src={'/images/loading.gif'} width={125} height={250} alt={'Loading...'}/> </div></div>
+
+  if (isLoading) return <div className="text-center p-5"><Image className={'rounded mx-auto'} src={'/images/loading.gif'} width={125} height={250} alt={'Loading...'}/> </div>
+
+  if (!pmcData?.esearchresult?.idlist) return <></>
+
+  if (pmcsInDb?.size < 1) return <div className="text-center p-5">Your query returned {Intl.NumberFormat("en-US", {}).format(Number(pmcData?.esearchresult?.count))} articles, but none are contained in the Rummagene database.</div>
+
+  var pmc_terms = new Map<string, string[]>();
+  data?.termsPmcs?.nodes?.forEach((el: any) => {
+    if (!(el?.pmc)|| !(el?.term)) return;
+    else if (!pmc_terms.has(el?.pmc)) {
+      pmc_terms.set(el?.pmc, [el?.term])
+    } else {
+      pmc_terms.set(el.pmc, (pmc_terms.get(el.pmc) as string[]).concat([el.term]))
+    }
+  })
+
+  var gene_set_ids = new Map<string, string>();
+  data?.termsPmcs?.nodes?.forEach((el: any) => {
+    if (!(el?.id)|| !(el?.term)) return;
+    gene_set_ids.set(el?.term, el?.id)
+  })
+
   return (
-    <div className="overflow-x-auto">
-      <table className="table table-xs table-pin-rows table-pin-cols">
-        <thead>
-          <tr>
-            <td>PMC</td>
-          </tr>
-        </thead>
-        <tbody>
-          {pmcsReturned?.map((id) => (
-            <tr key={id}>
-              <td><LinkedTerm term={`PMC${id} `}></LinkedTerm></td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>)
+    <>
+    <div className='p-5 text-center'>Your query returned identified {Intl.NumberFormat("en-US", {}).format(pmcsInDb?.size)} articles which have extracted gene sets in the Rummagene database.</div>
+    <PmcSearchColumns pmc_terms={pmc_terms} pmcs={Array.from(pmcsInDb)} gene_set_ids={gene_set_ids}></PmcSearchColumns>
+    </>)
 }
 
 export default function PubMedSearchPage({ searchParams }: {
   searchParams: {
     q: string | string[] | undefined
-  }}) {
+  }
+}) {
   const router = useRouter()
 
   const searchTerms = React.useMemo(() =>
@@ -70,7 +84,7 @@ export default function PubMedSearchPage({ searchParams }: {
   const [rawSearch, setRawSearch] = React.useState(searchTerms.join(' '))
   const [search, setSearch] = React.useState(searchTerms.join(' '))
   const { data, error, isLoading } = useSWR(() =>
-    `https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pmc&term=${rawSearch}&retmode=json&retmax=99999`, fetcher
+    `https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pmc&term=${search}&retmode=json&retmax=5000`, fetcher
   )
 
   return (
@@ -82,6 +96,7 @@ export default function PubMedSearchPage({ searchParams }: {
           router.push(`/pubmed-search?q=${encodeURIComponent(rawSearch)}`, {
             scroll: false,
           })
+            setSearch(rawSearch)
         }}
       >
         <span className="label-text text-lg">Search Term(s)</span>
@@ -91,22 +106,21 @@ export default function PubMedSearchPage({ searchParams }: {
           placeholder="type 2 diabetes"
           value={rawSearch}
           onChange={evt => {
-            setRawSearch(evt.currentTarget.value)
+              setRawSearch(evt.currentTarget.value)
           }}
           onSubmit={evt => {
-            console.log(evt.currentTarget.value)
-            console.log(search)
-            setSearch(evt.currentTarget.value)
+              setSearch(rawSearch)
           }}
         />
         <button
           type="submit"
-          className="btn normal-case"
+          className="btn normal-casewe"
         >Search PubMed Central</button>
       </form>
-        <React.Suspense fallback={<div className="text-center"><span className="loading loading-ring loading-lg"></span></div>}>
-          <PubMedSearchResults pmcData={data} isLoading={isLoading} error={error}/>
-        </React.Suspense>
+      <React.Suspense fallback={<div className="text-center p-5"><Image className={'rounded mx-auto'} src={'/images/loading.gif'} width={125} height={250} alt={'Loading...'}/> </div>}>
+        <PubMedSearchResults pmcData={data} isLoading={isLoading} error={error} />
+      </React.Suspense>
     </>
   )
 }
+
