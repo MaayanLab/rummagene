@@ -4,7 +4,7 @@ import { useViewGeneSetQuery } from '@/graphql';
 import GeneSetModal from './geneSetModal';
 
 
-export default function TermTable({ terms }: { terms?: { __typename?: "GeneSet" | undefined; term: string; id: any; }[] }) {
+export default function TermTable({ terms }: { terms?: { __typename?: "GeneSetLibraryTermSearchCountRecord" | undefined; term?: string | null | undefined; id?: any; count?: number | null | undefined; }[] }) {
     const [page, setPage] = React.useState(0)
     const [numPerPage, setNumPerPage] = React.useState(10)
 
@@ -54,7 +54,7 @@ export default function TermTable({ terms }: { terms?: { __typename?: "GeneSet" 
                                   setGeneSetId(el?.id || '')
                                   setShowModal(true)
                                 }}
-                                ><p>View Gene Set</p>
+                                ><p>View Gene Set ({el?.count})</p>
                                 </button>
                               </td>
                               </tr>

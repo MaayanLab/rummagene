@@ -11,7 +11,7 @@ interface pmcData {
   doi?: string | null | undefined;
 }
 
-export default function PmcTable({ terms, data, gene_set_ids }: { terms?: Map<string, string[]>, data?: pmcData[], gene_set_ids?: Map<string, string> }) {
+export default function PmcTable({ terms, data, gene_set_ids }: { terms?: Map<string, string[]>, data?: pmcData[], gene_set_ids?: Map<string, string[]> }) {
   const [page, setPage] = React.useState(0)
   const [numPerPage, setNumPerPage] = React.useState(10)
 
@@ -20,7 +20,7 @@ export default function PmcTable({ terms, data, gene_set_ids }: { terms?: Map<st
   const [total, setTotal] = React.useState(data?.length)
   const [maxPage, setMaxPage] = React.useState(Math.floor((data?.length || 1) / numPerPage))
 
-  const [geneSetId, setGeneSetId] = React.useState(gene_set_ids?.get(gene_set_ids?.keys().next().value))
+  const [geneSetId, setGeneSetId] = React.useState<string | null>(null)
   const [showModal, setShowModal] = React.useState(false)
 
   React.useEffect(() => {
@@ -32,6 +32,9 @@ export default function PmcTable({ terms, data, gene_set_ids }: { terms?: Map<st
   })
 
   console.log(genesQuery?.data?.viewGeneSet?.nodes)
+
+  console.log(geneSetId)
+  console.log(terms)
 
   return (
     <>
@@ -63,7 +66,7 @@ export default function PmcTable({ terms, data, gene_set_ids }: { terms?: Map<st
                       return (
                       <tr>
                         <td><p className="break-words w-96">{term}</p></td>
-                        <td className=''>
+                        <td>
                           <button 
                           className='btn btn-lg btn-outline text-xs p-2'
                           data-te-toggle="modal"
@@ -71,10 +74,10 @@ export default function PmcTable({ terms, data, gene_set_ids }: { terms?: Map<st
                           data-te-ripple-init
                           data-te-ripple-color="light"
                           onClick={evt => {
-                            setGeneSetId(gene_set_ids?.get(term) || '')
+                            setGeneSetId(gene_set_ids?.get(term)?.at(0) || '')
                             setShowModal(true)
                           }}
-                          ><p>View Gene Set</p>
+                          ><p>View Gene Set ({gene_set_ids?.get(term)?.at(1) || 'n'})</p>
                           </button>
                         </td>
                       </tr>)

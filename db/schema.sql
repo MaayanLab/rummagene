@@ -425,6 +425,23 @@ $$;
 
 
 --
+-- Name: gene_set_library_term_search_count(app_public.gene_set_library, character varying[]); Type: FUNCTION; Schema: app_public; Owner: -
+--
+
+CREATE FUNCTION app_public.gene_set_library_term_search_count(gene_set_library app_public.gene_set_library, terms character varying[]) RETURNS TABLE(id uuid, term character varying, count integer)
+    LANGUAGE sql IMMUTABLE STRICT PARALLEL SAFE
+    AS $$
+  select distinct gs.id, gs.term, gsl.count
+  from
+    app_public.gene_set gs
+    inner join unnest(terms) ut(term) on gs.term ilike ('%' || ut.term || '%')
+    inner join app_public.gene_set_length gsl on gsl.id = gs.id
+  where
+    gs.library_id = gene_set_library.id;
+$$;
+
+
+--
 -- Name: gene_set_term_search(character varying[]); Type: FUNCTION; Schema: app_public; Owner: -
 --
 
@@ -434,6 +451,20 @@ CREATE FUNCTION app_public.gene_set_term_search(terms character varying[]) RETUR
   select gs.*
   from app_public.gene_set gs
   inner join unnest(terms) ut(term) on gs.term ilike ('%' || ut.term || '%');
+$$;
+
+
+--
+-- Name: gene_set_term_search_count(character varying[]); Type: FUNCTION; Schema: app_public; Owner: -
+--
+
+CREATE FUNCTION app_public.gene_set_term_search_count(terms character varying[]) RETURNS TABLE(id uuid, term character varying, count integer)
+    LANGUAGE sql IMMUTABLE STRICT PARALLEL SAFE
+    AS $$
+  select gs.id, gs.term, gsl.count
+  from app_public.gene_set gs
+  inner join unnest(terms) ut(term) on gs.term ilike ('%' || ut.term || '%')
+  inner join app_public.gene_set_length gsl on gsl.id = gs.id;
 $$;
 
 
@@ -481,6 +512,23 @@ CREATE FUNCTION app_public.terms_pmcs(pmcids character varying[]) RETURNS TABLE(
   from
     app_public.gene_set_pmc as gsp
     inner join app_public.gene_set as gs on gs.id = gsp.id
+    --inner join app_public.gene_set_length as gsl on gsl.gene_set_id = gsp.id
+  where gsp.pmc = ANY (pmcids);
+$$;
+
+
+--
+-- Name: terms_pmcs_count(character varying[]); Type: FUNCTION; Schema: app_public; Owner: -
+--
+
+CREATE FUNCTION app_public.terms_pmcs_count(pmcids character varying[]) RETURNS TABLE(pmc character varying, term character varying, id uuid, count integer)
+    LANGUAGE sql IMMUTABLE STRICT PARALLEL SAFE
+    AS $$
+  select gsp.pmc, gs.term, gs.id, gsl.count
+  from
+    app_public.gene_set_pmc as gsp
+    inner join app_public.gene_set as gs on gs.id = gsp.id
+    inner join app_public.gene_set_length as gsl on gsl.id = gsp.id
   where gsp.pmc = ANY (pmcids);
 $$;
 
@@ -703,6 +751,25 @@ CREATE TABLE app_public.gene_set_gene (
     gene_set_id uuid NOT NULL,
     gene_id uuid NOT NULL
 );
+
+
+--
+-- Name: gene_set_length; Type: MATERIALIZED VIEW; Schema: app_public; Owner: -
+--
+
+CREATE MATERIALIZED VIEW app_public.gene_set_length AS
+ SELECT gsg.gene_set_id AS id,
+    count(*) AS count
+   FROM app_public.gene_set_gene gsg
+  GROUP BY gsg.gene_set_id
+  WITH NO DATA;
+
+
+--
+-- Name: MATERIALIZED VIEW gene_set_length; Type: COMMENT; Schema: app_public; Owner: -
+--
+
+COMMENT ON MATERIALIZED VIEW app_public.gene_set_length IS '@foreignKey (id) references app_public.gene_set (id)';
 
 
 --
@@ -961,6 +1028,13 @@ CREATE INDEX gene_synonym_gene_id_idx ON app_public.gene_synonym USING btree (ge
 
 
 --
+-- Name: idx_gene_set_length; Type: INDEX; Schema: app_public; Owner: -
+--
+
+CREATE INDEX idx_gene_set_length ON app_public.gene_set_length USING btree (id);
+
+
+--
 -- Name: gene_set_gene gene_set_gene_gene_id_fkey; Type: FK CONSTRAINT; Schema: app_public; Owner: -
 --
 
@@ -1020,4 +1094,7 @@ CREATE EVENT TRIGGER postgraphile_watch_drop ON sql_drop
 
 INSERT INTO public.schema_migrations (version) VALUES
     ('20230729193513'),
-    ('20230828144957');
+    ('20230828144957'),
+    ('20230830165721'),
+    ('20230830171356'),
+    ('20230830210011');

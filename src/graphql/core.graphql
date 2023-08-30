@@ -83,10 +83,11 @@ query GeneSetLibraryTermSearch($terms: [String]!, $offset: Int = 0, $first: Int 
   geneSetLibraries {
     nodes {
       name
-      termSearch(terms: $terms, offset: $offset, first: $first) {
+      termSearchCount(terms: $terms, offset: $offset, first: $first) {
         nodes {
           term
           id
+          count
         }
         totalCount
       }
@@ -115,11 +116,12 @@ query GetPmcInfoByIds($pmcids: [String]!){
 }
 
 query TermsPmcs($pmcids: [String]!) {
-  termsPmcs(pmcids: $pmcids) {
+  termsPmcsCount(pmcids: $pmcids) {
     nodes {
       pmc
-      term
       id
+      term
+      count
     }
   }
 }

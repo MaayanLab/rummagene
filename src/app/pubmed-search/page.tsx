@@ -22,7 +22,6 @@ interface eutilsResult {
 
 const fetcher: Fetcher<eutilsResult> = async (endpoint: string) => fetch(endpoint).then(async (res) => {
   const data = await res.json()
-  console.log(data)
   return data
 })
 
@@ -34,11 +33,9 @@ function PubMedSearchResults({ pmcData, isLoading, error }:
     variables: {pmcids: pmcData?.esearchresult?.idlist?.map(id => 'PMC' + id.toString()) || []},
   })
 
-  console.log(data)
-
   var pmcsInDb: Set<string | undefined | null>;
 
-  pmcsInDb = new Set(data?.termsPmcs?.nodes?.map((el) => el?.pmc))
+  pmcsInDb = new Set(data?.termsPmcsCount?.nodes?.map((el) => el?.pmc))
 
   if (error) return <div className="text-center p-5">Failed to fetch articles from PubMed Central... trying again in a few seconds.<div className="text-center"><Image className={'rounded mx-auto'} src={'/images/loading.gif'} width={125} height={250} alt={'Loading...'}/> </div></div>
 
@@ -46,10 +43,10 @@ function PubMedSearchResults({ pmcData, isLoading, error }:
 
   if (!pmcData?.esearchresult?.idlist) return <></>
 
-  if (pmcsInDb?.size < 1) return <div className="text-center p-5">Your query returned {Intl.NumberFormat("en-US", {}).format(Number(pmcData?.esearchresult?.count))} articles, but none are contained in the Rummagene database.</div>
+  if (pmcsInDb?.size < 1) return <div className="text-center p-5">Your query returned {Intl.NumberFormat("en-US", {}).format(Number(pmcData?.esearchresult?.count))} articles, but none of the top 5000 are contained in the Rummagene database. Please try refining your query.</div>
 
   var pmc_terms = new Map<string, string[]>();
-  data?.termsPmcs?.nodes?.forEach((el: any) => {
+  data?.termsPmcsCount?.nodes?.forEach((el: any) => {
     if (!(el?.pmc)|| !(el?.term)) return;
     else if (!pmc_terms.has(el?.pmc)) {
       pmc_terms.set(el?.pmc, [el?.term])
@@ -58,10 +55,10 @@ function PubMedSearchResults({ pmcData, isLoading, error }:
     }
   })
 
-  var gene_set_ids = new Map<string, string>();
-  data?.termsPmcs?.nodes?.forEach((el: any) => {
+  var gene_set_ids = new Map<string, string[]>();
+  data?.termsPmcsCount?.nodes?.forEach((el: any) => {
     if (!(el?.id)|| !(el?.term)) return;
-    gene_set_ids.set(el?.term, el?.id)
+    gene_set_ids.set(el?.term, [el?.id, el?.count])
   })
 
   return (

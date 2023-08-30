@@ -4,7 +4,6 @@ import { useSuspenseQuery } from '@apollo/experimental-nextjs-app-support/ssr'
 import { GeneSetLibraryTermSearchDocument, GeneSetLibraryTermSearchQuery } from '@/graphql'
 import ensureArray from '@/utils/ensureArray'
 import { useRouter } from 'next/navigation'
-import LinkedTerm from '@/components/linkedTerm'
 import TermTable from '@/components/termTable'
 
 function TermSearchResults({ terms }: { terms: string[] }) {
@@ -14,19 +13,19 @@ function TermSearchResults({ terms }: { terms: string[] }) {
       first: 1000
     }
   })
-  console.log(data)
+  
   return (
     <ul>
       {data?.geneSetLibraries?.nodes
-        .filter(geneSetLibrary => geneSetLibrary.termSearch.nodes.length > 0)
+        .filter(geneSetLibrary => geneSetLibrary.termSearchCount.nodes.length > 0)
         .map((geneSetLibrary, i) => (
           <div key={i} className="collapse collapse-plus">
             <input type="checkbox" />
             <div className="collapse-title text-xl font-medium">
-              Matching gene sets {geneSetLibrary.name} ({geneSetLibrary.termSearch.totalCount})
+              Matching gene sets {geneSetLibrary.name} ({geneSetLibrary.termSearchCount.totalCount})
             </div>
             <div className="collapse-content">
-            <TermTable terms={geneSetLibrary.termSearch.nodes}></TermTable>
+            <TermTable terms={geneSetLibrary.termSearchCount.nodes}></TermTable>
               </div>
             </div>
         )) ?? null}
