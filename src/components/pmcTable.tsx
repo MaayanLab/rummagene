@@ -25,7 +25,7 @@ export default function PmcTable({ terms, data, gene_set_ids }: { terms?: Map<st
 
   React.useEffect(() => {
     setDataFiltered(data?.slice(page * numPerPage, numPerPage * (page + 1)))
-  }, [page, numPerPage])
+  }, [page, numPerPage, data])
 
   const genesQuery = useViewGeneSetQuery({
     variables: {id: geneSetId}
@@ -64,7 +64,7 @@ export default function PmcTable({ terms, data, gene_set_ids }: { terms?: Map<st
                   <tbody>
                     {terms?.get(el?.pmcid)?.map(term => {
                       return (
-                      <tr>
+                      <tr key={term}>
                         <td><p className="break-words w-96">{term}</p></td>
                         <td>
                           <button 
