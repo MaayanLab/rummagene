@@ -11,19 +11,20 @@ export default function TermTable({ terms }: { terms?: { __typename?: "GeneSetLi
     const [searchTerm, setSearchTerm] = React.useState('')
     const [dataFiltered, setDataFiltered] = React.useState(terms?.slice(page * numPerPage, numPerPage * (page + 1)))
     const [total, setTotal] = React.useState(terms?.length)
-    const [maxPage, setMaxPage] = React.useState(Math.floor((terms?.length || 1) / numPerPage))
+    const [maxPage, setMaxPage] = React.useState(Math.floor((terms?.length || 10) / numPerPage))
 
     const [geneSetId, setGeneSetId] = React.useState(terms?.[0].id)
     const [showModal, setShowModal] = React.useState(false)
 
+    console.log(terms)
+
     React.useEffect(() => {
         setDataFiltered(terms?.slice(page * numPerPage, numPerPage * (page + 1)))
-    }, [page, numPerPage])
+    }, [page, numPerPage, terms])
 
     const genesQuery = useViewGeneSetQuery({
         variables: { id: geneSetId }
     })
-
 
     return (
         <>

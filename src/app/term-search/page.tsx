@@ -5,6 +5,7 @@ import { GeneSetLibraryTermSearchDocument, GeneSetLibraryTermSearchQuery } from 
 import ensureArray from '@/utils/ensureArray'
 import { useRouter } from 'next/navigation'
 import TermTable from '@/components/termTable'
+import Image from 'next/image'
 
 function TermSearchResults({ terms }: { terms: string[] }) {
   const { data } = useSuspenseQuery<GeneSetLibraryTermSearchQuery>(GeneSetLibraryTermSearchDocument, {
@@ -13,7 +14,7 @@ function TermSearchResults({ terms }: { terms: string[] }) {
       first: 1000
     }
   })
-  
+
   return (
     <ul>
       {data?.geneSetLibraries?.nodes
@@ -71,7 +72,7 @@ export default function TermSearchPage({
           className="btn normal-case"
         >Search gene sets</button>
       </form>
-      <React.Suspense fallback={<div className="text-center"><span className="loading loading-ring loading-lg"></span></div>}>
+      <React.Suspense fallback={<div className="text-center p-5"><Image className={'rounded mx-auto'} src={'/images/loading.gif'} width={125} height={250} alt={'Loading...'}/> </div>}>
         <TermSearchResults terms={terms} />
       </React.Suspense>
     </>
