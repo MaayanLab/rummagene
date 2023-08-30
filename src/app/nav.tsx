@@ -25,11 +25,6 @@ export default function Nav() {
           shallow>Search table titles</Link></li>
       <li>
         <Link
-          href="/abstract-search"
-          className={classNames({ 'active': pathname === '/abstract-search' })}
-          shallow>Abstract search</Link></li>
-      <li>
-        <Link
           href="/about"
           className={ classNames({ 'active': pathname === '/about' })}
           shallow>About</Link></li>
