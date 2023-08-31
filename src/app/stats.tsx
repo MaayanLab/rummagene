@@ -1,13 +1,12 @@
 'use client'
 import { useStatsQuery } from '@/graphql'
 
-export default function Stats() {
+export default function Stats({show_sets_analyzed, show_gene_sets, show_pmcs}: {show_sets_analyzed?: boolean, show_gene_sets?: boolean, show_pmcs?: boolean}) {
   const { data } = useStatsQuery({ pollInterval: 601000 })
-  return (
-    <>
-      {data?.userGeneSets?.totalCount ? <div><span className="font-bold">{data.userGeneSets.totalCount}</span> sets analyzed</div> : null}
-      {/* {data?.geneSets?.totalCount ? <div><span className="font-bold">{data.geneSets.totalCount}</span> gene sets</div> : null}
-      {data?.pmcs?.totalCount ? <div><span className="font-bold">{data.pmcs.totalCount}</span> papers</div> : null} */}
-    </>
-  )
+
+  if (show_gene_sets) {
+    return (data?.geneSets?.totalCount && show_gene_sets) ? <>{Intl.NumberFormat("en-US", {}).format(data.geneSets.totalCount)} gene sets</> : <span className='loading'>loading</span>
+  } else if (show_pmcs){
+    return (data?.pmcs?.totalCount  ? <span className="font-bold">{Intl.NumberFormat("en-US", {}).format(data.pmcs.totalCount)} publications</span> : <span className='loading'>loading</span>)
+  } else return (data?.userGeneSets?.totalCount ? <div><span className="font-bold">{Intl.NumberFormat("en-US", {}).format(data.userGeneSets.totalCount)}</span> sets analyzed</div> : <span className='loading'>loading</span>)
 }

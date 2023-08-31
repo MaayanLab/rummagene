@@ -33,7 +33,7 @@ export default function RootLayout({
               <div className="flex-1"></div>
               <div className="flex-none flex-col place-items-end p-3">
                 <React.Suspense fallback={<span className="loading loading-ring loading-lg"></span>}>
-                  <Stats />
+                  <Stats show_sets_analyzed={true}/>
                 </React.Suspense>
               </div>
             </div>
