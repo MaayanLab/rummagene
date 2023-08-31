@@ -24,22 +24,34 @@ export default function PmcTable({ terms, data, gene_set_ids }: { terms?: Map<st
   const [showModal, setShowModal] = React.useState(false)
 
   React.useEffect(() => {
-    setDataFiltered(data?.slice(page * numPerPage, numPerPage * (page + 1)))
-  }, [page, numPerPage, data])
+    const searchFilteredData = data?.filter(el => { 
+      const rowToSearch = el?.title + (terms?.get(el?.pmcid)?.join(' ') || '')
+      return (rowToSearch?.toLowerCase().includes(searchTerm.toLowerCase()))
+    })
+    setTotal(searchFilteredData?.length)
+    setMaxPage(Math.floor((searchFilteredData?.length || 1) / numPerPage))
+    setDataFiltered(searchFilteredData?.slice(page * numPerPage, numPerPage * (page + 1)))
+  }, [page, numPerPage, data, terms, searchTerm])
 
   const genesQuery = useViewGeneSetQuery({
     variables: {id: geneSetId}
   })
 
-  console.log(genesQuery?.data?.viewGeneSet?.nodes)
-
-  console.log(geneSetId)
-  console.log(terms)
-
   return (
     <>
       <GeneSetModal geneset={genesQuery?.data?.viewGeneSet?.nodes} showModal={showModal} setShowModal={setShowModal}></GeneSetModal>
       <div className='border m-5 mt-1 overflow-y-scroll'>
+        <div className='text-right pt-3 pr-3'>
+          <span className="label-text text-base">Search: </span>
+          <input
+            type="text"
+            className="input input-bordered"
+            value={searchTerm}
+            onChange={evt => {
+                setSearchTerm(evt.currentTarget.value)
+            }}
+          />
+        </div>
         <table className="table table-pin-rows table-pin-cols table-auto">
           <thead>
             <tr>
@@ -68,7 +80,7 @@ export default function PmcTable({ terms, data, gene_set_ids }: { terms?: Map<st
                         <td><p className="break-words w-96">{term}</p></td>
                         <td>
                           <button 
-                          className='btn btn-lg btn-outline text-xs p-2'
+                          className='btn btn-outline text-xs p-2 h-auto'
                           data-te-toggle="modal"
                           data-te-target="#geneSetModal"
                           data-te-ripple-init
@@ -107,7 +119,6 @@ export default function PmcTable({ terms, data, gene_set_ids }: { terms?: Map<st
           <button
             className="flex items-center justify-center px-3 h-8 text-sm font-medium text-white bg-gray-800 border-0 border-l border-gray-700 rounded-r hover:bg-gray-900 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white"
             onClick={evt => {
-              console.log(maxPage)
               if (page < maxPage) setPage(page + 1)
             }}
           >
