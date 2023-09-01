@@ -17,12 +17,12 @@ export default function Nav() {
         <Link
           href="/pubmed-search"
           className={classNames({ 'active': pathname === '/pubmed-search' })}
-          shallow>PubMed search</Link></li>
+          shallow>PMC search</Link></li>
       <li>
         <Link
           href="/term-search"
           className={classNames({ 'active': pathname === '/term-search' })}
-          shallow>Search table titles</Link></li>
+          shallow>Table title search</Link></li>
       <li>
         <Link
           href="/about"
