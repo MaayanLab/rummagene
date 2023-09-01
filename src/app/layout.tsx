@@ -6,8 +6,6 @@ import { ApolloWrapper } from '@/lib/apollo/provider'
 import Nav from './nav'
 import Stats from './stats'
 import Image from 'next/image'
-import { relative } from 'path'
-
 
 export const metadata: Metadata = {
   title: 'Rummagene',
@@ -46,20 +44,36 @@ export default function RootLayout({
           <footer className="flex-none footer p-5 bg-neutral text-neutral-content flex place-content-evenly">
             <div className="text-center pt-5">
               <ul>
-                <li><Link href="/">Contact Us</Link></li>
+                <li><Link href="mailto:avi.maayan@mssm.edu">Contact Us</Link></li>
                 <li><Link href="/">Usage License</Link></li>
               </ul>
             </div>
             <div className="text-center">
-             <p><Link href="https://labs.icahn.mssm.edu/"><Image src={'/images/ismms_white.png'} width={150} height={250} alt={'Ma&apos;ayan Lab'}/></Link></p>
+             <p>
+                <Link href="https://labs.icahn.mssm.edu/" target="_blank" rel="noopener noreferrer">
+                  <Image src={'/images/ismms_white.png'} width={150} height={250} alt={'Ma&apos;ayan Lab'}/>
+                </Link>
+              </p>
             </div>
             <div className="text-center pt-5">
-             <p><Link href="https://labs.icahn.mssm.edu/maayanlab/"><Image className={'rounded'} src={'/images/maayanlab_white.png'} width={125} height={250} alt={'Ma&apos;ayan Lab'}/></Link></p>
+             <p>
+              <Link href="https://labs.icahn.mssm.edu/maayanlab/" target="_blank" rel="noopener noreferrer">
+                <Image className={'rounded'} src={'/images/maayanlab_white.png'} width={125} height={250} alt={'Ma&apos;ayan Lab'}/>
+              </Link>
+              </p>
             </div>
             <div className="text-center pt-5">
               <ul>
-                <li><Link href="/">View Source Code</Link></li>
-                <li><Link href="/">Submit an Issue</Link></li>
+                <li>
+                  <Link href="https://github.com/MaayanLab/biotablemind" target="_blank" rel="noopener noreferrer">
+                    View Source Code
+                  </Link>
+                </li>
+                <li>
+                  <Link href="https://github.com/MaayanLab/biotablemind/issues/new" target="_blank" rel="noopener noreferrer">
+                    Submit an Issue
+                  </Link>
+                  </li>
               </ul>
             </div> 
           </footer>
