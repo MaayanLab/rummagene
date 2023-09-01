@@ -69,7 +69,7 @@ export default function InputForm() {
             onChange={(e) => {handleFileChosen(e.target.files?.[0] || null)}}/>
         {genes.length} gene(s) entered
         <button className="btn" type="submit">Submit</button>
-        <progress className={classNames("w-full", { 'hidden': !loading })}></progress>
+        <span className={classNames("loading", "w-6", { 'hidden': !loading })}></span>
         <div className={classNames("alert alert-error", { 'hidden': !error })}>{error?.message ?? null}</div>
       </form>
     </>
