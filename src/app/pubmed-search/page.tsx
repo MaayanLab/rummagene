@@ -28,7 +28,7 @@ const fetcher: Fetcher<eutilsResult> = async (endpoint: string) => fetch(endpoin
 
 function PubMedSearchResults({ pmcData, isLoading, error }:
   { pmcData: eutilsResult | undefined, isLoading: boolean, error: any }) {
-  console.log(pmcData?.esearchresult?.idlist?.map(id => 'PMC' + id.toString()))
+    
   const { data } = useSuspenseQuery<TermsPmcsQuery>(TermsPmcsDocument, {
     variables: {pmcids: pmcData?.esearchresult?.idlist?.map(id => 'PMC' + id.toString()) || []},
   })
@@ -112,7 +112,7 @@ export default function PubMedSearchPage({ searchParams }: {
         <button
           type="submit"
           className="btn normal-casewe"
-        >Search PubMed Central</button>
+        >Search PMC</button>
       </form>
       <React.Suspense fallback={<div className="text-center p-5"><Image className={'rounded mx-auto'} src={'/images/loading.gif'} width={125} height={250} alt={'Loading...'}/> </div>}>
         <PubMedSearchResults pmcData={data} isLoading={isLoading} error={error} />
