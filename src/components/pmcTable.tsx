@@ -21,6 +21,7 @@ export default function PmcTable({ terms, data, gene_set_ids }: { terms?: Map<st
   const [maxPage, setMaxPage] = React.useState(Math.floor((data?.length || 1) / numPerPage))
 
   const [geneSetId, setGeneSetId] = React.useState<string | null>(null)
+  const [currTerm, setCurrTerm] = React.useState<string | null>(null)
   const [showModal, setShowModal] = React.useState(false)
 
   React.useEffect(() => {
@@ -39,7 +40,7 @@ export default function PmcTable({ terms, data, gene_set_ids }: { terms?: Map<st
 
   return (
     <>
-      <GeneSetModal geneset={genesQuery?.data?.viewGeneSet?.nodes} showModal={showModal} setShowModal={setShowModal}></GeneSetModal>
+      <GeneSetModal geneset={genesQuery?.data?.viewGeneSet?.nodes} term={currTerm} showModal={showModal} setShowModal={setShowModal}></GeneSetModal>
       <div className='border m-5 mt-1 overflow-y-scroll'>
         <div className='text-right pt-3 pr-3'>
           <span className="label-text text-base">Search: </span>
@@ -69,11 +70,8 @@ export default function PmcTable({ terms, data, gene_set_ids }: { terms?: Map<st
                   <td>{el?.title}</td>
                   <td>{el?.yr}</td>
                   <td>{terms?.get(el?.pmcid)?.length}</td>
-                  <thead>
-                    <tr>
-                    </tr>
-                  </thead>
-                  <tbody>
+                  {/* TODO: properly implement nested rows --> use grid and row-span */}
+                  <>
                     {terms?.get(el?.pmcid)?.map(term => {
                       return (
                       <tr key={term}>
@@ -86,6 +84,7 @@ export default function PmcTable({ terms, data, gene_set_ids }: { terms?: Map<st
                           data-te-ripple-init
                           data-te-ripple-color="light"
                           onClick={evt => {
+                            setCurrTerm
                             setGeneSetId(gene_set_ids?.get(term)?.at(0) || '')
                             setShowModal(true)
                           }}
@@ -94,7 +93,7 @@ export default function PmcTable({ terms, data, gene_set_ids }: { terms?: Map<st
                         </td>
                       </tr>)
                     })}
-                  </tbody>
+                  </>
                 </tr>
               )
             })}

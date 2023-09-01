@@ -1,14 +1,21 @@
 import React, { CSSProperties } from 'react'
+import EnrichrButton from './enrichrButton'
+import { useAddUserGeneSetMutation, AddUserGeneSetInput } from '@/graphql'
+import { useRouter } from 'next/navigation'
+import classNames from 'classnames'
+
 
 const noWrap: CSSProperties = {
     whiteSpace: 'pre-line',
 }
 
-export default function GeneSetModal({ geneset, showModal, setShowModal }: { geneset?: (string | null)[] | undefined, showModal?: boolean, setShowModal: (show: boolean) => void }) {
-
+export default function GeneSetModal({ geneset, term, showModal, setShowModal }: { geneset?: (string | null)[] | undefined, term: string | null | undefined, showModal?: boolean, setShowModal: (show: boolean) => void }) {
+    const router = useRouter()
+    const [addUserGeneSetMutation, { loading, error }] = useAddUserGeneSetMutation()
+    const genes = React.useMemo(() => geneset?.filter(gene => gene != null) as string[], [geneset])
     return (
         <>
-        {showModal ? (
+            {showModal ? (
                 <>
                     <div
                         className="justify-center items-center flex overflow-x-hidden overflow-y-scroll fixed inset-0 z-50 focus:outline-none"
@@ -27,16 +34,11 @@ export default function GeneSetModal({ geneset, showModal, setShowModal }: { gen
 
                                     </p>
                                 </div>
+
                                 <div className="flex items-center justify-end p-6 border-t border-solid border-slate-200 rounded-b">
+
                                     <button
-                                        className="btn btn-sm m-2"
-                                        type="button"
-                                        onClick={() => setShowModal(false)}
-                                    >
-                                        Close
-                                    </button>
-                                    <button
-                                        className="btn btn-sm btn-outline text-xs p-2"
+                                        className="btn btn-sm btn-outline text-xs p-2 m-2"
                                         type="button"
                                         onClick={() => {
                                             setShowModal(false)
@@ -45,6 +47,27 @@ export default function GeneSetModal({ geneset, showModal, setShowModal }: { gen
                                     >
                                         Copy to Clipboard
                                     </button>
+                                    <EnrichrButton genes={geneset} description={term}></EnrichrButton>
+                                    <button
+                                        className="btn btn-sm btn-outline text-xs p-2 m-2"
+                                        type="button"
+                                        onClick={async (evt) => {
+                                            evt.preventDefault()
+                                            const result = await addUserGeneSetMutation({
+                                                variables: {
+                                                    genes
+                                                }
+                                            })
+                                            const id = result.data?.addUserGeneSet?.userGeneSet?.id
+                                            if (id) {
+                                                router.push(`/enrich?dataset=${id}`)
+                                            }
+                                        }}>
+                                        Enrich on Rummagene
+                                    </button>
+                                    <span className={classNames("loading", "w-6", { 'hidden': !loading })}></span>
+                                    <div className={classNames("alert alert-error", { 'hidden': !error })}>{error?.message ?? null}</div>
+
                                 </div>
                             </div>
                         </div>

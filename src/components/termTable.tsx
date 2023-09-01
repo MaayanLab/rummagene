@@ -14,6 +14,7 @@ export default function TermTable({ terms }: { terms?: { __typename?: "GeneSetLi
   const [maxPage, setMaxPage] = React.useState(Math.floor((terms?.length || 10) / numPerPage))
 
   const [geneSetId, setGeneSetId] = React.useState(terms?.[0].id)
+  const [currTerm, setCurrTerm] = React.useState(terms?.[0].term)
   const [showModal, setShowModal] = React.useState(false)
 
   React.useEffect(() => {
@@ -32,7 +33,7 @@ export default function TermTable({ terms }: { terms?: { __typename?: "GeneSetLi
 
   return (
     <>
-      <GeneSetModal geneset={genesQuery?.data?.viewGeneSet?.nodes} showModal={showModal} setShowModal={setShowModal}></GeneSetModal>
+      <GeneSetModal geneset={genesQuery?.data?.viewGeneSet?.nodes} term={currTerm} showModal={showModal} setShowModal={setShowModal}></GeneSetModal>
       <div className="flex flex-col items-start pl-5">
 
         <span className="text-sm text-gray-700 dark:text-gray-400">
@@ -93,6 +94,7 @@ export default function TermTable({ terms }: { terms?: { __typename?: "GeneSetLi
                       data-te-ripple-init
                       data-te-ripple-color="light"
                       onClick={evt => {
+                        setCurrTerm(el?.term || '')
                         setGeneSetId(el?.id || '')
                         setShowModal(true)
                       }}
