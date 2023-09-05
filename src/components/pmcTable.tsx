@@ -25,7 +25,7 @@ export default function PmcTable({ terms, data, gene_set_ids }: { terms?: Map<st
   const [showModal, setShowModal] = React.useState(false)
 
   React.useEffect(() => {
-    const searchFilteredData = data?.filter(el => { 
+    const searchFilteredData = data?.filter(el => {
       const rowToSearch = el?.title + (terms?.get(el?.pmcid)?.join(' ') || '')
       return (rowToSearch?.toLowerCase().includes(searchTerm.toLowerCase()))
     })
@@ -35,7 +35,7 @@ export default function PmcTable({ terms, data, gene_set_ids }: { terms?: Map<st
   }, [page, numPerPage, data, terms, searchTerm])
 
   const genesQuery = useViewGeneSetQuery({
-    variables: {id: geneSetId}
+    variables: { id: geneSetId }
   })
 
   return (
@@ -49,7 +49,7 @@ export default function PmcTable({ terms, data, gene_set_ids }: { terms?: Map<st
             className="input input-bordered"
             value={searchTerm}
             onChange={evt => {
-                setSearchTerm(evt.currentTarget.value)
+              setSearchTerm(evt.currentTarget.value)
             }}
           />
         </div>
@@ -65,39 +65,51 @@ export default function PmcTable({ terms, data, gene_set_ids }: { terms?: Map<st
           <tbody>
             {dataFiltered?.map(el => {
               return (
-                <tr key={el?.pmcid}>
-                  <td><LinkedTerm term={`${el?.pmcid} `}></LinkedTerm></td>
-                  <td>{el?.title}</td>
-                  <td>{el?.yr}</td>
-                  <td>{terms?.get(el?.pmcid)?.length}</td>
-                  {/* TODO: properly implement nested rows --> use grid and row-span */}
-                  <>
-                    {terms?.get(el?.pmcid)?.map(term => {
-                      return (
-                      <tr key={term}>
+                <>
+                  <tr key={el?.pmcid} className=''>
+                    <td><LinkedTerm term={`${el?.pmcid} `}></LinkedTerm></td>
+                    <td>{el?.title}</td>
+                    <td>{el?.yr}</td>
+                    <td className='flex-col align-text-middle'>
+                      <span className='mr-5'>{terms?.get(el?.pmcid)?.length}</span>
+                      <button
+                      onClick={evt => {
+                        terms?.get(el?.pmcid)?.map(term => document.getElementById(term)?.classList.toggle('hidden'))
+                      }}
+                      >  
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                        </svg>
+                      </button>
+                    </td>
+                  </tr>
+                  {terms?.get(el?.pmcid)?.map(term => {
+                    return (
+                      <tr key={term} id={term} className='hidden'>
                         <td><p className="break-words w-96">{term}</p></td>
                         <td>
-                          <button 
-                          className='btn btn-outline text-xs p-2 h-auto'
-                          data-te-toggle="modal"
-                          data-te-target="#geneSetModal"
-                          data-te-ripple-init
-                          data-te-ripple-color="light"
-                          onClick={evt => {
-                            setCurrTerm
-                            setGeneSetId(gene_set_ids?.get(term)?.at(0) || '')
-                            setShowModal(true)
-                          }}
+                          <button
+                            className='btn btn-outline text-xs p-2 h-auto'
+                            data-te-toggle="modal"
+                            data-te-target="#geneSetModal"
+                            data-te-ripple-init
+                            data-te-ripple-color="light"
+                            onClick={evt => {
+                              setCurrTerm
+                              setGeneSetId(gene_set_ids?.get(term)?.at(0) || '')
+                              setShowModal(true)
+                            }}
                           ><p>View Gene Set ({gene_set_ids?.get(term)?.at(1) || 'n'})</p>
                           </button>
                         </td>
+                        <td></td>
+                        <td></td>
                       </tr>)
-                    })}
-                  </>
-                </tr>
+                  })}
+                </>
               )
             })}
-          </tbody>
+          </tbody >
         </table>
       </div>
       <div className="flex flex-col items-center">
