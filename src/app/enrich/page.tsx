@@ -67,7 +67,12 @@ function EnrichmentResults({ userGeneSet, setModelGeneSet }: { userGeneSet?: Fet
             </table>
           </div>
         </div>
-      )) ?? <div className="mx-auto p-5"><Image className={'rounded mx-auto'} src={'/images/loading.gif'} width={125} height={250} alt={'Loading...'}/> </div>}
+      )) ?? 
+      <div className="mx-auto p-5 text-center">
+        <Image className={'rounded mx-auto'} src={'/images/loading.gif'} width={125} height={250} alt={'Loading...'}/> 
+        <p>Rummaging through gene sets... </p>
+      </div>
+      }
     </div>
   )
 }
