@@ -20,8 +20,8 @@ export default function PmcTable({ terms, data, gene_set_ids }: { terms?: Map<st
   const [total, setTotal] = React.useState(data?.length)
   const [maxPage, setMaxPage] = React.useState(Math.floor((data?.length || 1) / numPerPage))
 
-  const [geneSetId, setGeneSetId] = React.useState<string | null>(null)
-  const [currTerm, setCurrTerm] = React.useState<string | null>(null)
+  const [geneSetId, setGeneSetId] = React.useState<string | null>(gene_set_ids?.values().next().value?.at(0) || '')
+  const [currTerm, setCurrTerm] = React.useState<string | null>(gene_set_ids?.keys().next().value?.at(0) || '')
   const [showModal, setShowModal] = React.useState(false)
 
   React.useEffect(() => {
@@ -60,6 +60,7 @@ export default function PmcTable({ terms, data, gene_set_ids }: { terms?: Map<st
               <td className='w-1/4'>Title</td>
               <td className='w-20'>Year</td>
               <td className='w-20'># Terms</td>
+              <td className='w-10'></td>
             </tr>
           </thead>
           <tbody>
@@ -70,13 +71,13 @@ export default function PmcTable({ terms, data, gene_set_ids }: { terms?: Map<st
                     <td><LinkedTerm term={`${el?.pmcid} `}></LinkedTerm></td>
                     <td>{el?.title}</td>
                     <td>{el?.yr}</td>
-                    <td className='flex-col align-text-middle'>
-                      <span className='mr-5'>{terms?.get(el?.pmcid)?.length}</span>
+                    <td>{terms?.get(el?.pmcid)?.length}</td>
+                    <td className='align-text-middle'>
                       <button
                       onClick={evt => {
                         terms?.get(el?.pmcid)?.map(term => document.getElementById(term)?.classList.toggle('hidden'))
                       }}
-                      >  
+                      >
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-6 h-6">
                           <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
                         </svg>

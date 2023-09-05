@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import useSWR, { Fetcher } from 'swr'
 import {TermsPmcsDocument, TermsPmcsQuery} from '@/graphql';
 import { useSuspenseQuery } from '@apollo/client'
-import PmcSearchColumns from '@/components/pmcSearchColumns'
+import PmcSearchColumns from '@/components/pmcSearchData'
 import Image from 'next/image'
 
 
@@ -39,7 +39,11 @@ function PubMedSearchResults({ pmcData, isLoading, error }:
 
   if (error) return <div className="text-center p-5">Failed to fetch articles from PubMed Central... trying again in a few seconds.<div className="text-center"><Image className={'rounded mx-auto'} src={'/images/loading.gif'} width={125} height={250} alt={'Loading...'}/> </div></div>
 
-  if (isLoading) return <div className="text-center p-5"><Image className={'rounded mx-auto'} src={'/images/loading.gif'} width={125} height={250} alt={'Loading...'}/> </div>
+  if (isLoading) return (
+  <div className="text-center p-5">
+    <Image className={'rounded mx-auto'} src={'/images/loading.gif'} width={125} height={250} alt={'Loading...'}/>
+    <p>Fetching articles from PubMed Central and Rummaging for gene sets.</p>
+  </div>)
 
   if (!pmcData?.esearchresult?.idlist) return <></>
 
@@ -63,7 +67,7 @@ function PubMedSearchResults({ pmcData, isLoading, error }:
 
   return (
     <>
-    <div className='p-5 text-center'>Your query returned identified {Intl.NumberFormat("en-US", {}).format(pmcsInDb?.size)} articles which have extracted gene sets in the Rummagene database.</div>
+    <div className='p-5 text-center'>The top 5000 results from your query identified {Intl.NumberFormat("en-US", {}).format(pmcsInDb?.size)} articles which have extracted gene sets in the Rummagene database.</div>
     <PmcSearchColumns pmc_terms={pmc_terms} pmcs={Array.from(pmcsInDb)} gene_set_ids={gene_set_ids}></PmcSearchColumns>
     </>)
 }
