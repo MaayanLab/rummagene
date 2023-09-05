@@ -22,14 +22,13 @@ export default function RootLayout({
       <body className="min-h-screen flex flex-col">
         <ApolloWrapper>
           <main className="flex-1 flex flex-col">
-            <div className="navbar">
-              <div className="flex flex-col items-start">
-                <ul className="menu menu-horizontal gap-3 text-lg">
+            <div className="navbar block text-center">
+              <div className="navbar-center">
+                <ul className="menu menu-horizontal gap-3 text-lg mr-5">
                   <Nav />
                 </ul>
               </div>
-              <div className="flex-1"></div>
-              <div className="flex-none flex-col place-items-end p-3">
+              <div className="navbar-center ml-5">
                 <React.Suspense fallback={<span className="loading loading-ring loading-lg"></span>}>
                   <Stats show_sets_analyzed={true}/>
                 </React.Suspense>
