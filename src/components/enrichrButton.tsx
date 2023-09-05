@@ -1,5 +1,4 @@
 import React from 'react'
-import Link from 'next/link'
 
 function enrich(options: any) {
     if (typeof options.list === 'undefined') {
