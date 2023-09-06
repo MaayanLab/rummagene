@@ -8,6 +8,7 @@ export default function About() {
       <h2 className="title text-xl font-medium mb-3">About Rummagene</h2>
       <div className="flex">
         <div className="flex-col">
+        <Image className={'rounded float-right ml-5'} src={'/images/rummagene_logo.png'} width={250} height={250} alt={'Rummagene'}></Image>
           <p className="text-justify">
           Many biomedical research papers are published every day with a portion of them containing supporting tables with 
           data about genes, transcripts, variants, and proteins. For example, supporting tables may contain differentially 
@@ -32,12 +33,11 @@ export default function About() {
           </p>
           <br></br>
           <p>
-            Developed in <a className='underline cursor' href="https://labs.icahn.mssm.edu/maayanlab/">the Ma&apos;ayan Lab</a>
+          Rummagene is actively being developed by <a className='underline cursor' href="https://labs.icahn.mssm.edu/maayanlab/">the Ma&apos;ayan Lab</a>
           </p>
+          
         </div>
-        <div className="flex-col p-10">
-        <Image className={'rounded'} src={'/images/rummagene_logo.png'} width={8000} height={225} alt={'Rummagene'}></Image>
-        </div>
+       
       </div>
       
     </div>
