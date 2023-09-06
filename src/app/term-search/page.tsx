@@ -14,23 +14,23 @@ function TermSearchResults({ terms }: { terms: string[] }) {
       first: 1000
     }
   })
+  console.log(terms)
+
+  if (terms.length == 0) return <></>
 
   return (
+    <React.Suspense fallback={<><Image className={'rounded mx-auto'} src={'/images/loading.gif'} width={125} height={250} alt={'Loading...'} /><p>Rummaging for gene sets with your search term.</p></>}>
     <ul>
       {data?.geneSetLibraries?.nodes
         .filter(geneSetLibrary => geneSetLibrary.termSearchCount.nodes.length > 0)
         .map((geneSetLibrary, i) => (
-          <div key={i} className="collapse collapse-plus">
-            <input type="checkbox" />
-            <div className="collapse-title text-xl font-medium">
-              Matching gene sets {geneSetLibrary.name} ({geneSetLibrary.termSearchCount.totalCount})
-            </div>
-            <div className="collapse-content">
+          <div key={geneSetLibrary.name} className='text-center mt-5'>
+            <p className='text-lg'> Your search term is contained in {geneSetLibrary.termSearchCount.totalCount} gene sets.</p>
             <TermTable terms={geneSetLibrary.termSearchCount.nodes}></TermTable>
-              </div>
-            </div>
+          </div>
         )) ?? null}
     </ul>
+    </React.Suspense>
   )
 }
 
@@ -46,8 +46,10 @@ export default function TermSearchPage({
     ensureArray(searchParams.q).flatMap(el => el.split(/\s+/g)),
     [searchParams.q])
   const [rawTerms, setRawTerms] = React.useState(terms.join(' '))
+  const [searchTerms, setSearchTerms] = React.useState<string[]>(terms)
   return (
     <>
+    <div className='flex-col'>
       <form
         className="flex flex-row items-center gap-2"
         onSubmit={evt => {
@@ -55,6 +57,7 @@ export default function TermSearchPage({
           router.push(`/term-search?q=${encodeURIComponent(rawTerms)}`, {
             scroll: false,
           })
+          setSearchTerms(rawTerms.split(' '))
         }}
       >
         <span className="label-text text-lg">Term</span>
@@ -66,14 +69,43 @@ export default function TermSearchPage({
           onChange={evt => {
             setRawTerms(evt.currentTarget.value)
           }}
+          onSubmit={evt => {
+            setSearchTerms(terms)
+          }}
         />
         <button
           type="submit"
           className="btn normal-case"
         >Search gene sets</button>
+       <div className='ml-10'> Query extracted gene set table titles to find relevant gene sets.</div>
       </form>
-      <React.Suspense fallback={<div className="text-center p-5"><Image className={'rounded mx-auto'} src={'/images/loading.gif'} width={125} height={250} alt={'Loading...'}/> </div>}>
-        <TermSearchResults terms={terms} />
+      <p className="prose p-2">
+        try an example:
+        <a
+          className="font-bold text-sm cursor-pointer"
+          onClick={() => {
+            setRawTerms('neuron')
+            setSearchTerms(['neuron'])
+          }}
+        > neuron</a>,
+        <a
+          className="font-bold text-sm cursor-pointer"
+          onClick={() => {
+            setRawTerms('CRISPR')
+            setSearchTerms(['CRISPR'])
+          }}
+        > CRISPR</a>, 
+        <a
+          className="font-bold text-sm cursor-pointer"
+          onClick={() => {
+            setRawTerms('PBMC')
+            setSearchTerms(['PBMC'])
+          }}
+        > PBMC</a>
+      </p>
+      </div>
+      <React.Suspense fallback={<><div className="text-center p-5"><Image className={'rounded mx-auto'} src={'/images/loading.gif'} width={125} height={250} alt={'Loading...'}/> <p>Rummaging for gene sets that include your search term.</p></div></>}>
+        <TermSearchResults terms={searchTerms} />
       </React.Suspense>
     </>
   )

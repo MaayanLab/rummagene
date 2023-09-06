@@ -34,30 +34,6 @@ export default function TermTable({ terms }: { terms?: { __typename?: "GeneSetLi
   return (
     <>
       <GeneSetModal geneset={genesQuery?.data?.viewGeneSet?.nodes} term={currTerm} showModal={showModal} setShowModal={setShowModal}></GeneSetModal>
-      <div className="flex flex-col items-start pl-5">
-
-        <span className="text-sm text-gray-700 dark:text-gray-400">
-          Showing <span className="font-semibold text-gray-900 dark:text-white">{(page * numPerPage) + 1}</span> to <span className="font-semibold text-gray-900 dark:text-white">{Math.min(numPerPage * (page + 1), total || 0)}</span> of <span className="font-semibold text-gray-900 dark:text-white">{total}</span> Entries
-        </span>
-        <div className="inline-flex mt-2 xs:mt-0 pl-10">
-          <button className="flex items-center justify-center px-3 h-8 text-sm font-medium text-white bg-gray-800 rounded-l hover:bg-gray-900 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white"
-            onClick={evt => {
-              if (page > 0) {
-                setPage(page - 1)
-              }
-            }}>
-            Prev
-          </button>
-          <button
-            className="flex items-center justify-center px-3 h-8 text-sm font-medium text-white bg-gray-800 border-0 border-l border-gray-700 rounded-r hover:bg-gray-900 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white"
-            onClick={evt => {
-              if (page < maxPage) setPage(page + 1)
-            }}
-          >
-            Next
-          </button>
-        </div>
-      </div>
       <div className='border m-5 mt-1 overflow-y-scroll'>
 
         <div className='text-right p-1'>
@@ -72,7 +48,7 @@ export default function TermTable({ terms }: { terms?: { __typename?: "GeneSetLi
             }}
           />
         </div>
-        <table className="table table-pin-rows table-pin-cols table-fixed">
+        <table className="table table-pin-cols table-auto">
           <thead>
             <tr>
               <td >Term</td>
@@ -83,12 +59,10 @@ export default function TermTable({ terms }: { terms?: { __typename?: "GeneSetLi
             {dataFiltered?.map(el => {
               return (
                 <tr key={el?.term}>
-
-                  <td><p className="break-words w-5/6"><LinkedTerm term={`${el?.term}`}></LinkedTerm></p></td>
-
-                  <td className='w-1/6'>
+                  <td><p className="break-all w-9/12"><LinkedTerm term={`${el?.term}`}></LinkedTerm></p></td>
+                  <td className='w-3/12'>
                     <button
-                      className='btn btn-lg btn-outline text-xs p-2'
+                      className='btn btn-outline text-xs p-2 h-auto'
                       data-te-toggle="modal"
                       data-te-target="#geneSetModal"
                       data-te-ripple-init
