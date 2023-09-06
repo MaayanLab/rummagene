@@ -67,7 +67,7 @@ export default function PmcTable({ terms, data, gene_set_ids }: { terms?: Map<st
             {dataFiltered?.map(el => {
               return (
                 <>
-                  <tr key={el?.pmcid} className=''>
+                  <tr key={el?.pmcid}>
                     <td><LinkedTerm term={`${el?.pmcid} `}></LinkedTerm></td>
                     <td>{el?.title}</td>
                     <td>{el?.yr}</td>
