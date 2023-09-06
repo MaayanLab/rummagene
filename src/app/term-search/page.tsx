@@ -14,7 +14,6 @@ function TermSearchResults({ terms }: { terms: string[] }) {
       first: 1000
     }
   })
-  console.log(terms)
 
   if (terms.length == 0) return <></>
 

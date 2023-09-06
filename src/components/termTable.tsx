@@ -58,7 +58,7 @@ export default function TermTable({ terms }: { terms?: { __typename?: "GeneSetLi
           <tbody>
             {dataFiltered?.map(el => {
               return (
-                <tr key={el?.term}>
+                <tr key={el?.term} className={"hover:bg-gray-100 dark:hover:bg-gray-700"}>
                   <td><p className="break-all w-9/12"><LinkedTerm term={`${el?.term}`}></LinkedTerm></p></td>
                   <td className='w-3/12'>
                     <button
@@ -87,7 +87,7 @@ export default function TermTable({ terms }: { terms?: { __typename?: "GeneSetLi
           Showing <span className="font-semibold text-gray-900 dark:text-white">{(page * numPerPage) + 1}</span> to <span className="font-semibold text-gray-900 dark:text-white">{Math.min(numPerPage * (page + 1), total || 0)}</span> of <span className="font-semibold text-gray-900 dark:text-white">{total}</span> Entries
         </span>
         <div className="inline-flex mt-2 xs:mt-0 mb-5">
-          <button className="flex items-center justify-center px-3 h-8 text-sm font-medium text-white bg-gray-800 rounded-l hover:bg-gray-900 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white"
+          <button className="flex items-center justify-center px-3 h-8 text-sm font-medium text-white bg-gray-500 rounded-l hover:bg-gray-900 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white"
             onClick={evt => {
               if (page > 0) {
                 setPage(page - 1)
@@ -96,7 +96,7 @@ export default function TermTable({ terms }: { terms?: { __typename?: "GeneSetLi
             Prev
           </button>
           <button
-            className="flex items-center justify-center px-3 h-8 text-sm font-medium text-white bg-gray-800 border-0 border-l border-gray-700 rounded-r hover:bg-gray-900 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white"
+            className="flex items-center justify-center px-3 h-8 text-sm font-medium text-white bg-gray-500 border-0 border-l border-gray-700 rounded-r hover:bg-gray-900 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white"
             onClick={evt => {
               if (page < maxPage) setPage(page + 1)
             }}

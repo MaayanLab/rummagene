@@ -67,7 +67,7 @@ export default function PmcTable({ terms, data, gene_set_ids }: { terms?: Map<st
             {dataFiltered?.map(el => {
               return (
                 <>
-                  <tr key={el?.pmcid}>
+                  <tr key={el?.pmcid} className={"hover:bg-gray-100 dark:hover:bg-gray-700"}>
                     <td><LinkedTerm term={`${el?.pmcid} `}></LinkedTerm></td>
                     <td>{el?.title}</td>
                     <td>{el?.yr}</td>
@@ -96,7 +96,7 @@ export default function PmcTable({ terms, data, gene_set_ids }: { terms?: Map<st
                             data-te-ripple-init
                             data-te-ripple-color="light"
                             onClick={evt => {
-                              setCurrTerm
+                              setCurrTerm(term)
                               setGeneSetId(gene_set_ids?.get(term)?.at(0) || '')
                               setShowModal(true)
                             }}
@@ -120,7 +120,7 @@ export default function PmcTable({ terms, data, gene_set_ids }: { terms?: Map<st
         </span>
 
         <div className="inline-flex mt-2 xs:mt-0 mb-5">
-          <button className="flex items-center justify-center px-3 h-8 text-sm font-medium text-white bg-gray-800 rounded-l hover:bg-gray-900 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white"
+          <button className="flex items-center justify-center px-3 h-8 text-sm font-medium text-white bg-gray-500 rounded-l hover:bg-gray-900 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white"
             onClick={evt => {
               if (page > 0) {
                 setPage(page - 1)
@@ -129,7 +129,7 @@ export default function PmcTable({ terms, data, gene_set_ids }: { terms?: Map<st
             Prev
           </button>
           <button
-            className="flex items-center justify-center px-3 h-8 text-sm font-medium text-white bg-gray-800 border-0 border-l border-gray-700 rounded-r hover:bg-gray-900 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white"
+            className="flex items-center justify-center px-3 h-8 text-sm font-medium text-white bg-gray-500 border-0 border-l border-gray-700 rounded-r hover:bg-gray-900 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white"
             onClick={evt => {
               if (page < maxPage) setPage(page + 1)
             }}
