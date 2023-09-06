@@ -18,7 +18,7 @@ $$
   from
     app_public.gene_set gs
     inner join unnest(terms) ut(term) on gs.term ilike ('%' || ut.term || '%')
-    inner join app_public.gene_set_length gsl on gsl.id = gs.id;
+    inner join app_public.gene_set_length gsl on gsl.id = gs.id
   where
     gs.library_id = gene_set_library.id;
 $$ language sql immutable strict parallel safe;
