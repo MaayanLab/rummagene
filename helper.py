@@ -155,7 +155,7 @@ def import_paper_info(plpy):
     pmc_meta = pd.read_csv('data/PMC-ids.csv', usecols=['PMCID', 'Year', 'DOI'], index_col='PMCID')
     pmc_meta = pmc_meta[pmc_meta.index.isin(to_ingest)]
   except:
-    print('PMC metadata not found... you can download the latest verision from: https://ftp.ncbi.nlm.nih.gov/pub/pmc/')
+    raise RuntimeError('PMC metadata not found... you can download the latest verision from: https://ftp.ncbi.nlm.nih.gov/pub/pmc/')
   
   title_dict = {}
   for i in tqdm(range(0, len(to_ingest), 250), 'Pulling titles...'):
