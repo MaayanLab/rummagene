@@ -57,34 +57,22 @@ def copy_from_records(conn: 'psycopg2.connection', table: str, columns: list[str
 def import_gene_set_library(
   plpy,
   library: Path | str,
-  name: str,
-  description: str,
-  append = False,
+  prefix='',
+  postfix='',
 ):
   import re
   import json
   import uuid
-
-  # create the gene_set_library
-  gene_set_library, = plpy.cursor(
-    plpy.prepare(
-      (
-        'insert into app_public.gene_set_library (name, description) values ($1, $2) on conflict (name) do update set description = EXCLUDED.description returning *'
-        if append else
-        'insert into app_public.gene_set_library (name, description) values ($1, $2) returning *'
-      ),
-      ['varchar', 'varchar']
-    ),
-    [name, description],
-  )
 
   # fetch the gene_set, gather the background genes
   new_gene_sets = []
   background_genes = set()
   n_geneset_genes = 0
   with Path(library).open('r') as fr:
-    for line in tqdm(filter(None, map(str.strip, fr)), desc='Loading gmt...'):
-      term, description, *raw_genes = line.split('\t')
+    for line in tqdm(fr, desc='Loading gmt...'):
+      line_split = line.strip().split('\t')
+      if len(line_split) < 3: continue
+      term, _description, *raw_genes = line_split
       genes = [
         cleaned_gene
         for raw_gene in map(str.strip, raw_genes)
@@ -93,85 +81,60 @@ def import_gene_set_library(
         if cleaned_gene
       ]
       new_gene_sets.append(dict(
-        id=str(uuid.uuid4()),
-        term=term,
+        term=prefix+term+postfix,
         genes=genes,
       ))
       background_genes.update(genes)
       n_geneset_genes += len(genes)
 
   # get a mapping from background_genes to background_gene_ids
-  gene_id_map, = plpy.cursor(
+  gene_map, = plpy.cursor(
     plpy.prepare(
-      'select internal.gene_id_map_from_genes($1) as gene_id_map',
+      '''
+        select coalesce(jsonb_object_agg(g.gene, g.gene_id), '{}') as gene_map
+        from app_public.gene_map($1) as g
+      ''',
       ['varchar[]']
     ),
     [list(background_genes)]
   )
-  gene_id_map = json.loads(gene_id_map['gene_id_map'])
+  gene_map = json.loads(gene_map['gene_map'])
 
   # upsert any new genes not in the mapping & add them to the mapping
   new_genes = {
     id: dict(id=id, symbol=gene)
-    for gene in tqdm(background_genes - gene_id_map.keys(), desc='Preparing new genes...')
+    for gene in tqdm(background_genes - gene_map.keys(), desc='Preparing new genes...')
     for id in (str(uuid.uuid4()),)
   }
   if new_genes:
     copy_from_records(
       plpy.conn, 'app_public.gene', ('id', 'symbol',),
       tqdm(new_genes.values(), desc='Inserting new genes...'))
-    gene_id_map.update({
+    gene_map.update({
       new_gene['symbol']: new_gene['id']
       for new_gene in new_genes.values()
     })
 
-  if append:
-    existing_terms = {
-      row['term']
-      for row in plpy.cursor(
-        plpy.prepare('select term from app_public.gene_set where library_id = $1', ['uuid']),
-        [gene_set_library['id']]
-      )
-    }
-  else:
-    existing_terms = set()
+  existing_terms = {
+    row['term']
+    for row in plpy.cursor('select term from app_public.gene_set', tuple())
+  }
 
   copy_from_records(
-    plpy.conn, 'app_public.gene_set', ('id', 'library_id', 'term',),
+    plpy.conn, 'app_public.gene_set', ('term', 'gene_ids'),
     tqdm((
       dict(
-        id=gene_set['id'],
-        library_id=gene_set_library['id'],
         term=gene_set['term'],
+        gene_ids=json.dumps({gene_map[gene]: None for gene in gene_set['genes']}),
       )
       for gene_set in new_gene_sets
       if gene_set['term'] not in existing_terms
     ),
-    total=len(new_gene_sets),
+    total=len(new_gene_sets) - len(existing_terms),
     desc='Inserting new genesets...'),
   )
-  copy_from_records(
-    plpy.conn, 'app_public.gene_set_gene', ('gene_set_id', 'gene_id',),
-    tqdm((
-      dict(
-        gene_set_id=gene_set['id'],
-        gene_id=gene_id,
-      )
-      for gene_set in new_gene_sets
-      if gene_set['term'] not in existing_terms
-      for gene_id in set(
-        gene_id_map[gene]
-        for gene in gene_set['genes']
-      )
-    ),
-    total=n_geneset_genes,
-    desc='Inserting geneset genes...'),
-  )
 
-  plpy.execute('refresh materialized view concurrently app_public.gene_set_library_gene', [])
   plpy.execute('refresh materialized view concurrently app_public.gene_set_pmc', [])
-
-  return gene_set_library
 
 def import_paper_info(plpy):
   import pandas as pd
