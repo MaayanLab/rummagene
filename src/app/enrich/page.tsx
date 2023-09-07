@@ -17,19 +17,15 @@ function EnrichmentResults({ userGeneSet, setModelGeneSet }: { userGeneSet?: Fet
   )
   const { data: enrichmentResults } = useEnrichmentQueryQuery({
     skip: genes.length === 0,
-    variables: {
-      genes,
-      // TODO: not ideal since it can lose some results, but speeds it up
-      overlapGreaterThan: Math.floor(0.05*genes.length),
-    },
+    variables: { genes },
   })
   return (
     <div className="flex flex-row flex-wrap">
-      {enrichmentResults?.geneSetLibraries?.nodes.map((geneSetLibrary, i) => (
+      {enrichmentResults?.backgrounds?.nodes.map((background, i) => (
         <div key={i} className="collapse collapse-arrow">
           <input type="checkbox" defaultChecked /> 
           <h2 className="collapse-title text-xl font-medium">
-            Matching gene sets {geneSetLibrary.name} ({geneSetLibrary.enrichLibraryBackground.totalCount})
+            Matching gene sets ({background.enrich.totalCount})
           </h2>
           <div className="collapse-content overflow-x-auto">
             <table className="table table-xs">
@@ -43,7 +39,7 @@ function EnrichmentResults({ userGeneSet, setModelGeneSet }: { userGeneSet?: Fet
                 </tr>
               </thead>
               <tbody>
-                {geneSetLibrary.enrichLibraryBackground.nodes.map((enrichmentResult, j) => (
+                {background.enrich.nodes.map((enrichmentResult, j) => (
                   <tr key={j}>
                     <th><LinkedTerm term={enrichmentResult.geneSet?.term} /></th>
                     <td className="whitespace-nowrap text-underline cursor-pointer">
@@ -52,11 +48,11 @@ function EnrichmentResults({ userGeneSet, setModelGeneSet }: { userGeneSet?: Fet
                         className="prose underline cursor-pointer"
                         onClick={evt => {
                           setModelGeneSet({
-                            genes: enrichmentResult.overlapGenes.nodes.map(gene => gene.symbol) ?? [],
+                            genes: enrichmentResult.geneSet?.overlap.nodes.map(gene => gene.symbol) ?? [],
                             description: enrichmentResult.geneSet?.term ?? '',
                           })
                         }}
-                      >{enrichmentResult.overlapGenes.nodes.length}</label>
+                      >{enrichmentResult.geneSet?.overlap.totalCount}</label>
                     </td>
                     <td className="whitespace-nowrap">{enrichmentResult.oddsRatio?.toPrecision(3)}</td>
                     <td className="whitespace-nowrap">{enrichmentResult.pvalue?.toPrecision(3)}</td>

@@ -1,14 +1,14 @@
 'use client'
 import React from 'react'
 import { useSuspenseQuery } from '@apollo/experimental-nextjs-app-support/ssr'
-import { GeneSetLibraryTermSearchDocument, GeneSetLibraryTermSearchQuery } from '@/graphql'
+import { TermSearchDocument, TermSearchQuery } from '@/graphql'
 import ensureArray from '@/utils/ensureArray'
 import { useRouter } from 'next/navigation'
 import TermTable from '@/components/termTable'
 import Image from 'next/image'
 
 function TermSearchResults({ terms }: { terms: string[] }) {
-  const { data } = useSuspenseQuery<GeneSetLibraryTermSearchQuery>(GeneSetLibraryTermSearchDocument, {
+  const { data } = useSuspenseQuery<TermSearchQuery>(TermSearchDocument, {
     variables: {
       terms,
       first: 1000
@@ -19,16 +19,10 @@ function TermSearchResults({ terms }: { terms: string[] }) {
 
   return (
     <React.Suspense fallback={<><Image className={'rounded mx-auto'} src={'/images/loading.gif'} width={125} height={250} alt={'Loading...'} /><p>Rummaging for gene sets with your search term.</p></>}>
-    <ul>
-      {data?.geneSetLibraries?.nodes
-        .filter(geneSetLibrary => geneSetLibrary.termSearchCount.nodes.length > 0)
-        .map((geneSetLibrary, i) => (
-          <div key={geneSetLibrary.name} className='text-center mt-5'>
-            <p className='text-lg'> Your search term is contained in {geneSetLibrary.termSearchCount.totalCount} gene sets.</p>
-            <TermTable terms={geneSetLibrary.termSearchCount.nodes}></TermTable>
-          </div>
-        )) ?? null}
-    </ul>
+      <div className='text-center mt-5'>
+        <p className='text-lg'> Your search term is contained in {data.geneSetTermSearch?.totalCount} gene sets.</p>
+        <TermTable terms={data.geneSetTermSearch?.nodes}></TermTable>
+      </div>
     </React.Suspense>
   )
 }

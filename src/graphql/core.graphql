@@ -1,18 +1,3 @@
-query GeneSetLibraries {
-  geneSetLibraries {
-    nodes {
-      name
-      geneSetsByLibraryId {
-        totalCount
-      }
-      backgroundGenes {
-        totalCount
-      }
-    }
-  }
-}
-
-
 query Stats {
   userGeneSets {
     totalCount
@@ -34,26 +19,21 @@ query FetchUserGeneSet($id: UUID!) {
 }
 
 # Perform enrichment analysis against a specific library
-query EnrichmentQuery($genes: [String]!, $overlapGreaterThan: BigInt = "0", $offset: Int = 0, $first: Int = 10) {
-  geneSetLibraries {
+query EnrichmentQuery($genes: [String]!, $offset: Int = 0, $first: Int = 10) {
+  backgrounds(first: 1) {
     nodes {
-      name
-      enrichLibraryBackground(
-        genes: $genes
-        overlapGreaterThan: $overlapGreaterThan
-        offset: $offset
-        first: $first
-      ) {
+      enrich(genes: $genes, offset: $offset, first: $first) {
         nodes {
           pvalue
           adjPvalue
           oddsRatio
           geneSet {
             term
-          }
-          overlapGenes {
-            nodes {
-              symbol
+            overlap(genes: $genes) {
+              nodes {
+                symbol
+              }
+              totalCount
             }
           }
         }
@@ -64,34 +44,24 @@ query EnrichmentQuery($genes: [String]!, $overlapGreaterThan: BigInt = "0", $off
 }
 
 # Gene search: find all genesets containing certain gene(s)
-query GeneSetLibraryGeneSearch($genes: [String]!, $offset: Int = 0, $first: Int = 10) {
-  geneSetLibraries {
+query GeneSearch($genes: [String]!, $offset: Int = 0, $first: Int = 10) {
+  geneSetGeneSearch(genes: $genes, offset: $offset, first: $first) {
     nodes {
-      name
-      geneSearch(genes: $genes, offset: $offset, first: $first) {
-        nodes {
-          term
-        }
-        totalCount
-      }
+      term
     }
+    totalCount
   }
 }
 
 # Term search: find all genesets containing certain term(s)
-query GeneSetLibraryTermSearch($terms: [String]!, $offset: Int = 0, $first: Int = 10) {
-  geneSetLibraries {
+query TermSearch($terms: [String]!, $offset: Int = 0, $first: Int = 10) {
+  geneSetTermSearch(terms: $terms, offset: $offset, first: $first) {
     nodes {
-      name
-      termSearchCount(terms: $terms, offset: $offset, first: $first) {
-        nodes {
-          term
-          id
-          count
-        }
-        totalCount
-      }
+      id
+      term
+      nGeneIds
     }
+    totalCount
   }
 }
 
@@ -127,7 +97,11 @@ query TermsPmcs($pmcids: [String]!) {
 }
 
 query ViewGeneSet($id: UUID!) {
-  viewGeneSet(gsid: $id) {
-    nodes
+  geneSet(id: $id) {
+    genes {
+      nodes {
+        symbol
+      }
+    }
   }
 }
