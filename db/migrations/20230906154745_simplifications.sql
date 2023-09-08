@@ -359,7 +359,7 @@ select
   g.id, g.symbol,
   (
     select coalesce(jsonb_object_agg(gsyn.synonym, null), '{}'::jsonb)
-    from gene_synonym gsyn
+    from app_public.gene_synonym gsyn
     where gsyn.gene_id = g.id
   ) as synonyms
 from app_public.gene g;
