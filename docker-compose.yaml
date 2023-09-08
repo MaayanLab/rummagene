@@ -2,7 +2,7 @@ version: '3.9'
 services:
   app:
     build: .
-    image: maayanlab/biotablemind
+    image: maayanlab/rummagene
     environment:
       - DATABASE_URL=postgres://$POSTGRES_USER:$POSTGRES_PASSWORD@postgres/$POSTGRES_DB
       - AUTHORIZATION_HEADER=$AUTHORIZATION_HEADER
@@ -11,7 +11,7 @@ services:
       - 3000:3000
   postgres:
     build: db
-    image: maayanlab/biotablemind-postgres
+    image: maayanlab/rummagene-postgres
     environment:
       - POSTGRES_DB
       - POSTGRES_USER
