@@ -11,14 +11,13 @@ function TermSearchResults({ terms }: { terms: string[] }) {
   const { data } = useSuspenseQuery<GeneSetLibraryTermSearchQuery>(GeneSetLibraryTermSearchDocument, {
     variables: {
       terms,
-      first: 1000
+      first: 10000
     }
   })
 
   if (terms.length == 0) return <></>
 
   return (
-    <React.Suspense fallback={<><Image className={'rounded mx-auto'} src={'/images/loading.gif'} width={125} height={250} alt={'Loading...'} /><p>Rummaging for gene sets with your search term.</p></>}>
     <ul>
       {data?.geneSetLibraries?.nodes
         .filter(geneSetLibrary => geneSetLibrary.termSearchCount.nodes.length > 0)
@@ -29,7 +28,6 @@ function TermSearchResults({ terms }: { terms: string[] }) {
           </div>
         )) ?? null}
     </ul>
-    </React.Suspense>
   )
 }
 
@@ -42,10 +40,12 @@ export default function TermSearchPage({
 }) {
   const router = useRouter()
   const terms = React.useMemo(() =>
-    ensureArray(searchParams.q).flatMap(el => el.split(/\s+/g)),
+    ensureArray(searchParams.q).flatMap(el => el.split(/\s+/g)).filter(el => el.length > 0),
     [searchParams.q])
   const [rawTerms, setRawTerms] = React.useState(terms.join(' '))
   const [searchTerms, setSearchTerms] = React.useState<string[]>(terms)
+
+  console.log(searchTerms)
   return (
     <>
     <div className='flex-col'>
@@ -103,9 +103,10 @@ export default function TermSearchPage({
         > PBMC</a>
       </p>
       </div>
+      {searchTerms.length > 0 ?
       <React.Suspense fallback={<><div className="text-center p-5"><Image className={'rounded mx-auto'} src={'/images/loading.gif'} width={125} height={250} alt={'Loading...'}/> <p>Rummaging for gene sets that include your search term.</p></div></>}>
         <TermSearchResults terms={searchTerms} />
-      </React.Suspense>
+      </React.Suspense>: <></>}
     </>
   )
 }
