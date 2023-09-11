@@ -5,7 +5,7 @@ import { GeneSetLibraryTermSearchDocument, GeneSetLibraryTermSearchQuery } from 
 import ensureArray from '@/utils/ensureArray'
 import { useRouter } from 'next/navigation'
 import TermTable from '@/components/termTable'
-import Image from 'next/image'
+import Loading from '@/components/loading'
 
 function TermSearchResults({ terms }: { terms: string[] }) {
   const { data } = useSuspenseQuery<GeneSetLibraryTermSearchQuery>(GeneSetLibraryTermSearchDocument, {
@@ -43,7 +43,6 @@ export default function TermSearchPage({
   const [rawTerms, setRawTerms] = React.useState(terms.join(' '))
   const [searchTerms, setSearchTerms] = React.useState<string[]>(terms)
 
-  console.log(searchTerms)
   return (
     <>
     <div className='flex-col'>
@@ -102,7 +101,7 @@ export default function TermSearchPage({
       </p>
       </div>
       {searchTerms.length > 0 ?
-      <React.Suspense fallback={<><div className="text-center p-5"><Image className={'rounded mx-auto'} src={'/images/loading.gif'} width={125} height={250} alt={'Loading...'}/> <p>Rummaging for gene sets that include your search term.</p></div></>}>
+      <React.Suspense fallback={<Loading/>}>
         <TermSearchResults terms={searchTerms} />
       </React.Suspense>: <></>}
     </>

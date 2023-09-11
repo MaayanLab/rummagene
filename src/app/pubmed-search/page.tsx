@@ -7,6 +7,7 @@ import { TermsPmcsDocument, TermsPmcsQuery } from '@/graphql';
 import { useSuspenseQuery } from '@apollo/client'
 import PmcSearchColumns from '@/components/pmcSearchData'
 import Image from 'next/image'
+import Loading from '@/components/loading'
 
 
 interface esearchResult {
@@ -41,11 +42,7 @@ function PubMedSearchResults({ pmcData, isLoading, error, search }:
 
   if (error) return <div className="text-center p-5"><div className="text-center"><Image className={'rounded mx-auto'} src={'/images/loading.gif'} width={125} height={250} alt={'Loading...'} /> </div>Failed to fetch articles from PubMed Central... trying again in a few seconds.</div>
 
-  if (isLoading) return (
-    <div className="text-center p-5">
-      <Image className={'rounded mx-auto'} src={'/images/loading.gif'} width={125} height={250} alt={'Loading...'} />
-      <p>Fetching articles from PubMed Central and Rummaging for gene sets.</p>
-    </div>)
+  if (isLoading) return (<Loading/>)
 
   if (!pmcData?.esearchresult?.idlist) return <></>
 
