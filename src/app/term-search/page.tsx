@@ -15,8 +15,6 @@ function TermSearchResults({ terms }: { terms: string[] }) {
     }
   })
 
-  if (terms.length == 0) return <></>
-
   return (
     <ul>
       {data?.geneSetLibraries?.nodes
@@ -56,7 +54,7 @@ export default function TermSearchPage({
           router.push(`/term-search?q=${encodeURIComponent(rawTerms)}`, {
             scroll: false,
           })
-          setSearchTerms(rawTerms.split(' '))
+          setSearchTerms(rawTerms.split(' ').filter(el => el.length > 0))
         }}
       >
         <span className="label-text text-lg">Term</span>
