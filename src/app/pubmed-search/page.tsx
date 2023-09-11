@@ -87,7 +87,7 @@ export default function PubMedSearchPage({ searchParams }: {
   const [rawSearch, setRawSearch] = React.useState(searchTerms.join(' '))
   const [search, setSearch] = React.useState(searchTerms.join(' '))
   const { data, error, isLoading } = useSWR(() =>
-    `https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pmc&term=${search}&retmode=json&retmax=5000`, fetcher
+    `https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pmc&term=${search}&sort=relevance&retmode=json&retmax=5000`, fetcher
   )
 
   return (
