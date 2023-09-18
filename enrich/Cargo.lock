@@ -184,6 +184,17 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ecc7ab41815b3c653ccd2978ec3255c81349336702dfdf62ee6f7069b12a3aae"
 
 [[package]]
+name = "async-timer"
+version = "0.7.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ba5fa6ed76cb2aa820707b4eb9ec46f42da9ce70b0eafab5e5e34942b38a44d5"
+dependencies = [
+ "libc",
+ "wasm-bindgen",
+ "winapi",
+]
+
+[[package]]
 name = "async-trait"
 version = "0.1.73"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -532,6 +543,7 @@ dependencies = [
  "fishers_exact",
  "futures",
  "rayon",
+ "retainer",
  "rocket",
  "rocket_db_pools",
  "serde",
@@ -1544,6 +1556,18 @@ name = "regex-syntax"
 version = "0.7.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "dbb5fb1acd8a1a18b3dd5be62d25485eb770e05afb408a9627d14d451bae12da"
+
+[[package]]
+name = "retainer"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "df8c01a8276c14d0f8d51ebcf8a48f0748f9f73f5f6b29e688126e6a52bcb145"
+dependencies = [
+ "async-lock",
+ "async-timer",
+ "log",
+ "rand",
+]
 
 [[package]]
 name = "ring"

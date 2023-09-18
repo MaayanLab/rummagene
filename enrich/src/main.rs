@@ -12,6 +12,8 @@ use fishers_exact::fishers_exact;
 use adjustp::{adjust, Procedure};
 use rocket::{State, response::status::Custom,http::Status};
 use rocket::serde::{json::Json, Serialize};
+use std::sync::Arc;
+use retainer::Cache;
 
 #[derive(Database)]
 #[database("postgres")]
@@ -23,8 +25,17 @@ struct Bitmap {
     values: Vec<BitSet>,
 }
 
+#[derive(Clone, Eq, Ord, PartialEq, PartialOrd)]
+struct BackgroundQuery {
+    background_id: Uuid,
+    input_gene_set: BitSet,
+}
+
 // This structure stores a persistent many-reader single-writer hashmap containing cached indexes for a given background id
-struct IndexStore(RwLock<HashMap<Uuid, Bitmap>>);
+struct PersistentState { 
+    bitmaps: RwLock<HashMap<Uuid, Bitmap>>,
+    cache: Cache<Arc<BackgroundQuery>, Json<Arc<Vec<QueryResult>>>>,
+}
 
 // The response data, containing the ids, and relevant metrics
 struct PartialQueryResult {
@@ -34,7 +45,7 @@ struct PartialQueryResult {
     pvalue: f64,
 }
 
-#[derive(Serialize, Debug)]
+#[derive(Serialize, Clone, Debug)]
 struct QueryResult {
     gene_set_id: String,
     n_overlap: u32,
@@ -48,13 +59,13 @@ fn bitvec(background: &HashMap<Uuid, usize>, gene_set: Vec<Uuid>) -> BitSet {
 }
 
 // Ensure the specific background_id exists in state, resolving it if necessary
-async fn ensure_index(db: &mut Connection<Postgres>, state: &State<IndexStore>, background_id: Uuid) -> Result<(), String> {
+async fn ensure_index(db: &mut Connection<Postgres>, state: &State<PersistentState>, background_id: Uuid) -> Result<(), String> {
     let requires_fetch = {
-        let index_reader = state.0.read().await;
+        let index_reader = state.bitmaps.read().await;
         !(*index_reader).contains_key(&background_id)
     };
     if requires_fetch {
-        let mut index_writer = state.0.write().await;
+        let mut index_writer = state.bitmaps.write().await;
         println!("Initializing {}", background_id);
 
         let background_info = sqlx::query("select * from app_public_v2.background where id = $1::uuid;")
@@ -106,30 +117,34 @@ async fn ensure_index(db: &mut Connection<Postgres>, state: &State<IndexStore>, 
 #[post("/<background_id>?<overlap_ge>&<pvalue_le>&<adj_pvalue_le>", data = "<input_gene_set>")]
 async fn query(
     mut db: Connection<Postgres>,
-    state: &State<IndexStore>,
+    state: &State<PersistentState>,
     input_gene_set: Json<Vec<String>>,
     background_id: &str,
     overlap_ge: Option<u32>,
     pvalue_le: Option<f64>,
     adj_pvalue_le: Option<f64>
-) -> Result<Json<Vec<QueryResult>>, Custom<String>> {
+) -> Result<Json<Arc<Vec<QueryResult>>>, Custom<String>> {
     let background_id = Uuid::parse_str(background_id).map_err(|e| Custom(Status::BadRequest, e.to_string()))?;
+    ensure_index(&mut db, &state, background_id).await.map_err(|e| Custom(Status::InternalServerError, e.to_string()))?;
+    let input_gene_set = input_gene_set.0.into_iter().map(|gene| Uuid::parse_str(&gene)).collect::<Result<Vec<_>, _>>().map_err(|e| Custom(Status::BadRequest, e.to_string()))?;
+    let index_reader = state.bitmaps.read().await;
+    let bitmap = index_reader.get(&background_id).ok_or("Can't find background").map_err(|e| Custom(Status::InternalServerError, e.to_string()))?;
+    let input_gene_set = bitvec(&bitmap.columns, input_gene_set);
+    let background_query = Arc::new(BackgroundQuery { background_id, input_gene_set });
+    if let Some(results) = state.cache.get(&background_query).await {
+        return Ok(results.value().clone())
+    }
     let overlap_ge = overlap_ge.unwrap_or(1);
     let pvalue_le =  pvalue_le.unwrap_or(1.0);
     let adj_pvalue_le =  adj_pvalue_le.unwrap_or(1.0);
-    let input_gene_set = input_gene_set.0.into_iter().map(|gene| Uuid::parse_str(&gene)).collect::<Result<Vec<_>, _>>().map_err(|e| Custom(Status::BadRequest, e.to_string()))?;
-    ensure_index(&mut db, &state, background_id).await.map_err(|e| Custom(Status::InternalServerError, e.to_string()))?;
-    let index_reader = state.0.read().await;
-    let bitmap = index_reader.get(&background_id).ok_or("Can't find background").map_err(|e| Custom(Status::InternalServerError, e.to_string()))?;
-    let input_gene_set = bitvec(&bitmap.columns, input_gene_set);
     // parallel overlap computation
     let n_background = bitmap.columns.len() as u32;
-    let n_user_gene_id = input_gene_set.len() as u32;
+    let n_user_gene_id = background_query.input_gene_set.len() as u32;
     println!("n_user_gene_id = {}", n_user_gene_id);
     let results: Vec<_> = bitmap.values.par_iter()
         .enumerate()
         .filter_map(|(index, gene_set)| {
-            let n_overlap = gene_set.intersection(&input_gene_set).count() as u32;
+            let n_overlap = gene_set.intersection(&background_query.input_gene_set).count() as u32;
             if n_overlap < overlap_ge {
                 return None
             }
@@ -171,13 +186,18 @@ async fn query(
         })
         .collect();
     results.sort_unstable_by(|a, b| a.pvalue.partial_cmp(&b.pvalue).unwrap_or(std::cmp::Ordering::Equal));
-    Ok(Json(results))
+    let results = Json(Arc::new(results));
+    state.cache.insert(background_query, results.clone(), 10000).await;
+    Ok(results)
 }
 
 #[launch]
 fn rocket() -> _ {
     rocket::build()
-        .manage(IndexStore(RwLock::new(HashMap::new())))
+        .manage(PersistentState {
+            bitmaps: RwLock::new(HashMap::new()),
+            cache: Cache::new(),
+        })
         .attach(Postgres::init())
         .mount("/", routes![query])
 }
