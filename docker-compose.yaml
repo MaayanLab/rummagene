@@ -9,6 +9,13 @@ services:
       - NODE_ENV=production
     ports:
       - 3000:3000
+  enrich:
+    build: enrich
+    image: maayanlab/rummagene-enrich
+    environment:
+      - 'ROCKET_DATABASES={postgres={url="postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres/${POSTGRES_DB}"}}'
+    ports:
+      - 8000:8000
   postgres:
     build: db
     image: maayanlab/rummagene-postgres
