@@ -159,7 +159,7 @@ async fn query(
         .into_iter()
         .filter_map(|result| {
             let adj_pvalue = *adj_pvalues.get(result.index)?;
-            if adj_pvalue < adj_pvalue_le { return None }
+            if adj_pvalue > adj_pvalue_le { return None }
             let gene_set_id = bitmap.index.get(result.index)?.to_string();
             Some(QueryResult {
                 gene_set_id,
