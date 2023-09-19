@@ -7,7 +7,7 @@
 -- improvement: fisher testing implemented in rust
 -- improvement: enrichment query uses overlap => fisher testing
 
-create extension if not exists "plrust";
+-- create extension if not exists "plrust";
 create extension if not exists "pg_trgm";
 create schema app_public_v2;
 create schema app_private_v2;
@@ -98,60 +98,60 @@ grant all privileges on table app_public_v2.background to authenticated;
 -- $$ language plpython3u immutable strict;
 -- grant execute on function app_private_v2.fisher_testing to guest, authenticated;
 
-create or replace function app_private_v2.fisher_testing(
-  gene_set_ids uuid[],
-  n_overlap_gene_ids int[],
-  n_gs_gene_ids int[],
-  n_user_gene_id int,
-  n_background int,
-  n_gene_set int,
-  pvalue_less_than double precision default 0.05,
-  adj_pvalue_less_than double precision default 0.05
-) returns table (
-  gene_set_id uuid,
-  pvalue double precision,
-  adj_pvalue double precision
-) as $$
-[dependencies]
-itertools = "0.8"
-fishers_exact = "1.0.1"
-adjustp = "0.1.4"
+-- create or replace function app_private_v2.fisher_testing(
+--   gene_set_ids uuid[],
+--   n_overlap_gene_ids int[],
+--   n_gs_gene_ids int[],
+--   n_user_gene_id int,
+--   n_background int,
+--   n_gene_set int,
+--   pvalue_less_than double precision default 0.05,
+--   adj_pvalue_less_than double precision default 0.05
+-- ) returns table (
+--   gene_set_id uuid,
+--   pvalue double precision,
+--   adj_pvalue double precision
+-- ) as $$
+-- [dependencies]
+-- itertools = "0.8"
+-- fishers_exact = "1.0.1"
+-- adjustp = "0.1.4"
 
-[code]
-use itertools::izip;
-use fishers_exact::fishers_exact;
-use adjustp::{adjust, Procedure};
+-- [code]
+-- use itertools::izip;
+-- use fishers_exact::fishers_exact;
+-- use adjustp::{adjust, Procedure};
 
-let mut pvalues: Vec<f64> = Vec::with_capacity(n_gene_set as usize);
-for row in izip!(n_overlap_gene_ids, n_gs_gene_ids) {
-  if let (Some(n_overlap_gene_id), Some(n_gs_gene_id)) = row {
-    let a = n_overlap_gene_id as u32;
-    let b = (n_user_gene_id as u32) - a;
-    let c = (n_gs_gene_id as u32) - a;
-    let d = (n_background as u32) - b - c + a;
-    let table = [a, b, c, d];
-    let result = fishers_exact(&table).unwrap();
-    pvalues.push(result.greater_pvalue);
-  } else {
-    pvalues.push(1.0);
-  }
-}
-for _i in pvalues.len()..(n_gene_set as usize) {
-  pvalues.push(1.0);
-}
-let adjpvalues = adjust(&pvalues, Procedure::BenjaminiHochberg);
-let as_tuples = TableIterator::new(
-  izip!(
-    gene_set_ids,
-    pvalues,
-    adjpvalues
-  ).into_iter()
-    .filter(move |(gene_set_id, pvalue, adjpvalue)| gene_set_id.is_some() && *pvalue < pvalue_less_than && *adjpvalue < adj_pvalue_less_than)
-    .map(|(gene_set_id, pvalue, adjpvalue)| (gene_set_id, Some(pvalue), Some(adjpvalue)))
-);
-Ok(Some(as_tuples))
-$$ language plrust immutable strict;
-grant execute on function app_private_v2.fisher_testing to guest, authenticated;
+-- let mut pvalues: Vec<f64> = Vec::with_capacity(n_gene_set as usize);
+-- for row in izip!(n_overlap_gene_ids, n_gs_gene_ids) {
+--   if let (Some(n_overlap_gene_id), Some(n_gs_gene_id)) = row {
+--     let a = n_overlap_gene_id as u32;
+--     let b = (n_user_gene_id as u32) - a;
+--     let c = (n_gs_gene_id as u32) - a;
+--     let d = (n_background as u32) - b - c + a;
+--     let table = [a, b, c, d];
+--     let result = fishers_exact(&table).unwrap();
+--     pvalues.push(result.greater_pvalue);
+--   } else {
+--     pvalues.push(1.0);
+--   }
+-- }
+-- for _i in pvalues.len()..(n_gene_set as usize) {
+--   pvalues.push(1.0);
+-- }
+-- let adjpvalues = adjust(&pvalues, Procedure::BenjaminiHochberg);
+-- let as_tuples = TableIterator::new(
+--   izip!(
+--     gene_set_ids,
+--     pvalues,
+--     adjpvalues
+--   ).into_iter()
+--     .filter(move |(gene_set_id, pvalue, adjpvalue)| gene_set_id.is_some() && *pvalue < pvalue_less_than && *adjpvalue < adj_pvalue_less_than)
+--     .map(|(gene_set_id, pvalue, adjpvalue)| (gene_set_id, Some(pvalue), Some(adjpvalue)))
+-- );
+-- Ok(Some(as_tuples))
+-- $$ language plrust immutable strict;
+-- grant execute on function app_private_v2.fisher_testing to guest, authenticated;
 
 create or replace function app_public_v2.background_overlap(
   background app_public_v2.background,
