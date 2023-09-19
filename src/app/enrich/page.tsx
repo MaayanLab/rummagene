@@ -8,15 +8,20 @@ import {
 import ensureArray from "@/utils/ensureArray"
 import LinkedTerm from '@/components/linkedTerm'
 import Loading from '@/components/loading'
+import Pagination from '@/components/pagination'
+import { useQsState } from '@/utils/useQsState'
+
+const pageSize = 10
 
 function EnrichmentResults({ userGeneSet, setModelGeneSet }: { userGeneSet?: FetchUserGeneSetQuery, setModelGeneSet: any }) {
   const genes = React.useMemo(() =>
     ensureArray(userGeneSet?.userGeneSet?.genes).filter((gene): gene is string => !!gene).map(gene => gene.toUpperCase()),
     [userGeneSet]
   )
+  const [page, setPage] = useQsState('page', 1)
   const { data: enrichmentResults } = useEnrichmentQueryQuery({
     skip: genes.length === 0,
-    variables: { genes },
+    variables: { genes, offset: (page-1)*pageSize, first: pageSize },
   })
   return (
     <div className="flex flex-row flex-wrap">
@@ -24,7 +29,7 @@ function EnrichmentResults({ userGeneSet, setModelGeneSet }: { userGeneSet?: Fet
         <div key={i} className="collapse collapse-arrow">
           <input type="checkbox" defaultChecked /> 
           <h2 className="collapse-title text-xl font-medium">
-            Matching gene sets ({background.enrich.totalCount})
+            Matching gene sets ({background.enrich?.totalCount})
           </h2>
           <div className="collapse-content overflow-x-auto">
             <table className="table table-xs">
@@ -38,28 +43,36 @@ function EnrichmentResults({ userGeneSet, setModelGeneSet }: { userGeneSet?: Fet
                 </tr>
               </thead>
               <tbody>
-                {background.enrich.nodes.map((enrichmentResult, j) => (
+                {background.enrich?.nodes?.map((enrichmentResult, j) => (
                   <tr key={j}>
-                    <th><LinkedTerm term={enrichmentResult.geneSet?.term} /></th>
+                    <th><LinkedTerm term={enrichmentResult?.geneSet?.term} /></th>
                     <td className="whitespace-nowrap text-underline cursor-pointer">
                       <label
                         htmlFor="geneSetModal"
                         className="prose underline cursor-pointer"
                         onClick={evt => {
                           setModelGeneSet({
-                            genes: enrichmentResult.geneSet?.overlap.nodes.map(gene => gene.symbol) ?? [],
-                            description: enrichmentResult.geneSet?.term ?? '',
+                            genes: enrichmentResult?.geneSet?.overlap.nodes.map(gene => gene.symbol) ?? [],
+                            description: enrichmentResult?.geneSet?.term ?? '',
                           })
                         }}
-                      >{enrichmentResult.geneSet?.overlap.totalCount}</label>
+                      >{enrichmentResult?.geneSet?.overlap.totalCount}</label>
                     </td>
-                    <td className="whitespace-nowrap">{enrichmentResult.oddsRatio?.toPrecision(3)}</td>
-                    <td className="whitespace-nowrap">{enrichmentResult.pvalue?.toPrecision(3)}</td>
-                    <td className="whitespace-nowrap">{enrichmentResult.adjPvalue?.toPrecision(3)}</td>
+                    <td className="whitespace-nowrap">{enrichmentResult?.oddsRatio?.toPrecision(3)}</td>
+                    <td className="whitespace-nowrap">{enrichmentResult?.pvalue?.toPrecision(3)}</td>
+                    <td className="whitespace-nowrap">{enrichmentResult?.adjPvalue?.toPrecision(3)}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
+          </div>
+          <div className="w-full flex flex-col items-center">
+            <Pagination
+              page={page}
+              totalCount={background.enrich?.totalCount ? background.enrich?.totalCount : undefined}
+              pageSize={pageSize}
+              onChange={page => setPage(page)}
+            />
           </div>
         </div>
       )) ?? 
