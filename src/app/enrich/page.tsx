@@ -3,7 +3,8 @@ import React from 'react'
 import {
   FetchUserGeneSetQuery,
   useEnrichmentQueryQuery,
-  useFetchUserGeneSetQuery
+  useFetchUserGeneSetQuery,
+  useOverlapQueryQuery
 } from '@/graphql'
 import ensureArray from "@/utils/ensureArray"
 import LinkedTerm from '@/components/linkedTerm'
@@ -13,7 +14,13 @@ import { useQsState } from '@/utils/useQsState'
 
 const pageSize = 10
 
-function EnrichmentResults({ userGeneSet, setModelGeneSet }: { userGeneSet?: FetchUserGeneSetQuery, setModelGeneSet: any }) {
+type GeneSetModalT = {
+  description: string,
+  genes: string[]
+  overlapWith?: string,
+} | undefined
+
+function EnrichmentResults({ userGeneSet, setModalGeneSet }: { userGeneSet?: FetchUserGeneSetQuery, setModalGeneSet: React.Dispatch<React.SetStateAction<GeneSetModalT>> }) {
   const genes = React.useMemo(() =>
     ensureArray(userGeneSet?.userGeneSet?.genes).filter((gene): gene is string => !!gene).map(gene => gene.toUpperCase()),
     [userGeneSet]
@@ -51,12 +58,13 @@ function EnrichmentResults({ userGeneSet, setModelGeneSet }: { userGeneSet?: Fet
                         htmlFor="geneSetModal"
                         className="prose underline cursor-pointer"
                         onClick={evt => {
-                          setModelGeneSet({
-                            genes: enrichmentResult?.geneSet?.overlap.nodes.map(gene => gene.symbol) ?? [],
+                          setModalGeneSet({
+                            genes,
                             description: enrichmentResult?.geneSet?.term ?? '',
+                            overlapWith: enrichmentResult?.geneSet?.id,
                           })
                         }}
-                      >{enrichmentResult?.geneSet?.overlap.totalCount}</label>
+                      >{enrichmentResult?.nOverlap}</label>
                     </td>
                     <td className="whitespace-nowrap">{enrichmentResult?.oddsRatio?.toPrecision(3)}</td>
                     <td className="whitespace-nowrap">{enrichmentResult?.pvalue?.toPrecision(3)}</td>
@@ -82,6 +90,45 @@ function EnrichmentResults({ userGeneSet, setModelGeneSet }: { userGeneSet?: Fet
   )
 }
 
+function GeneSetModal(props: { modalGeneSet: GeneSetModalT, setModalGeneSet: React.Dispatch<React.SetStateAction<GeneSetModalT>> }) {
+  const { data: overlap } = useOverlapQueryQuery({
+    skip: props.modalGeneSet?.overlapWith === undefined,
+    variables: {
+      id: props.modalGeneSet?.overlapWith,
+      genes: props.modalGeneSet?.genes ?? [],
+    },
+  })
+  return (
+    <>
+      <input
+        type="checkbox"
+        id="geneSetModal"
+        className="modal-toggle"
+        onChange={evt => {
+          if (!evt.currentTarget.checked) {
+            props.setModalGeneSet(undefined)
+          }
+        }}
+      />
+      <div className="modal">
+        <div className="modal-box">
+          <h3 className="text-lg font-bold">
+            <LinkedTerm term={props.modalGeneSet?.description} />
+          </h3>
+          <textarea
+            className="w-full"
+            readOnly
+            rows={8}
+            value={overlap?.geneSet?.overlap.nodes.map(gene => gene.symbol).join('\n') ?? ''}
+          />
+        </div>
+        <label className="modal-backdrop" htmlFor="geneSetModal">Close</label>
+      </div>
+    </>
+  )
+}
+
+
 export default function Enrich({
   searchParams
 }: {
@@ -94,7 +141,7 @@ export default function Enrich({
     skip: !dataset,
     variables: { id: dataset },
   })
-  const [modelGeneSet, setModelGeneSet] = React.useState<{ description: string, genes: string[] }>()
+  const [modalGeneSet, setModalGeneSet] = React.useState<GeneSetModalT>()
   return (
     <>
       <div className="flex flex-row gap-2 alert">
@@ -103,7 +150,7 @@ export default function Enrich({
           htmlFor="geneSetModal"
           className="prose underline cursor-pointer"
           onClick={evt => {
-            setModelGeneSet({
+            setModalGeneSet({
               genes: (userGeneSet?.userGeneSet?.genes ?? []).filter((gene): gene is string => !!gene),
               description: userGeneSet?.userGeneSet?.description || 'Gene set',
             })
@@ -111,32 +158,9 @@ export default function Enrich({
         >{userGeneSet?.userGeneSet?.description || 'Gene set'}{userGeneSet ? <> ({userGeneSet?.userGeneSet?.genes?.length ?? '?'} genes)</> : null}</label>
       </div>
       <div className="container mx-auto">
-        <EnrichmentResults userGeneSet={userGeneSet} setModelGeneSet={setModelGeneSet} />
+        <EnrichmentResults userGeneSet={userGeneSet} setModalGeneSet={setModalGeneSet} />
       </div>
-      <input
-        type="checkbox"
-        id="geneSetModal"
-        className="modal-toggle"
-        onChange={evt => {
-          if (!evt.currentTarget.checked) {
-            setModelGeneSet(undefined)
-          }
-        }}
-      />
-      <div className="modal">
-        <div className="modal-box">
-          <h3 className="text-lg font-bold">
-            <LinkedTerm term={modelGeneSet?.description} />
-          </h3>
-          <textarea
-            className="w-full"
-            readOnly
-            rows={8}
-            value={modelGeneSet?.genes.join('\n') ?? ''}
-          />
-        </div>
-        <label className="modal-backdrop" htmlFor="geneSetModal">Close</label>
-      </div>
+      <GeneSetModal modalGeneSet={modalGeneSet} setModalGeneSet={setModalGeneSet} />
     </>
   )
 }
