@@ -31,14 +31,13 @@ function EnrichmentResults({ userGeneSet, setModalGeneSet }: { userGeneSet?: Fet
     variables: { genes, offset: (page-1)*pageSize, first: pageSize },
   })
   return (
-    <div className="flex flex-row flex-wrap">
-      {enrichmentResults?.backgrounds?.nodes.map((background, i) => (
-        <div key={i} className="collapse collapse-arrow">
-          <input type="checkbox" defaultChecked /> 
-          <h2 className="collapse-title text-xl font-medium">
+    <div className="flex flex-col gap-2 my-2">
+      {enrichmentResults?.backgrounds?.nodes.flatMap((background, i) => (
+        <React.Fragment key={i}>
+          <h2 className="text-xl font-medium">
             Matching gene sets ({background.enrich?.totalCount})
           </h2>
-          <div className="collapse-content overflow-x-auto">
+          <div className="overflow-x-auto">
             <table className="table table-xs">
               <thead>
                 <tr>
@@ -82,7 +81,7 @@ function EnrichmentResults({ userGeneSet, setModalGeneSet }: { userGeneSet?: Fet
               onChange={page => setPage(page)}
             />
           </div>
-        </div>
+        </React.Fragment>
       )) ?? 
       <Loading/>
       }
