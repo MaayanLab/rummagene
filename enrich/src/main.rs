@@ -10,10 +10,11 @@ use uuid::Uuid;
 use bit_set::BitSet;
 use fishers_exact::fishers_exact;
 use adjustp::{adjust, Procedure};
-use rocket::{State, response::status::Custom,http::Status};
+use rocket::{State, response::status::Custom, http::Status};
 use rocket::serde::{json::Json, Serialize};
 use std::sync::Arc;
 use retainer::Cache;
+use std::time::Instant;
 
 #[derive(Database)]
 #[database("postgres")]
@@ -66,7 +67,8 @@ async fn ensure_index(db: &mut Connection<Postgres>, state: &State<PersistentSta
     };
     if requires_fetch {
         let mut index_writer = state.bitmaps.write().await;
-        println!("Initializing {}", background_id);
+        println!("[{}] initializing", background_id);
+        let start = Instant::now();
 
         let background_info = sqlx::query("select * from app_public_v2.background where id = $1::uuid;")
             .bind(background_id.to_string())
@@ -106,7 +108,8 @@ async fn ensure_index(db: &mut Connection<Postgres>, state: &State<PersistentSta
 
         index_writer.insert(background_id, Bitmap { columns: background_gene_ids, index, values: bitmap });
 
-        println!("Done.");
+        let duration = start.elapsed();
+        println!("[{}] initialized in {:?}", background_id, duration);
     }
     Ok(())
 }
@@ -126,6 +129,7 @@ async fn query(
 ) -> Result<Json<Arc<Vec<QueryResult>>>, Custom<String>> {
     let background_id = Uuid::parse_str(background_id).map_err(|e| Custom(Status::BadRequest, e.to_string()))?;
     ensure_index(&mut db, &state, background_id).await.map_err(|e| Custom(Status::InternalServerError, e.to_string()))?;
+    let start = Instant::now();
     let input_gene_set = input_gene_set.0.into_iter().map(|gene| Uuid::parse_str(&gene)).collect::<Result<Vec<_>, _>>().map_err(|e| Custom(Status::BadRequest, e.to_string()))?;
     let index_reader = state.bitmaps.read().await;
     let bitmap = index_reader.get(&background_id).ok_or("Can't find background").map_err(|e| Custom(Status::InternalServerError, e.to_string()))?;
@@ -140,7 +144,6 @@ async fn query(
     // parallel overlap computation
     let n_background = bitmap.columns.len() as u32;
     let n_user_gene_id = background_query.input_gene_set.len() as u32;
-    println!("n_user_gene_id = {}", n_user_gene_id);
     let results: Vec<_> = bitmap.values.par_iter()
         .enumerate()
         .filter_map(|(index, gene_set)| {
@@ -188,6 +191,8 @@ async fn query(
     results.sort_unstable_by(|a, b| a.pvalue.partial_cmp(&b.pvalue).unwrap_or(std::cmp::Ordering::Equal));
     let results = Json(Arc::new(results));
     state.cache.insert(background_query, results.clone(), 10000).await;
+    let duration = start.elapsed();
+    println!("[{}] {} genes enriched in {:?}", background_id, n_user_gene_id, duration);
     Ok(results)
 }
 
