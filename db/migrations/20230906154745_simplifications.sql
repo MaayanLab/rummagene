@@ -180,6 +180,7 @@ grant execute on function app_public_v2.background_overlap to guest, authenticat
 
 create type app_public_v2.enrich_result as (
   gene_set_id uuid,
+  n_overlap int,
   odds_ratio double precision,
   pvalue double precision,
   adj_pvalue double precision
