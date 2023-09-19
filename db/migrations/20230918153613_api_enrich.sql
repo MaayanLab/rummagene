@@ -1,6 +1,4 @@
 -- migrate:up
-drop function app_public_v2.background_enrich;
-drop function app_private_v2.indexed_enrich;
 create type app_public_v2.paginated_enrich_result as (
   nodes app_public_v2.enrich_result[],
   total_count int
@@ -17,7 +15,7 @@ create or replace function app_private_v2.indexed_enrich(
 ) returns app_public_v2.paginated_enrich_result as $$
   import requests
   req = requests.post(
-    f"http://enrich:8000/{background['id']}",
+    f"http://rummagene-enrich:8000/{background['id']}",
     params=dict(
       overlap_ge=overlap_ge,
       pvalue_le=pvalue_le,
