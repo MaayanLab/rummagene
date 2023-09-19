@@ -230,7 +230,7 @@ async fn query(
             (offset, range_total, results)
         },
         (offset, Some(limit)) => {
-            let results = Arc::new(results[offset..(limit-offset)].to_vec());
+            let results = Arc::new(results[offset..(offset+limit)].to_vec());
             (offset, offset + results.len(), results)
         },
     };
