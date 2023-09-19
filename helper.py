@@ -92,7 +92,7 @@ def import_gene_set_library(
     plpy.prepare(
       '''
         select coalesce(jsonb_object_agg(g.gene, g.gene_id), '{}') as gene_map
-        from app_public.gene_map($1) as g
+        from app_public_v2.gene_map($1) as g
       ''',
       ['varchar[]']
     ),
@@ -108,7 +108,7 @@ def import_gene_set_library(
   }
   if new_genes:
     copy_from_records(
-      plpy.conn, 'app_public.gene', ('id', 'symbol',),
+      plpy.conn, 'app_public_v2.gene', ('id', 'symbol',),
       tqdm(new_genes.values(), desc='Inserting new genes...'))
     gene_map.update({
       new_gene['symbol']: new_gene['id']
@@ -117,11 +117,11 @@ def import_gene_set_library(
 
   existing_terms = {
     row['term']
-    for row in plpy.cursor('select term from app_public.gene_set', tuple())
+    for row in plpy.cursor('select term from app_public_v2.gene_set', tuple())
   }
 
   copy_from_records(
-    plpy.conn, 'app_public.gene_set', ('term', 'gene_ids', 'n_gene_ids'),
+    plpy.conn, 'app_public_v2.gene_set', ('term', 'gene_ids', 'n_gene_ids'),
     tqdm((
       dict(
         term=gene_set['term'],
@@ -135,7 +135,7 @@ def import_gene_set_library(
     desc='Inserting new genesets...'),
   )
 
-  plpy.execute('refresh materialized view concurrently app_public.gene_set_pmc', [])
+  plpy.execute('refresh materialized view concurrently app_public_v2.gene_set_pmc', [])
 
 def import_paper_info(plpy):
   import pandas as pd
@@ -143,9 +143,9 @@ def import_paper_info(plpy):
   import re
 
   # retrieve all pmc ids from gene sets
-  all_pmcs = {r['pmc'] for r in plpy.cursor('select * from app_public.pmc', [])}
+  all_pmcs = {r['pmc'] for r in plpy.cursor('select * from app_public_v2.pmc', [])}
   # retrieve all pmc ids already enriched with info
-  pmc_info_ingested = {r['pmcid'] for r in plpy.cursor('select pmcid from app_public.pmc_info', [])}
+  pmc_info_ingested = {r['pmcid'] for r in plpy.cursor('select pmcid from app_public_v2.pmc_info', [])}
 
   # find subset to add info to
   to_ingest = list(all_pmcs - pmc_info_ingested)
@@ -176,7 +176,7 @@ def import_paper_info(plpy):
   for pmc in tqdm(pmc_meta.index.values, desc='Inserting PMC info..'):
     pmc_info = pmc_meta.loc[pmc]
     plpy.execute(
-      'insert into app_public.pmc_info (pmcid, yr, doi, title) values (%s, %s, %s, %s)',
+      'insert into app_public_v2.pmc_info (pmcid, yr, doi, title) values (%s, %s, %s, %s)',
       [pmc, int(pmc_info['Year']), pmc_info['DOI'], title_dict[pmc]],
     )
   
