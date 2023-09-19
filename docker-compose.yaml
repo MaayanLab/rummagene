@@ -2,7 +2,7 @@ version: '3.9'
 services:
   app:
     build: .
-    image: maayanlab/rummagene
+    image: maayanlab/rummagene:v3
     environment:
       - DATABASE_URL=postgres://$POSTGRES_USER:$POSTGRES_PASSWORD@postgres/$POSTGRES_DB
       - AUTHORIZATION_HEADER=$AUTHORIZATION_HEADER
@@ -11,19 +11,15 @@ services:
       - 3000:3000
   enrich:
     build: enrich
-    image: maayanlab/rummagene-enrich
+    image: maayanlab/rummagene-enrich:v3
     environment:
       - 'ROCKET_DATABASES={postgres={url="postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres/${POSTGRES_DB}"}}'
-    ports:
-      - 8000:8000
   postgres:
     build: db
-    image: maayanlab/rummagene-postgres
+    image: maayanlab/rummagene-postgres:v3
     environment:
       - POSTGRES_DB
       - POSTGRES_USER
       - POSTGRES_PASSWORD
-    ports:
-      - 5432:5432
     volumes:
       - ./data/postgres/:/var/lib/postgresql/data
