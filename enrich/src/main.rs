@@ -223,11 +223,16 @@ async fn query(
         }
     };
     let range_total = results.len();
-    let (range_start, range_end, results) = match (offset, limit) {
-        (Some(offset), Some(limit)) => (offset, limit, Arc::new(results.iter().skip(offset).take(limit).cloned().collect())),
-        (Some(offset), None) => (offset, range_total, Arc::new(results.iter().skip(offset).cloned().collect())),
-        (None, Some(limit)) => (0, limit, Arc::new(results.iter().take(limit).cloned().collect())),
-        (None, None) => (0, range_total, results),
+    let (range_start, range_end, results) = match (offset.unwrap_or(0), limit) {
+        (0, None) => (0, range_total, results),
+        (offset, None) => {
+            let results = Arc::new(results[offset..].to_vec());
+            (offset, range_total, results)
+        },
+        (offset, Some(limit)) => {
+            let results = Arc::new(results[offset..(limit-offset)].to_vec());
+            (offset, offset + results.len(), results)
+        },
     };
     Ok(QueryResponse {
         results,
