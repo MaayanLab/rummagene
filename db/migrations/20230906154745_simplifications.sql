@@ -194,50 +194,50 @@ as $$
 $$ language sql immutable strict;
 grant execute on function app_public_v2.enrich_result_gene_set to guest, authenticated;
 
-create or replace function app_public_v2.background_enrich(
-  background app_public_v2.background,
-  genes varchar[],
-  overlap_greater_than int default 0,
-  pvalue_less_than double precision default 0.05,
-  adj_pvalue_less_than double precision default 0.05
-) returns setof app_public_v2.enrich_result
-as $$
-  with overlap as (
-    select *
-    from app_public_v2.background_overlap(
-      background_enrich.background,
-      background_enrich.genes,
-      background_enrich.overlap_greater_than
-    )
-  ), fisher as (
-    select *
-    from app_private_v2.fisher_testing(
-      (select array_agg(o.gene_set_id) from overlap o),
-      (select array_agg(o.n_overlap_gene_ids::int) from overlap o),
-      (select array_agg(o.n_gs_gene_ids::int) from overlap o),
-      (select count(g.gene_id)::int
-       from app_public_v2.gene_map(background_enrich.genes) g
-       where background_enrich.background.gene_ids ? g.gene_id::text),
-      (select background_enrich.background.n_gene_ids::int),
-      (select count(gs.id)::int from app_public_v2.gene_set gs),
-      background_enrich.pvalue_less_than,
-      background_enrich.adj_pvalue_less_than
-    )
-  )
-  select
-    overlap.gene_set_id,
-    (
-      ((overlap.n_overlap_gene_ids::double precision) / (array_length(background_enrich.genes, 1)::double precision))
-      / ((overlap.n_gs_gene_ids::double precision) / (background_enrich.background.n_gene_ids::double precision))
-    ) as odds_ratio,
-    fisher.pvalue,
-    fisher.adj_pvalue
-  from
-    fisher
-    left join overlap on fisher.gene_set_id = overlap.gene_set_id 
-  order by fisher.pvalue asc;
-$$ language sql immutable strict security definer;
-grant execute on function app_public_v2.background_enrich to guest, authenticated;
+-- create or replace function app_public_v2.background_enrich(
+--   background app_public_v2.background,
+--   genes varchar[],
+--   overlap_greater_than int default 0,
+--   pvalue_less_than double precision default 0.05,
+--   adj_pvalue_less_than double precision default 0.05
+-- ) returns setof app_public_v2.enrich_result
+-- as $$
+--   with overlap as (
+--     select *
+--     from app_public_v2.background_overlap(
+--       background_enrich.background,
+--       background_enrich.genes,
+--       background_enrich.overlap_greater_than
+--     )
+--   ), fisher as (
+--     select *
+--     from app_private_v2.fisher_testing(
+--       (select array_agg(o.gene_set_id) from overlap o),
+--       (select array_agg(o.n_overlap_gene_ids::int) from overlap o),
+--       (select array_agg(o.n_gs_gene_ids::int) from overlap o),
+--       (select count(g.gene_id)::int
+--        from app_public_v2.gene_map(background_enrich.genes) g
+--        where background_enrich.background.gene_ids ? g.gene_id::text),
+--       (select background_enrich.background.n_gene_ids::int),
+--       (select count(gs.id)::int from app_public_v2.gene_set gs),
+--       background_enrich.pvalue_less_than,
+--       background_enrich.adj_pvalue_less_than
+--     )
+--   )
+--   select
+--     overlap.gene_set_id,
+--     (
+--       ((overlap.n_overlap_gene_ids::double precision) / (array_length(background_enrich.genes, 1)::double precision))
+--       / ((overlap.n_gs_gene_ids::double precision) / (background_enrich.background.n_gene_ids::double precision))
+--     ) as odds_ratio,
+--     fisher.pvalue,
+--     fisher.adj_pvalue
+--   from
+--     fisher
+--     left join overlap on fisher.gene_set_id = overlap.gene_set_id 
+--   order by fisher.pvalue asc;
+-- $$ language sql immutable strict security definer;
+-- grant execute on function app_public_v2.background_enrich to guest, authenticated;
 
 create or replace function app_public_v2.gene_set_genes(gene_set app_public_v2.gene_set)
 returns setof app_public_v2.gene as
