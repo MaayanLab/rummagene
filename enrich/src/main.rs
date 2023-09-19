@@ -15,7 +15,7 @@ use bit_set::BitSet;
 use fishers_exact::fishers_exact;
 use adjustp::{adjust, Procedure};
 use rocket::{State, response::status::Custom, http::Status};
-use rocket::serde::{json::Json, Serialize};
+use rocket::serde::{json::{json, Json, Value}, Serialize};
 use std::sync::Arc;
 use retainer::Cache;
 use std::time::Instant;
@@ -136,6 +136,39 @@ async fn ensure_index(db: &mut Connection<Postgres>, state: &State<PersistentSta
     Ok(())
 }
 
+#[get("/<background_id>")]
+async fn ensure(
+    mut db: Connection<Postgres>,
+    state: &State<PersistentState>,
+    background_id: &str,
+) -> Result<Value, Custom<String>> {
+    let background_id = Uuid::parse_str(background_id).map_err(|e| Custom(Status::BadRequest, e.to_string()))?;
+    ensure_index(&mut db, &state, background_id).await.map_err(|e| Custom(Status::InternalServerError, e.to_string()))?;
+    let index_reader = state.bitmaps.read().await;
+    let bitmap = index_reader.get(&background_id).ok_or("Can't find background").map_err(|e| Custom(Status::NotFound, e.to_string()))?;
+    Ok(json!({
+        "columns": bitmap.columns.len(),
+        "index": bitmap.index.len(),
+    }))
+}
+
+#[delete("/<background_id>")]
+async fn delete(
+    state: &State<PersistentState>,
+    background_id: &str,
+) -> Result<(), Custom<String>> {
+    let background_id = Uuid::parse_str(background_id).map_err(|e| Custom(Status::BadRequest, e.to_string()))?;
+    let requires_delete = {
+        let index_reader = state.bitmaps.read().await;
+        (*index_reader).contains_key(&background_id)
+    };
+    if !requires_delete { return Err(Custom(Status::NotFound, String::from("Not Found"))); }
+    let mut index_writer = state.bitmaps.write().await;
+    index_writer.remove(&background_id);
+    println!("[{}] deleted", background_id);
+    Ok(())
+}
+
 // query a specific background_id, providing the bitset vector as input
 //  the result are the gene_set_ids & relevant metrics
 // this can be pretty fast since the index is saved in memory and the overlaps can be computed in parallel
@@ -156,7 +189,7 @@ async fn query(
     let start = Instant::now();
     let input_gene_set = input_gene_set.0.into_iter().map(|gene| Uuid::parse_str(&gene)).collect::<Result<Vec<_>, _>>().map_err(|e| Custom(Status::BadRequest, e.to_string()))?;
     let index_reader = state.bitmaps.read().await;
-    let bitmap = index_reader.get(&background_id).ok_or("Can't find background").map_err(|e| Custom(Status::InternalServerError, e.to_string()))?;
+    let bitmap = index_reader.get(&background_id).ok_or("Can't find background").map_err(|e| Custom(Status::NotFound, e.to_string()))?;
     let input_gene_set = bitvec(&bitmap.columns, input_gene_set);
     let background_query = Arc::new(BackgroundQuery { background_id, input_gene_set });
     let results = {
@@ -248,5 +281,5 @@ fn rocket() -> _ {
             cache: Cache::new(),
         })
         .attach(Postgres::init())
-        .mount("/", routes![query])
+        .mount("/", routes![ensure, query, delete])
 }
