@@ -108,6 +108,7 @@ CREATE TYPE app_public.gene_set_library_enrich_result AS (
 
 CREATE TYPE app_public_v2.enrich_result AS (
 	gene_set_id uuid,
+	n_overlap integer,
 	odds_ratio double precision,
 	pvalue double precision,
 	adj_pvalue double precision
@@ -698,7 +699,7 @@ CREATE TABLE app_public_v2.gene_set (
 --
 
 CREATE FUNCTION app_public_v2.enrich_result_gene_set(enrich_result app_public_v2.enrich_result) RETURNS app_public_v2.gene_set
-    LANGUAGE sql IMMUTABLE STRICT
+    LANGUAGE sql IMMUTABLE STRICT PARALLEL SAFE
     AS $$
   select gs.*
   from app_public_v2.gene_set gs
