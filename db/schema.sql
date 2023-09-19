@@ -705,7 +705,8 @@ CREATE TABLE app_public_v2.gene_set (
     id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
     term character varying NOT NULL,
     gene_ids jsonb NOT NULL,
-    n_gene_ids integer NOT NULL
+    n_gene_ids integer NOT NULL,
+    created timestamp without time zone DEFAULT now() NOT NULL
 );
 
 
@@ -830,6 +831,38 @@ CREATE FUNCTION app_public_v2.get_pmc_info_by_ids(pmcids character varying[]) RE
   select *
   from app_public_v2.pmc_info
   where pmcid = ANY (pmcIds);
+$$;
+
+
+--
+-- Name: release; Type: TABLE; Schema: app_public_v2; Owner: -
+--
+
+CREATE TABLE app_public_v2.release (
+    id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
+    n_publications_processed bigint,
+    created timestamp without time zone DEFAULT now()
+);
+
+
+--
+-- Name: pmc_stats; Type: MATERIALIZED VIEW; Schema: app_private_v2; Owner: -
+--
+
+CREATE MATERIALIZED VIEW app_private_v2.pmc_stats AS
+ SELECT sum(release.n_publications_processed) AS n_publications_processed
+   FROM app_public_v2.release
+  WITH NO DATA;
+
+
+--
+-- Name: pmc_stats(); Type: FUNCTION; Schema: app_public_v2; Owner: -
+--
+
+CREATE FUNCTION app_public_v2.pmc_stats() RETURNS app_private_v2.pmc_stats
+    LANGUAGE sql IMMUTABLE STRICT SECURITY DEFINER PARALLEL SAFE
+    AS $$
+  select * from app_private_v2.pmc_stats;
 $$;
 
 
@@ -1331,6 +1364,14 @@ ALTER TABLE ONLY app_public_v2.pmc_info
 
 
 --
+-- Name: release release_pkey; Type: CONSTRAINT; Schema: app_public_v2; Owner: -
+--
+
+ALTER TABLE ONLY app_public_v2.release
+    ADD CONSTRAINT release_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: user_gene_set user_gene_set_pkey; Type: CONSTRAINT; Schema: app_public_v2; Owner: -
 --
 
@@ -1552,4 +1593,5 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20230830210011'),
     ('20230906154745'),
     ('20230918153613'),
+    ('20230920195024'),
     ('20230920201419');

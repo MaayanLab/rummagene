@@ -8,7 +8,7 @@ query Stats {
   pmcs {
     totalCount
   }
-  pmcStatById(id: 1) {
+  pmcStats {
     nPublicationsProcessed
   }
 }
