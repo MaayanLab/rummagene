@@ -8,8 +8,10 @@ query Stats {
   pmcs {
     totalCount
   }
+  pmcStatById(id: 1) {
+    nPublicationsProcessed
+  }
 }
-
 
 query FetchUserGeneSet($id: UUID!) {
   userGeneSet(id: $id) {

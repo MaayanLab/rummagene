@@ -30,7 +30,7 @@ export default function RootLayout({
               </div>
               <div className="navbar-center ml-5">
                 <React.Suspense fallback={<span className="loading loading-ring loading-lg"></span>}>
-                  <Stats show_sets_analyzed={true}/>
+                  <Stats bold show_sets_analyzed />
                 </React.Suspense>
               </div>
             </div>

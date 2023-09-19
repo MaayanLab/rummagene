@@ -1,4 +1,5 @@
 import Image from "next/image"
+import Stats from "../stats"
 
 export default function About() {
   return (
@@ -18,7 +19,7 @@ export default function About() {
           available for search and reused. Rummagene is a web server application that provides access to thousands of human and
           mouse gene sets extracted from supporting materials of publications listed on PubMed Central (PMC). To created 
           Rummagene, we first developed a softbot that extracts human and mouse gene sets from supporting tables of PMC publications. 
-          So far, the softbot scanned 5,448,589 PMC articles to find 121,237 articles that contain 642,389. These gene sets are 
+          So far, the softbot scanned <Stats show_publications /> to find <Stats show_pmcs /> that contain <Stats show_gene_sets />. These gene sets are 
           served for enrichment analysis, free text, table title search. Users of Rummagene can submit their own gene sets to 
           find matching gene sets ranked by their overlap with the input gene set. In addition to providing the extracted gene 
           sets for search, we investigated the massive corpus of these gene sets for statistical patterns. We show how Rummagene 
