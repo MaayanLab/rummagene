@@ -1,10 +1,9 @@
 'use client'
 import React from 'react'
-import { useSuspenseQuery } from '@apollo/experimental-nextjs-app-support/ssr'
 import {
-  FetchUserGeneSetDocument,
   FetchUserGeneSetQuery,
-  useEnrichmentQueryQuery
+  useEnrichmentQueryQuery,
+  useFetchUserGeneSetQuery
 } from '@/graphql'
 import ensureArray from "@/utils/ensureArray"
 import LinkedTerm from '@/components/linkedTerm'
@@ -81,7 +80,7 @@ export default function Enrich({
   },
 }) {
   const dataset = ensureArray(searchParams.dataset)[0]
-  const { data: userGeneSet } = useSuspenseQuery<FetchUserGeneSetQuery>(FetchUserGeneSetDocument, {
+  const { data: userGeneSet } = useFetchUserGeneSetQuery({
     skip: !dataset,
     variables: { id: dataset },
   })
@@ -99,12 +98,10 @@ export default function Enrich({
               description: userGeneSet?.userGeneSet?.description || 'Gene set',
             })
           }}
-        >{userGeneSet?.userGeneSet?.description || 'Gene set'} ({userGeneSet?.userGeneSet?.genes?.length ?? '?'} genes)</label>
+        >{userGeneSet?.userGeneSet?.description || 'Gene set'}{userGeneSet ? <> ({userGeneSet?.userGeneSet?.genes?.length ?? '?'} genes)</> : null}</label>
       </div>
       <div className="container mx-auto">
-        <React.Suspense fallback={<div className="mx-auto p-5"><Image className={'rounded mx-auto'} src={'/images/loading.gif'} width={125} height={250} alt={'Loading...'}/> </div>}>
-          <EnrichmentResults userGeneSet={userGeneSet} setModelGeneSet={setModelGeneSet} />
-        </React.Suspense>
+        <EnrichmentResults userGeneSet={userGeneSet} setModelGeneSet={setModelGeneSet} />
       </div>
       <input
         type="checkbox"
