@@ -50,6 +50,6 @@ as $$
     background_enrich."first"
   ) r;
 $$ language sql immutable strict parallel safe security definer;
-grant execute on function app_public_v2.background_enrich to guest;
+grant execute on function app_public_v2.background_enrich to guest, authenticated;
 
 -- migrate:down
