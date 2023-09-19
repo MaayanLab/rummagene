@@ -64,12 +64,12 @@ export default function RootLayout({
             <div className="text-center pt-5">
               <ul>
                 <li>
-                  <Link href="https://github.com/MaayanLab/biotablemind" target="_blank" rel="noopener noreferrer">
+                  <Link href="https://github.com/MaayanLab/rummagene" target="_blank" rel="noopener noreferrer">
                     View Source Code
                   </Link>
                 </li>
                 <li>
-                  <Link href="https://github.com/MaayanLab/biotablemind/issues/new" target="_blank" rel="noopener noreferrer">
+                  <Link href="https://github.com/MaayanLab/rummagene/issues/new" target="_blank" rel="noopener noreferrer">
                     Submit an Issue
                   </Link>
                   </li>
