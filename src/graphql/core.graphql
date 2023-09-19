@@ -27,14 +27,10 @@ query EnrichmentQuery($genes: [String]!, $offset: Int = 0, $first: Int = 10) {
           pvalue
           adjPvalue
           oddsRatio
+          nOverlap
           geneSet {
+            id
             term
-            overlap(genes: $genes) {
-              nodes {
-                symbol
-              }
-              totalCount
-            }
           }
         }
         totalCount
@@ -99,6 +95,16 @@ query TermsPmcs($pmcids: [String]!) {
 query ViewGeneSet($id: UUID!) {
   geneSet(id: $id) {
     genes {
+      nodes {
+        symbol
+      }
+    }
+  }
+}
+
+query OverlapQuery($id: UUID!, $genes: [String]!) {
+  geneSet(id: $id) {
+    overlap(genes: $genes) {
       nodes {
         symbol
       }

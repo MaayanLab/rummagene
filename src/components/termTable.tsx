@@ -4,7 +4,7 @@ import { useViewGeneSetQuery } from '@/graphql';
 import GeneSetModal from './geneSetModal';
 
 
-export default function TermTable({ terms }: { terms?: { __typename?: "GeneSetLibraryTermSearchCountRecord" | undefined; term?: string | null | undefined; id?: any; count?: number | null | undefined; }[] }) {
+export default function TermTable({ terms }: { terms?: { __typename?: "GeneSet" | undefined; term?: string | null | undefined; id?: any; nGeneIds?: number | null | undefined; }[] }) {
   const [page, setPage] = React.useState(0)
   const [numPerPage, setNumPerPage] = React.useState(10)
 
@@ -33,7 +33,7 @@ export default function TermTable({ terms }: { terms?: { __typename?: "GeneSetLi
 
   return (
     <>
-      <GeneSetModal geneset={genesQuery?.data?.viewGeneSet?.nodes} term={currTerm} showModal={showModal} setShowModal={setShowModal}></GeneSetModal>
+      <GeneSetModal geneset={genesQuery?.data?.geneSet?.genes.nodes.map(({ symbol }) => symbol)} term={currTerm} showModal={showModal} setShowModal={setShowModal}></GeneSetModal>
       <div className='border m-5 mt-1 overflow-y-scroll'>
 
         <div className='text-right p-1'>
@@ -72,7 +72,7 @@ export default function TermTable({ terms }: { terms?: { __typename?: "GeneSetLi
                         setGeneSetId(el?.id || '')
                         setShowModal(true)
                       }}
-                    ><p>View Gene Set ({el?.count})</p>
+                    ><p>View Gene Set ({el?.nGeneIds})</p>
                     </button>
                   </td>
                 </tr>

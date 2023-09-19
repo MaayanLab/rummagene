@@ -2,16 +2,21 @@ version: '3.9'
 services:
   app:
     build: .
-    image: maayanlab/biotablemind
+    image: maayanlab/rummagene:v3
     environment:
       - DATABASE_URL=postgres://$POSTGRES_USER:$POSTGRES_PASSWORD@postgres/$POSTGRES_DB
       - AUTHORIZATION_HEADER=$AUTHORIZATION_HEADER
       - NODE_ENV=production
     ports:
       - 3000:3000
+  enrich:
+    build: enrich
+    image: maayanlab/rummagene-enrich:v3
+    environment:
+      - 'ROCKET_DATABASES={postgres={url="postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres/${POSTGRES_DB}"}}'
   postgres:
     build: db
-    image: maayanlab/biotablemind-postgres
+    image: maayanlab/rummagene-postgres:v3
     environment:
       - POSTGRES_DB
       - POSTGRES_USER

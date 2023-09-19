@@ -43,7 +43,7 @@ export default function EnrichrButton({ genes, description }: { genes?: (string 
                 enrich({ list: genes?.join('\n') || '', description: description, popup: true })
             }}
             >
-            Sumbit to Enrichr
+            Submit to Enrichr
         </button>
 
     )

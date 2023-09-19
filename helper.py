@@ -121,11 +121,12 @@ def import_gene_set_library(
   }
 
   copy_from_records(
-    plpy.conn, 'app_public.gene_set', ('term', 'gene_ids'),
+    plpy.conn, 'app_public.gene_set', ('term', 'gene_ids', 'n_gene_ids'),
     tqdm((
       dict(
         term=gene_set['term'],
         gene_ids=json.dumps({gene_map[gene]: None for gene in gene_set['genes']}),
+        n_gene_ids=len(gene_set['genes']),
       )
       for gene_set in new_gene_sets
       if gene_set['term'] not in existing_terms
@@ -154,7 +155,7 @@ def import_paper_info(plpy):
     pmc_meta = pd.read_csv('data/PMC-ids.csv', usecols=['PMCID', 'Year', 'DOI'], index_col='PMCID')
     pmc_meta = pmc_meta[pmc_meta.index.isin(to_ingest)]
   except:
-    print('PMC metadata not found... you can download the latest verision from: https://ftp.ncbi.nlm.nih.gov/pub/pmc/')
+    raise RuntimeError('PMC metadata not found... you can download the latest verision from: https://ftp.ncbi.nlm.nih.gov/pub/pmc/')
   
   title_dict = {}
   for i in tqdm(range(0, len(to_ingest), 250), 'Pulling titles...'):

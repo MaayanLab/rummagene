@@ -1,35 +1,42 @@
 'use client'
 import React from 'react'
-import { useSuspenseQuery } from '@apollo/experimental-nextjs-app-support/ssr'
 import {
-  FetchUserGeneSetDocument,
   FetchUserGeneSetQuery,
-  useEnrichmentQueryQuery
+  useEnrichmentQueryQuery,
+  useFetchUserGeneSetQuery,
+  useOverlapQueryQuery
 } from '@/graphql'
 import ensureArray from "@/utils/ensureArray"
 import LinkedTerm from '@/components/linkedTerm'
 import Loading from '@/components/loading'
+import Pagination from '@/components/pagination'
+import { useQsState } from '@/utils/useQsState'
 
-function EnrichmentResults({ userGeneSet, setModelGeneSet }: { userGeneSet?: FetchUserGeneSetQuery, setModelGeneSet: any }) {
+const pageSize = 10
+
+type GeneSetModalT = {
+  description: string,
+  genes: string[]
+  overlapWith?: string,
+} | undefined
+
+function EnrichmentResults({ userGeneSet, setModalGeneSet }: { userGeneSet?: FetchUserGeneSetQuery, setModalGeneSet: React.Dispatch<React.SetStateAction<GeneSetModalT>> }) {
   const genes = React.useMemo(() =>
     ensureArray(userGeneSet?.userGeneSet?.genes).filter((gene): gene is string => !!gene).map(gene => gene.toUpperCase()),
     [userGeneSet]
   )
+  const [page, setPage] = useQsState('page', 1)
   const { data: enrichmentResults } = useEnrichmentQueryQuery({
     skip: genes.length === 0,
-    variables: {
-      genes,
-      // TODO: not ideal since it can lose some results, but speeds it up
-      overlapGreaterThan: Math.floor(0.05*genes.length),
-    },
+    variables: { genes, offset: (page-1)*pageSize, first: pageSize },
   })
   return (
     <div className="flex flex-row flex-wrap">
-      {enrichmentResults?.geneSetLibraries?.nodes.map((geneSetLibrary, i) => (
+      {enrichmentResults?.backgrounds?.nodes.map((background, i) => (
         <div key={i} className="collapse collapse-arrow">
           <input type="checkbox" defaultChecked /> 
           <h2 className="collapse-title text-xl font-medium">
-            Matching gene sets {geneSetLibrary.name} ({geneSetLibrary.enrichLibraryBackground.totalCount})
+            Matching gene sets ({background.enrich?.totalCount})
           </h2>
           <div className="collapse-content overflow-x-auto">
             <table className="table table-xs">
@@ -43,28 +50,37 @@ function EnrichmentResults({ userGeneSet, setModelGeneSet }: { userGeneSet?: Fet
                 </tr>
               </thead>
               <tbody>
-                {geneSetLibrary.enrichLibraryBackground.nodes.map((enrichmentResult, j) => (
+                {background.enrich?.nodes?.map((enrichmentResult, j) => (
                   <tr key={j}>
-                    <th><LinkedTerm term={enrichmentResult.geneSet?.term} /></th>
+                    <th><LinkedTerm term={enrichmentResult?.geneSet?.term} /></th>
                     <td className="whitespace-nowrap text-underline cursor-pointer">
                       <label
                         htmlFor="geneSetModal"
                         className="prose underline cursor-pointer"
                         onClick={evt => {
-                          setModelGeneSet({
-                            genes: enrichmentResult.overlapGenes.nodes.map(gene => gene.symbol) ?? [],
-                            description: enrichmentResult.geneSet?.term ?? '',
+                          setModalGeneSet({
+                            genes,
+                            description: enrichmentResult?.geneSet?.term ?? '',
+                            overlapWith: enrichmentResult?.geneSet?.id,
                           })
                         }}
-                      >{enrichmentResult.overlapGenes.nodes.length}</label>
+                      >{enrichmentResult?.nOverlap}</label>
                     </td>
-                    <td className="whitespace-nowrap">{enrichmentResult.oddsRatio?.toPrecision(3)}</td>
-                    <td className="whitespace-nowrap">{enrichmentResult.pvalue?.toPrecision(3)}</td>
-                    <td className="whitespace-nowrap">{enrichmentResult.adjPvalue?.toPrecision(3)}</td>
+                    <td className="whitespace-nowrap">{enrichmentResult?.oddsRatio?.toPrecision(3)}</td>
+                    <td className="whitespace-nowrap">{enrichmentResult?.pvalue?.toPrecision(3)}</td>
+                    <td className="whitespace-nowrap">{enrichmentResult?.adjPvalue?.toPrecision(3)}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
+          </div>
+          <div className="w-full flex flex-col items-center">
+            <Pagination
+              page={page}
+              totalCount={background.enrich?.totalCount ? background.enrich?.totalCount : undefined}
+              pageSize={pageSize}
+              onChange={page => setPage(page)}
+            />
           </div>
         </div>
       )) ?? 
@@ -74,6 +90,45 @@ function EnrichmentResults({ userGeneSet, setModelGeneSet }: { userGeneSet?: Fet
   )
 }
 
+function GeneSetModal(props: { modalGeneSet: GeneSetModalT, setModalGeneSet: React.Dispatch<React.SetStateAction<GeneSetModalT>> }) {
+  const { data: overlap } = useOverlapQueryQuery({
+    skip: props.modalGeneSet?.overlapWith === undefined,
+    variables: {
+      id: props.modalGeneSet?.overlapWith,
+      genes: props.modalGeneSet?.genes ?? [],
+    },
+  })
+  return (
+    <>
+      <input
+        type="checkbox"
+        id="geneSetModal"
+        className="modal-toggle"
+        onChange={evt => {
+          if (!evt.currentTarget.checked) {
+            props.setModalGeneSet(undefined)
+          }
+        }}
+      />
+      <div className="modal">
+        <div className="modal-box">
+          <h3 className="text-lg font-bold">
+            <LinkedTerm term={props.modalGeneSet?.description} />
+          </h3>
+          <textarea
+            className="w-full"
+            readOnly
+            rows={8}
+            value={overlap?.geneSet?.overlap.nodes.map(gene => gene.symbol).join('\n') ?? ''}
+          />
+        </div>
+        <label className="modal-backdrop" htmlFor="geneSetModal">Close</label>
+      </div>
+    </>
+  )
+}
+
+
 export default function Enrich({
   searchParams
 }: {
@@ -82,11 +137,11 @@ export default function Enrich({
   },
 }) {
   const dataset = ensureArray(searchParams.dataset)[0]
-  const { data: userGeneSet } = useSuspenseQuery<FetchUserGeneSetQuery>(FetchUserGeneSetDocument, {
+  const { data: userGeneSet } = useFetchUserGeneSetQuery({
     skip: !dataset,
     variables: { id: dataset },
   })
-  const [modelGeneSet, setModelGeneSet] = React.useState<{ description: string, genes: string[] }>()
+  const [modalGeneSet, setModalGeneSet] = React.useState<GeneSetModalT>()
   return (
     <>
       <div className="flex flex-row gap-2 alert">
@@ -95,42 +150,17 @@ export default function Enrich({
           htmlFor="geneSetModal"
           className="prose underline cursor-pointer"
           onClick={evt => {
-            setModelGeneSet({
+            setModalGeneSet({
               genes: (userGeneSet?.userGeneSet?.genes ?? []).filter((gene): gene is string => !!gene),
               description: userGeneSet?.userGeneSet?.description || 'Gene set',
             })
           }}
-        >{userGeneSet?.userGeneSet?.description || 'Gene set'} ({userGeneSet?.userGeneSet?.genes?.length ?? '?'} genes)</label>
+        >{userGeneSet?.userGeneSet?.description || 'Gene set'}{userGeneSet ? <> ({userGeneSet?.userGeneSet?.genes?.length ?? '?'} genes)</> : null}</label>
       </div>
       <div className="container mx-auto">
-        <React.Suspense fallback={<Loading/>}>
-          <EnrichmentResults userGeneSet={userGeneSet} setModelGeneSet={setModelGeneSet} />
-        </React.Suspense>
+        <EnrichmentResults userGeneSet={userGeneSet} setModalGeneSet={setModalGeneSet} />
       </div>
-      <input
-        type="checkbox"
-        id="geneSetModal"
-        className="modal-toggle"
-        onChange={evt => {
-          if (!evt.currentTarget.checked) {
-            setModelGeneSet(undefined)
-          }
-        }}
-      />
-      <div className="modal">
-        <div className="modal-box">
-          <h3 className="text-lg font-bold">
-            <LinkedTerm term={modelGeneSet?.description} />
-          </h3>
-          <textarea
-            className="w-full"
-            readOnly
-            rows={8}
-            value={modelGeneSet?.genes.join('\n') ?? ''}
-          />
-        </div>
-        <label className="modal-backdrop" htmlFor="geneSetModal">Close</label>
-      </div>
+      <GeneSetModal modalGeneSet={modalGeneSet} setModalGeneSet={setModalGeneSet} />
     </>
   )
 }

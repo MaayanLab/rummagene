@@ -7,7 +7,8 @@
 -- improvement: fisher testing implemented in rust
 -- improvement: enrichment query uses overlap => fisher testing
 
-create extension if not exists "plrust";
+-- create extension if not exists "plrust";
+create extension if not exists "pg_trgm";
 create schema app_public_v2;
 create schema app_private_v2;
 grant usage on schema app_public_v2 to guest, authenticated;
@@ -21,17 +22,6 @@ create index on app_public_v2.gene using gin (synonyms);
 grant select on table app_public_v2.gene to guest;
 grant all privileges on table app_public_v2.gene to authenticated;
 
-insert into app_public_v2.gene (id, symbol, synonyms)
-select
-  g.id,
-  g.symbol,
-  (
-    select coalesce(jsonb_object_agg(gsyn.synonym, null), '{}'::jsonb)
-    from gene_synonym gsyn
-    where gsyn.gene_id = g.id
-  ) as synonyms
-from app_public.gene g;
-
 create table app_public_v2.gene_set (
   id uuid primary key default uuid_generate_v4(),
   term varchar not null unique,
@@ -39,24 +29,9 @@ create table app_public_v2.gene_set (
   n_gene_ids int not null
 );
 create index on app_public_v2.gene_set using gin (gene_ids);
+create index on app_public_v2.gene_set using gin (term gin_trgm_ops);
 grant select on table app_public_v2.gene_set to guest;
 grant all privileges on table app_public_v2.gene_set to authenticated;
-
-insert into app_public_v2.gene_set (id, term, gene_ids, n_gene_ids)
-select
-  gs.id,
-  gs.term,
-  (
-    select jsonb_object_agg(gsg.gene_id, null)
-    from app_public.gene_set_gene gsg
-    where gsg.gene_set_id = gs.id
-  ) as gene_ids,
-  (
-    select count(gsg.gene_id)
-    from app_public.gene_set_gene gsg
-    where gsg.gene_set_id = gs.id
-  ) as n_gene_ids
-from app_public.gene_set gs;
 
 create or replace function app_public_v2.gene_map(genes varchar[])
 returns table (
@@ -77,13 +52,6 @@ create table app_public_v2.background (
 create index on app_public_v2.background using gin (gene_ids);
 grant select on table app_public_v2.background to guest;
 grant all privileges on table app_public_v2.background to authenticated;
-
-insert into app_public_v2.background (gene_ids, n_gene_ids)
-select
-  jsonb_object_agg(distinct gsg.gene_id, null) as gene_ids,
-  count(distinct gsg.gene_id) as n_gene_ids
-from app_public_v2.gene_set gs, jsonb_each(gs.gene_ids) gsg(gene_id, nil);
-
 
 -- create or replace function app_private_v2.fisher_testing(
 --   gene_set_ids uuid[],
@@ -130,60 +98,60 @@ from app_public_v2.gene_set gs, jsonb_each(gs.gene_ids) gsg(gene_id, nil);
 -- $$ language plpython3u immutable strict;
 -- grant execute on function app_private_v2.fisher_testing to guest, authenticated;
 
-create or replace function app_private_v2.fisher_testing(
-  gene_set_ids uuid[],
-  n_overlap_gene_ids int[],
-  n_gs_gene_ids int[],
-  n_user_gene_id int,
-  n_background int,
-  n_gene_set int,
-  pvalue_less_than double precision default 0.05,
-  adj_pvalue_less_than double precision default 0.05
-) returns table (
-  gene_set_id uuid,
-  pvalue double precision,
-  adj_pvalue double precision
-) as $$
-[dependencies]
-itertools = "0.8"
-fishers_exact = "1.0.1"
-adjustp = "0.1.4"
+-- create or replace function app_private_v2.fisher_testing(
+--   gene_set_ids uuid[],
+--   n_overlap_gene_ids int[],
+--   n_gs_gene_ids int[],
+--   n_user_gene_id int,
+--   n_background int,
+--   n_gene_set int,
+--   pvalue_less_than double precision default 0.05,
+--   adj_pvalue_less_than double precision default 0.05
+-- ) returns table (
+--   gene_set_id uuid,
+--   pvalue double precision,
+--   adj_pvalue double precision
+-- ) as $$
+-- [dependencies]
+-- itertools = "0.8"
+-- fishers_exact = "1.0.1"
+-- adjustp = "0.1.4"
 
-[code]
-use itertools::izip;
-use fishers_exact::fishers_exact;
-use adjustp::{adjust, Procedure};
+-- [code]
+-- use itertools::izip;
+-- use fishers_exact::fishers_exact;
+-- use adjustp::{adjust, Procedure};
 
-let mut pvalues: Vec<f64> = Vec::with_capacity(n_gene_set as usize);
-for row in izip!(n_overlap_gene_ids, n_gs_gene_ids) {
-  if let (Some(n_overlap_gene_id), Some(n_gs_gene_id)) = row {
-    let a = n_overlap_gene_id as u32;
-    let b = (n_user_gene_id as u32) - a;
-    let c = (n_gs_gene_id as u32) - a;
-    let d = (n_background as u32) - b - c + a;
-    let table = [a, b, c, d];
-    let result = fishers_exact(&table).unwrap();
-    pvalues.push(result.greater_pvalue);
-  } else {
-    pvalues.push(1.0);
-  }
-}
-for _i in pvalues.len()..(n_gene_set as usize) {
-  pvalues.push(1.0);
-}
-let adjpvalues = adjust(&pvalues, Procedure::BenjaminiHochberg);
-let as_tuples = TableIterator::new(
-  izip!(
-    gene_set_ids,
-    pvalues,
-    adjpvalues
-  ).into_iter()
-    .filter(move |(gene_set_id, pvalue, adjpvalue)| gene_set_id.is_some() && *pvalue < pvalue_less_than && *adjpvalue < adj_pvalue_less_than)
-    .map(|(gene_set_id, pvalue, adjpvalue)| (gene_set_id, Some(pvalue), Some(adjpvalue)))
-);
-Ok(Some(as_tuples))
-$$ language plrust immutable strict;
-grant execute on function app_private_v2.fisher_testing to guest, authenticated;
+-- let mut pvalues: Vec<f64> = Vec::with_capacity(n_gene_set as usize);
+-- for row in izip!(n_overlap_gene_ids, n_gs_gene_ids) {
+--   if let (Some(n_overlap_gene_id), Some(n_gs_gene_id)) = row {
+--     let a = n_overlap_gene_id as u32;
+--     let b = (n_user_gene_id as u32) - a;
+--     let c = (n_gs_gene_id as u32) - a;
+--     let d = (n_background as u32) - b - c + a;
+--     let table = [a, b, c, d];
+--     let result = fishers_exact(&table).unwrap();
+--     pvalues.push(result.greater_pvalue);
+--   } else {
+--     pvalues.push(1.0);
+--   }
+-- }
+-- for _i in pvalues.len()..(n_gene_set as usize) {
+--   pvalues.push(1.0);
+-- }
+-- let adjpvalues = adjust(&pvalues, Procedure::BenjaminiHochberg);
+-- let as_tuples = TableIterator::new(
+--   izip!(
+--     gene_set_ids,
+--     pvalues,
+--     adjpvalues
+--   ).into_iter()
+--     .filter(move |(gene_set_id, pvalue, adjpvalue)| gene_set_id.is_some() && *pvalue < pvalue_less_than && *adjpvalue < adj_pvalue_less_than)
+--     .map(|(gene_set_id, pvalue, adjpvalue)| (gene_set_id, Some(pvalue), Some(adjpvalue)))
+-- );
+-- Ok(Some(as_tuples))
+-- $$ language plrust immutable strict;
+-- grant execute on function app_private_v2.fisher_testing to guest, authenticated;
 
 create or replace function app_public_v2.background_overlap(
   background app_public_v2.background,
@@ -195,24 +163,24 @@ create or replace function app_public_v2.background_overlap(
   n_gs_gene_ids int
 )
 as $$
-  with input_genes as (
-    select g.gene_id
-    from app_public_v2.gene_map(background_overlap.genes) g
-  )
   select
     gs.id as gene_set_id,
     count(ig.gene_id) as n_overlap_gene_ids,
     gs.n_gene_ids as n_gs_gene_ids
   from
-    app_public_v2.gene_set gs
-    inner join input_genes ig on gs.gene_ids ? ig.gene_id::text
+    (
+      select distinct g.gene_id::text
+      from app_public_v2.gene_map(background_overlap.genes) g
+    ) ig
+    inner join app_public_v2.gene_set gs on gs.gene_ids ? ig.gene_id
   group by gs.id
-  having count(ig.gene_id) > 0;
+  having count(ig.gene_id) > background_overlap.overlap_greater_than;
 $$ language sql immutable strict;
 grant execute on function app_public_v2.background_overlap to guest, authenticated;
 
 create type app_public_v2.enrich_result as (
   gene_set_id uuid,
+  n_overlap int,
   odds_ratio double precision,
   pvalue double precision,
   adj_pvalue double precision
@@ -227,50 +195,50 @@ as $$
 $$ language sql immutable strict;
 grant execute on function app_public_v2.enrich_result_gene_set to guest, authenticated;
 
-create or replace function app_public_v2.background_enrich(
-  background app_public_v2.background,
-  genes varchar[],
-  overlap_greater_than int default 0,
-  pvalue_less_than double precision default 0.05,
-  adj_pvalue_less_than double precision default 0.05
-) returns setof app_public_v2.enrich_result
-as $$
-  with overlap as (
-    select *
-    from app_public_v2.background_overlap(
-      background_enrich.background,
-      background_enrich.genes,
-      background_enrich.overlap_greater_than
-    )
-  ), fisher as (
-    select *
-    from app_private_v2.fisher_testing(
-      (select array_agg(o.gene_set_id) from overlap o),
-      (select array_agg(o.n_overlap_gene_ids::int) from overlap o),
-      (select array_agg(o.n_gs_gene_ids::int) from overlap o),
-      (select count(g.gene_id)::int
-       from app_public_v2.gene_map(background_enrich.genes) g
-       where background_enrich.background.gene_ids ? g.gene_id::text),
-      (select background_enrich.background.n_gene_ids::int),
-      (select count(gs.id)::int from app_public_v2.gene_set gs),
-      background_enrich.pvalue_less_than,
-      background_enrich.adj_pvalue_less_than
-    )
-  )
-  select
-    overlap.gene_set_id,
-    (
-      ((overlap.n_overlap_gene_ids::double precision) / (array_length(background_enrich.genes, 1)::double precision))
-      / ((overlap.n_gs_gene_ids::double precision) / (background_enrich.background.n_gene_ids::double precision))
-    ) as odds_ratio,
-    fisher.pvalue,
-    fisher.adj_pvalue
-  from
-    fisher
-    left join overlap on fisher.gene_set_id = overlap.gene_set_id 
-  order by fisher.pvalue asc;
-$$ language sql immutable strict security definer;
-grant execute on function app_public_v2.background_enrich to guest, authenticated;
+-- create or replace function app_public_v2.background_enrich(
+--   background app_public_v2.background,
+--   genes varchar[],
+--   overlap_greater_than int default 0,
+--   pvalue_less_than double precision default 0.05,
+--   adj_pvalue_less_than double precision default 0.05
+-- ) returns setof app_public_v2.enrich_result
+-- as $$
+--   with overlap as (
+--     select *
+--     from app_public_v2.background_overlap(
+--       background_enrich.background,
+--       background_enrich.genes,
+--       background_enrich.overlap_greater_than
+--     )
+--   ), fisher as (
+--     select *
+--     from app_private_v2.fisher_testing(
+--       (select array_agg(o.gene_set_id) from overlap o),
+--       (select array_agg(o.n_overlap_gene_ids::int) from overlap o),
+--       (select array_agg(o.n_gs_gene_ids::int) from overlap o),
+--       (select count(g.gene_id)::int
+--        from app_public_v2.gene_map(background_enrich.genes) g
+--        where background_enrich.background.gene_ids ? g.gene_id::text),
+--       (select background_enrich.background.n_gene_ids::int),
+--       (select count(gs.id)::int from app_public_v2.gene_set gs),
+--       background_enrich.pvalue_less_than,
+--       background_enrich.adj_pvalue_less_than
+--     )
+--   )
+--   select
+--     overlap.gene_set_id,
+--     (
+--       ((overlap.n_overlap_gene_ids::double precision) / (array_length(background_enrich.genes, 1)::double precision))
+--       / ((overlap.n_gs_gene_ids::double precision) / (background_enrich.background.n_gene_ids::double precision))
+--     ) as odds_ratio,
+--     fisher.pvalue,
+--     fisher.adj_pvalue
+--   from
+--     fisher
+--     left join overlap on fisher.gene_set_id = overlap.gene_set_id 
+--   order by fisher.pvalue asc;
+-- $$ language sql immutable strict security definer;
+-- grant execute on function app_public_v2.background_enrich to guest, authenticated;
 
 create or replace function app_public_v2.gene_set_genes(gene_set app_public_v2.gene_set)
 returns setof app_public_v2.gene as
@@ -286,7 +254,7 @@ create or replace function app_public_v2.gene_set_overlap(
   genes varchar[]
 ) returns setof app_public_v2.gene
 as $$
-  select g.*
+  select distinct g.*
   from app_public_v2.gene_map(gene_set_overlap.genes) gm
   inner join app_public_v2.gene g on g.id = gm.gene_id
   where gene_set.gene_ids ? gm.gene_id::text;
@@ -322,7 +290,7 @@ grant execute on function app_public_v2.add_user_gene_set to guest, authenticate
 
 create or replace function app_public_v2.gene_set_term_search(terms varchar[]) returns setof app_public_v2.gene_set
 as $$
-  select gs.*
+  select distinct gs.*
   from app_public_v2.gene_set gs
   inner join unnest(terms) ut(term) on gs.term ilike ('%' || ut.term || '%');
 $$ language sql immutable strict parallel safe;
@@ -374,6 +342,50 @@ $$
   where pmcid = ANY (pmcIds);
 $$ language sql immutable strict parallel safe;
 grant execute on function app_public_v2.get_pmc_info_by_ids to guest, authenticated;
+
+create or replace function app_public_v2.terms_pmcs_count(pmcids varchar[])
+returns table (pmc varchar, term varchar, id uuid, count int) as
+$$
+  select gsp.pmc, gs.term, gs.id, gs.n_gene_ids as count
+  from 
+    app_public_v2.gene_set_pmc as gsp
+    inner join app_public_v2.gene_set as gs on gs.id = gsp.id
+  where gsp.pmc = ANY (pmcids);
+$$ language sql immutable strict parallel safe;
+grant execute on function app_public_v2.terms_pmcs_count to guest, authenticated;
+
+-- migrate data
+insert into app_public_v2.gene (id, symbol, synonyms)
+select
+  g.id, g.symbol,
+  (
+    select coalesce(jsonb_object_agg(gsyn.synonym, null), '{}'::jsonb)
+    from app_public.gene_synonym gsyn
+    where gsyn.gene_id = g.id
+  ) as synonyms
+from app_public.gene g;
+insert into app_public_v2.gene_set (id, term, gene_ids, n_gene_ids)
+select
+  gs.id, gs.term,
+  (
+    select jsonb_object_agg(gsg.gene_id, null)
+    from app_public.gene_set_gene gsg
+    where gsg.gene_set_id = gs.id
+  ) as gene_ids,
+  (
+    select count(gsg.gene_id)
+    from app_public.gene_set_gene gsg
+    where gsg.gene_set_id = gs.id
+  ) as n_gene_ids
+from app_public.gene_set gs;
+insert into app_public_v2.pmc_info (id, pmcid, title, yr, doi)
+select * from app_public.pmc_info;
+insert into app_public_v2.background (gene_ids, n_gene_ids)
+select
+  jsonb_object_agg(distinct gsg.gene_id, null) as gene_ids,
+  count(distinct gsg.gene_id) as n_gene_ids
+from app_public_v2.gene_set gs, jsonb_each(gs.gene_ids) gsg(gene_id, nil);
+
 
 -- migrate:down
 drop schema app_public_v2 cascade;
