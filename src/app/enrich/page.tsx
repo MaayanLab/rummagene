@@ -7,7 +7,7 @@ import {
 } from '@/graphql'
 import ensureArray from "@/utils/ensureArray"
 import LinkedTerm from '@/components/linkedTerm'
-import Image from 'next/image'
+import Loading from '@/components/loading'
 
 function EnrichmentResults({ userGeneSet, setModelGeneSet }: { userGeneSet?: FetchUserGeneSetQuery, setModelGeneSet: any }) {
   const genes = React.useMemo(() =>
@@ -63,10 +63,7 @@ function EnrichmentResults({ userGeneSet, setModelGeneSet }: { userGeneSet?: Fet
           </div>
         </div>
       )) ?? 
-      <div className="mx-auto p-5 text-center">
-        <Image className={'rounded mx-auto'} src={'/images/loading.gif'} width={125} height={250} alt={'Loading...'}/> 
-        <p>Rummaging through gene sets... </p>
-      </div>
+      <Loading/>
       }
     </div>
   )

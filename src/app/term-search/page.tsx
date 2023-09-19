@@ -5,17 +5,16 @@ import { TermSearchDocument, TermSearchQuery } from '@/graphql'
 import ensureArray from '@/utils/ensureArray'
 import { useRouter } from 'next/navigation'
 import TermTable from '@/components/termTable'
+import Loading from '@/components/loading'
 import Image from 'next/image'
 
 function TermSearchResults({ terms }: { terms: string[] }) {
   const { data } = useSuspenseQuery<TermSearchQuery>(TermSearchDocument, {
     variables: {
       terms,
-      first: 1000
+      first: 10000
     }
   })
-
-  if (terms.length == 0) return <></>
 
   return (
     <React.Suspense fallback={<><Image className={'rounded mx-auto'} src={'/images/loading.gif'} width={125} height={250} alt={'Loading...'} /><p>Rummaging for gene sets with your search term.</p></>}>
@@ -36,10 +35,11 @@ export default function TermSearchPage({
 }) {
   const router = useRouter()
   const terms = React.useMemo(() =>
-    ensureArray(searchParams.q).flatMap(el => el.split(/\s+/g)),
+    ensureArray(searchParams.q).flatMap(el => el.split(/\s+/g)).filter(el => el.length > 0),
     [searchParams.q])
   const [rawTerms, setRawTerms] = React.useState(terms.join(' '))
   const [searchTerms, setSearchTerms] = React.useState<string[]>(terms)
+
   return (
     <>
     <div className='flex-col'>
@@ -50,7 +50,7 @@ export default function TermSearchPage({
           router.push(`/term-search?q=${encodeURIComponent(rawTerms)}`, {
             scroll: false,
           })
-          setSearchTerms(rawTerms.split(' '))
+          setSearchTerms(rawTerms.split(' ').filter(el => el.length > 0))
         }}
       >
         <span className="label-text text-lg">Term</span>
@@ -97,9 +97,10 @@ export default function TermSearchPage({
         > PBMC</a>
       </p>
       </div>
-      <React.Suspense fallback={<><div className="text-center p-5"><Image className={'rounded mx-auto'} src={'/images/loading.gif'} width={125} height={250} alt={'Loading...'}/> <p>Rummaging for gene sets that include your search term.</p></div></>}>
+      {searchTerms.length > 0 ?
+      <React.Suspense fallback={<Loading/>}>
         <TermSearchResults terms={searchTerms} />
-      </React.Suspense>
+      </React.Suspense>: <></>}
     </>
   )
 }

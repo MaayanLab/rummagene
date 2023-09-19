@@ -3,7 +3,7 @@ import { GetPmcInfoByIdsDocument, GetPmcInfoByIdsQuery } from '@/graphql';
 import { useSuspenseQuery } from '@apollo/client';
 import PmcTable from './pmcTable';
 
-export default function PmcSearchColumns({ pmc_terms, pmcs, gene_set_ids}: 
+export default function PmcSearchData({ pmc_terms, pmcs, gene_set_ids}: 
   { pmc_terms?: Map<string, string[]>, pmcs?: (string | null | undefined)[], gene_set_ids?: Map<string, string[]>}) {
 
   const { data: pmcMeta } = useSuspenseQuery<GetPmcInfoByIdsQuery>(GetPmcInfoByIdsDocument, {
