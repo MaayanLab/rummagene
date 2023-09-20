@@ -22,22 +22,20 @@ query FetchUserGeneSet($id: UUID!) {
 
 # Perform enrichment analysis against a specific library
 query EnrichmentQuery($genes: [String]!, $offset: Int = 0, $first: Int = 10) {
-  backgrounds(first: 1) {
-    nodes {
-      enrich(genes: $genes, offset: $offset, first: $first) {
-        nodes {
-          pvalue
-          adjPvalue
-          oddsRatio
-          nOverlap
-          geneSet {
-            id
-            term
-            nGeneIds
-          }
+  currentBackground {
+    enrich(genes: $genes, offset: $offset, first: $first) {
+      nodes {
+        pvalue
+        adjPvalue
+        oddsRatio
+        nOverlap
+        geneSet {
+          id
+          term
+          nGeneIds
         }
-        totalCount
       }
+      totalCount
     }
   }
 }

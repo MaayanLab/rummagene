@@ -167,7 +167,8 @@ SET default_table_access_method = heap;
 CREATE TABLE app_public_v2.background (
     id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
     gene_ids jsonb NOT NULL,
-    n_gene_ids integer NOT NULL
+    n_gene_ids integer NOT NULL,
+    created timestamp without time zone DEFAULT now()
 );
 
 
@@ -683,6 +684,20 @@ $$;
 
 
 --
+-- Name: current_background(); Type: FUNCTION; Schema: app_public_v2; Owner: -
+--
+
+CREATE FUNCTION app_public_v2.current_background() RETURNS app_public_v2.background
+    LANGUAGE sql IMMUTABLE STRICT SECURITY DEFINER PARALLEL SAFE
+    AS $$
+  select *
+  from app_public_v2.background
+  order by created asc
+  limit 1;
+$$;
+
+
+--
 -- Name: gene_set; Type: TABLE; Schema: app_public_v2; Owner: -
 --
 
@@ -1155,16 +1170,6 @@ COMMENT ON VIEW app_public_v2.pmc IS '@foreignKey (pmc) references app_public_v2
 
 
 --
--- Name: pmc_stats; Type: TABLE; Schema: app_public_v2; Owner: -
---
-
-CREATE TABLE app_public_v2.pmc_stats (
-    id integer GENERATED ALWAYS AS (1) STORED,
-    n_publications_processed bigint
-);
-
-
---
 -- Name: schema_migrations; Type: TABLE; Schema: public; Owner: -
 --
 
@@ -1323,14 +1328,6 @@ ALTER TABLE ONLY app_public_v2.pmc_info
 
 ALTER TABLE ONLY app_public_v2.pmc_info
     ADD CONSTRAINT pmc_info_pmcid_key UNIQUE (pmcid);
-
-
---
--- Name: pmc_stats pmc_stats_id_key; Type: CONSTRAINT; Schema: app_public_v2; Owner: -
---
-
-ALTER TABLE ONLY app_public_v2.pmc_stats
-    ADD CONSTRAINT pmc_stats_id_key UNIQUE (id);
 
 
 --
@@ -1555,4 +1552,4 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20230830210011'),
     ('20230906154745'),
     ('20230918153613'),
-    ('20230919195910');
+    ('20230920201419');
