@@ -4,7 +4,8 @@ import {
   FetchUserGeneSetQuery,
   useEnrichmentQueryQuery,
   useFetchUserGeneSetQuery,
-  useOverlapQueryQuery
+  useOverlapQueryQuery,
+  useViewGeneSetQuery
 } from '@/graphql'
 import ensureArray from "@/utils/ensureArray"
 import LinkedTerm from '@/components/linkedTerm'
@@ -15,9 +16,9 @@ import { useQsState } from '@/utils/useQsState'
 const pageSize = 10
 
 type GeneSetModalT = {
+  id?: string,
   description: string,
-  genes: string[]
-  overlapWith?: string,
+  genes?: string[]
 } | undefined
 
 function EnrichmentResults({ userGeneSet, setModalGeneSet }: { userGeneSet?: FetchUserGeneSetQuery, setModalGeneSet: React.Dispatch<React.SetStateAction<GeneSetModalT>> }) {
@@ -42,6 +43,7 @@ function EnrichmentResults({ userGeneSet, setModalGeneSet }: { userGeneSet?: Fet
               <thead>
                 <tr>
                   <th>Supporting tables containing matching gene sets</th>
+                  <th>Gene Set Size</th>
                   <th>Overlap</th>
                   <th>Odds</th>
                   <th>PValue</th>
@@ -58,9 +60,21 @@ function EnrichmentResults({ userGeneSet, setModalGeneSet }: { userGeneSet?: Fet
                         className="prose underline cursor-pointer"
                         onClick={evt => {
                           setModalGeneSet({
+                            id: enrichmentResult?.geneSet?.id,
+                            description: enrichmentResult?.geneSet?.term ?? '',
+                          })
+                        }}
+                      >{enrichmentResult?.geneSet?.nGeneIds}</label>
+                    </td>
+                    <td className="whitespace-nowrap text-underline cursor-pointer">
+                      <label
+                        htmlFor="geneSetModal"
+                        className="prose underline cursor-pointer"
+                        onClick={evt => {
+                          setModalGeneSet({
+                            id: enrichmentResult?.geneSet?.id,
                             genes,
                             description: enrichmentResult?.geneSet?.term ?? '',
-                            overlapWith: enrichmentResult?.geneSet?.id,
                           })
                         }}
                       >{enrichmentResult?.nOverlap}</label>
@@ -82,18 +96,23 @@ function EnrichmentResults({ userGeneSet, setModalGeneSet }: { userGeneSet?: Fet
             />
           </div>
         </React.Fragment>
-      )) ?? 
-      <Loading/>
+      )) ?? <Loading/>
       }
     </div>
   )
 }
 
 function GeneSetModal(props: { modalGeneSet: GeneSetModalT, setModalGeneSet: React.Dispatch<React.SetStateAction<GeneSetModalT>> }) {
-  const { data: overlap } = useOverlapQueryQuery({
-    skip: props.modalGeneSet?.overlapWith === undefined,
+  const { data: geneSet } = useViewGeneSetQuery({
+    skip: props.modalGeneSet?.id === undefined || props.modalGeneSet?.genes !== undefined,
     variables: {
-      id: props.modalGeneSet?.overlapWith,
+      id: props.modalGeneSet?.id,
+    }
+  })
+  const { data: overlap } = useOverlapQueryQuery({
+    skip: props.modalGeneSet?.id === undefined,
+    variables: {
+      id: props.modalGeneSet?.id,
       genes: props.modalGeneSet?.genes ?? [],
     },
   })
@@ -118,7 +137,7 @@ function GeneSetModal(props: { modalGeneSet: GeneSetModalT, setModalGeneSet: Rea
             className="w-full"
             readOnly
             rows={8}
-            value={overlap?.geneSet?.overlap.nodes.map(gene => gene.symbol).join('\n') ?? ''}
+            value={(geneSet?.geneSet?.genes.nodes || overlap?.geneSet?.overlap.nodes)?.map(gene => gene.symbol).join('\n') ?? ''}
           />
         </div>
         <label className="modal-backdrop" htmlFor="geneSetModal">Close</label>
@@ -126,7 +145,6 @@ function GeneSetModal(props: { modalGeneSet: GeneSetModalT, setModalGeneSet: Rea
     </>
   )
 }
-
 
 export default function Enrich({
   searchParams

@@ -33,6 +33,7 @@ query EnrichmentQuery($genes: [String]!, $offset: Int = 0, $first: Int = 10) {
           geneSet {
             id
             term
+            nGeneIds
           }
         }
         totalCount
