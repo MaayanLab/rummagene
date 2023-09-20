@@ -1,14 +1,16 @@
+mod async_rwlockhashmap;
+
 #[macro_use] extern crate rocket;
 extern crate bit_set;
 use futures::StreamExt;
 use rocket::http::ContentType;
+use std::future;
 use std::io::Cursor;
 use rocket::request::Request;
 use rocket::response::{self, Response, Responder};
 use rocket_db_pools::{Database, Connection};
 use rocket_db_pools::sqlx::{self, Row};
 use std::collections::HashMap;
-use async_std::sync::RwLock;
 use rayon::prelude::*;
 use uuid::Uuid;
 use bit_set::BitSet;
@@ -19,6 +21,8 @@ use rocket::serde::{json::{json, Json, Value}, Serialize};
 use std::sync::Arc;
 use retainer::Cache;
 use std::time::Instant;
+
+use async_rwlockhashmap::RwLockHashMap;
 
 #[derive(Database)]
 #[database("postgres")]
@@ -38,7 +42,7 @@ struct BackgroundQuery {
 
 // This structure stores a persistent many-reader single-writer hashmap containing cached indexes for a given background id
 struct PersistentState { 
-    bitmaps: RwLock<HashMap<Uuid, Bitmap>>,
+    bitmaps: RwLockHashMap<Uuid, Bitmap>,
     cache: Cache<Arc<BackgroundQuery>, Arc<Vec<Arc<QueryResult>>>>,
 }
 
@@ -83,56 +87,44 @@ fn bitvec(background: &HashMap<Uuid, usize>, gene_set: Vec<Uuid>) -> BitSet {
 
 // Ensure the specific background_id exists in state, resolving it if necessary
 async fn ensure_index(db: &mut Connection<Postgres>, state: &State<PersistentState>, background_id: Uuid) -> Result<(), String> {
-    let requires_fetch = {
-        let index_reader = state.bitmaps.read().await;
-        !(*index_reader).contains_key(&background_id)
-    };
-    if requires_fetch {
-        let mut index_writer = state.bitmaps.write().await;
-        println!("[{}] initializing", background_id);
-        let start = Instant::now();
-
-        let background_info = sqlx::query("select * from app_public_v2.background where id = $1::uuid;")
-            .bind(background_id.to_string())
-            .fetch_one(&mut **db).await.map_err(|e| e.to_string())?;
-        let background_gene_ids: sqlx::types::Json<HashMap<String, sqlx::types::JsonValue>> = background_info.try_get("gene_ids").map_err(|e| e.to_string())?;
-        let mut background_gene_ids = background_gene_ids.keys().map(|gene| Uuid::parse_str(gene)).collect::<Result<Vec<_>, _>>().map_err(|e| e.to_string())?;
-        background_gene_ids.sort_unstable();
-        let background_gene_ids: HashMap<Uuid, usize> = background_gene_ids.into_iter().enumerate().map(|(i, gene_id)| (gene_id, i)).collect();
-
-        // compute the index in memory
-        let (index, bitmap): (Vec<_>, Vec<_>) = sqlx::query("select id, gene_ids from app_public_v2.gene_set;")
-            .fetch(&mut **db)
-            .map(|row| {
-                let row = row.unwrap();
-                let gene_set_id: uuid::Uuid = row.try_get("id").unwrap();
-                let gene_ids: sqlx::types::Json<HashMap<String, sqlx::types::JsonValue>> = row.try_get("gene_ids").unwrap();
-                let gene_ids = gene_ids.keys().map(|gene_id| Uuid::parse_str(gene_id).unwrap()).collect::<Vec<Uuid>>();
-                let bitset = bitvec(&background_gene_ids, gene_ids);
-                (gene_set_id, bitset)
-            })
-            .unzip()
-            .await;
-
-        // load pre-computed index into memory
-        // let (index, bitmap): (Vec<_>, Vec<_>) = sqlx::query("SELECT gene_set_id, bitvec from app_private_v2.computed_index where background_id = $1::uuid;")
-        //     .bind(background_id.to_string())
-        //     .fetch(&mut **db)
-        //     .map(|row| {
-        //         let row = row.unwrap();
-        //         let gene_set_id: uuid::Uuid = row.try_get("gene_set_id").unwrap();
-        //         let bitset: Vec<u8> = row.get("bitvec");
-        //         let bitset = BitSet::from_bit_vec(bit_vec::BitVec::from_bytes(&bitset));
-        //         (gene_set_id, bitset)
-        //     })
-        //     .unzip()
-        //     .await;
-
-        index_writer.insert(background_id, Bitmap { columns: background_gene_ids, index, values: bitmap });
-
-        let duration = start.elapsed();
-        println!("[{}] initialized in {:?}", background_id, duration);
+    if state.bitmaps.contains_key(&background_id).await {
+        return Ok(())
     }
+    // this lets us write a new bitmap by only blocking the whole hashmap for a short period to register the new bitmap
+    // after which we block the new empty bitmap for writing
+    let bitmap = state.bitmaps.insert(background_id, Bitmap { columns: HashMap::new(), index: Vec::new(), values: Vec::new() }).await;
+    let mut bitmap = bitmap.write().await;
+
+    println!("[{}] initializing", background_id);
+    let start = Instant::now();
+
+    let background_info = sqlx::query("select * from app_public_v2.background where id = $1::uuid;")
+        .bind(background_id.to_string())
+        .fetch_one(&mut **db).await.map_err(|e| e.to_string())?;
+    let background_gene_ids: sqlx::types::Json<HashMap<String, sqlx::types::JsonValue>> = background_info.try_get("gene_ids").map_err(|e| e.to_string())?;
+    let mut background_gene_ids = background_gene_ids.keys().map(|gene| Uuid::parse_str(gene)).collect::<Result<Vec<_>, _>>().map_err(|e| e.to_string())?;
+    background_gene_ids.sort_unstable();
+    bitmap.columns.extend(
+        background_gene_ids.into_iter().enumerate().map(|(i, gene_id)| (gene_id, i))
+    );
+
+    // compute the index in memory
+    sqlx::query("select id, gene_ids from app_public_v2.gene_set;")
+        .fetch(&mut **db)
+        .for_each(|row| {
+            let row = row.unwrap();
+            let gene_set_id: uuid::Uuid = row.try_get("id").unwrap();
+            let gene_ids: sqlx::types::Json<HashMap<String, sqlx::types::JsonValue>> = row.try_get("gene_ids").unwrap();
+            let gene_ids = gene_ids.keys().map(|gene_id| Uuid::parse_str(gene_id).unwrap()).collect::<Vec<Uuid>>();
+            let bitset = bitvec(&bitmap.columns, gene_ids);
+            bitmap.index.push(gene_set_id);
+            bitmap.values.push(bitset);
+            future::ready(())
+        })
+        .await;
+
+    let duration = start.elapsed();
+    println!("[{}] initialized in {:?}", background_id, duration);
     Ok(())
 }
 
@@ -144,8 +136,8 @@ async fn ensure(
 ) -> Result<Value, Custom<String>> {
     let background_id = Uuid::parse_str(background_id).map_err(|e| Custom(Status::BadRequest, e.to_string()))?;
     ensure_index(&mut db, &state, background_id).await.map_err(|e| Custom(Status::InternalServerError, e.to_string()))?;
-    let index_reader = state.bitmaps.read().await;
-    let bitmap = index_reader.get(&background_id).ok_or("Can't find background").map_err(|e| Custom(Status::NotFound, e.to_string()))?;
+    let bitmap = state.bitmaps.get(&background_id).await.ok_or(Custom(Status::NotFound, String::from("Can't find background")))?;
+    let bitmap = bitmap.read().await;
     Ok(json!({
         "columns": bitmap.columns.len(),
         "index": bitmap.index.len(),
@@ -158,13 +150,10 @@ async fn delete(
     background_id: &str,
 ) -> Result<(), Custom<String>> {
     let background_id = Uuid::parse_str(background_id).map_err(|e| Custom(Status::BadRequest, e.to_string()))?;
-    let requires_delete = {
-        let index_reader = state.bitmaps.read().await;
-        (*index_reader).contains_key(&background_id)
-    };
-    if !requires_delete { return Err(Custom(Status::NotFound, String::from("Not Found"))); }
-    let mut index_writer = state.bitmaps.write().await;
-    index_writer.remove(&background_id);
+    if !state.bitmaps.contains_key(&background_id).await {
+        return Err(Custom(Status::NotFound, String::from("Not Found")));
+    }
+    state.bitmaps.remove(&background_id).await;
     println!("[{}] deleted", background_id);
     Ok(())
 }
@@ -188,8 +177,8 @@ async fn query(
     ensure_index(&mut db, &state, background_id).await.map_err(|e| Custom(Status::InternalServerError, e.to_string()))?;
     let start = Instant::now();
     let input_gene_set = input_gene_set.0.into_iter().map(|gene| Uuid::parse_str(&gene)).collect::<Result<Vec<_>, _>>().map_err(|e| Custom(Status::BadRequest, e.to_string()))?;
-    let index_reader = state.bitmaps.read().await;
-    let bitmap = index_reader.get(&background_id).ok_or("Can't find background").map_err(|e| Custom(Status::NotFound, e.to_string()))?;
+    let bitmap = state.bitmaps.get(&background_id).await.ok_or(Custom(Status::NotFound, String::from("Can't find background")))?;
+    let bitmap = bitmap.read().await;
     let input_gene_set = bitvec(&bitmap.columns, input_gene_set);
     let background_query = Arc::new(BackgroundQuery { background_id, input_gene_set });
     let results = {
@@ -277,7 +266,7 @@ async fn query(
 fn rocket() -> _ {
     rocket::build()
         .manage(PersistentState {
-            bitmaps: RwLock::new(HashMap::new()),
+            bitmaps: RwLockHashMap::new(),
             cache: Cache::new(),
         })
         .attach(Postgres::init())
