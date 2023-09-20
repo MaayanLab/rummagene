@@ -12,6 +12,8 @@ import LinkedTerm from '@/components/linkedTerm'
 import Loading from '@/components/loading'
 import Pagination from '@/components/pagination'
 import { useQsState } from '@/utils/useQsState'
+import Stats from '../stats'
+import Image from 'next/image'
 
 const pageSize = 10
 
@@ -27,14 +29,16 @@ function EnrichmentResults({ userGeneSet, setModalGeneSet }: { userGeneSet?: Fet
     [userGeneSet]
   )
   const [page, setPage] = useQsState('page', 1)
-  const { data: enrichmentResults } = useEnrichmentQueryQuery({
+  const { data: enrichmentResults, loading } = useEnrichmentQueryQuery({
     skip: genes.length === 0,
     variables: { genes, offset: (page-1)*pageSize, first: pageSize },
   })
   return (
     <div className="flex flex-col gap-2 my-2">
-      <h2 className="text-xl font-medium">
-        Matching gene sets ({enrichmentResults?.currentBackground?.enrich?.totalCount})
+      <h2 className="text-md font-bold">
+        {loading && enrichmentResults?.currentBackground?.enrich ?
+          <>Rummaging through <Stats show_gene_sets />.</>
+          : <>After rummaging through <Stats show_gene_sets />. Rummagene <Image className="inline-block rounded" src="/images/rummagene_logo.png" width={50} height={100} alt="Rummagene"></Image> found {Intl.NumberFormat("en-US", {}).format(enrichmentResults?.currentBackground?.enrich?.totalCount || 0)} statistically significant matches.</>}
       </h2>
       <div className="overflow-x-auto">
         <table className="table table-xs">
