@@ -29,14 +29,14 @@ function EnrichmentResults({ userGeneSet, setModalGeneSet }: { userGeneSet?: Fet
     [userGeneSet]
   )
   const [page, setPage] = useQsState('page', 1)
-  const { data: enrichmentResults, loading } = useEnrichmentQueryQuery({
+  const { data: enrichmentResults } = useEnrichmentQueryQuery({
     skip: genes.length === 0,
     variables: { genes, offset: (page-1)*pageSize, first: pageSize },
   })
   return (
     <div className="flex flex-col gap-2 my-2">
       <h2 className="text-md font-bold">
-        {loading && enrichmentResults?.currentBackground?.enrich ?
+        {!enrichmentResults?.currentBackground?.enrich ?
           <>Rummaging through <Stats show_gene_sets />.</>
           : <>After rummaging through <Stats show_gene_sets />. Rummagene <Image className="inline-block rounded" src="/images/rummagene_logo.png" width={50} height={100} alt="Rummagene"></Image> found {Intl.NumberFormat("en-US", {}).format(enrichmentResults?.currentBackground?.enrich?.totalCount || 0)} statistically significant matches.</>}
       </h2>
@@ -53,6 +53,16 @@ function EnrichmentResults({ userGeneSet, setModalGeneSet }: { userGeneSet?: Fet
             </tr>
           </thead>
           <tbody>
+            {!enrichmentResults?.currentBackground?.enrich ? [0,1,2,3,4,5,6,7,8,9].map((_, j) => (
+              <tr key={j}>
+                <th className={`h-4 bg-gray-${j%2==0?2:3}00 m-6 rounded`}>&nbsp;</th>
+                <td className={`h-4 bg-gray-${j%2==0?2:3}00 m-6 rounded`}>&nbsp;</td>
+                <td className={`h-4 bg-gray-${j%2==0?2:3}00 m-6 rounded`}>&nbsp;</td>
+                <td className={`h-4 bg-gray-${j%2==0?2:3}00 m-6 rounded`}>&nbsp;</td>
+                <td className={`h-4 bg-gray-${j%2==0?2:3}00 m-6 rounded`}>&nbsp;</td>
+                <td className={`h-4 bg-gray-${j%2==0?2:3}00 m-6 rounded`}>&nbsp;</td>
+              </tr>
+            )) : null}
             {enrichmentResults?.currentBackground?.enrich?.nodes?.map((enrichmentResult, j) => (
               <tr key={j}>
                 <th><LinkedTerm term={enrichmentResult?.geneSet?.term} /></th>
