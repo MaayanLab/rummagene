@@ -43,8 +43,8 @@ export default function RootLayout({
           <footer className="flex-none footer p-5 bg-neutral text-neutral-content flex place-content-evenly">
             <div className="text-center pt-5">
               <ul>
+                <li><Link href="/about">About</Link></li>
                 <li><Link href="mailto:avi.maayan@mssm.edu">Contact Us</Link></li>
-                <li><Link href="/">Usage License</Link></li>
               </ul>
             </div>
             <div className="text-center">
@@ -64,15 +64,15 @@ export default function RootLayout({
             <div className="text-center pt-5">
               <ul>
                 <li>
-                  <Link href="https://github.com/MaayanLab/rummagene" target="_blank" rel="noopener noreferrer">
-                    View Source Code
+                  <Link href="/download">
+                    Download
                   </Link>
                 </li>
                 <li>
-                  <Link href="https://github.com/MaayanLab/rummagene/issues/new" target="_blank" rel="noopener noreferrer">
-                    Submit an Issue
+                  <Link href="https://github.com/MaayanLab/rummagene" target="_blank" rel="noopener noreferrer">
+                    Source Code
                   </Link>
-                  </li>
+                </li>
               </ul>
             </div> 
           </footer>

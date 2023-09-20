@@ -1,5 +1,6 @@
 import Image from "next/image"
 import Stats from "../stats"
+import Link from "next/link"
 
 export default function About() {
   return (
@@ -31,6 +32,10 @@ export default function About() {
           <br></br>
           <p>
             This database is updated weekly to extract gene sets automatically from newly published open access PMC articles.
+          </p>
+          <br></br>
+          <p>
+            This site is programatically accessible via a <Link href="/graphiql" className="underline cursor-pointer">GraphQL API</Link>.
           </p>
           <br></br>
           <p>
