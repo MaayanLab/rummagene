@@ -225,13 +225,12 @@ def clean(input, output):
 
 @cli.command()
 @click.option('-i', '--input', type=click.Path(exists=True, file_okay=True, path_type=Path), help='GMT file to ingest')
-@click.option('-n', '--name', type=str, required=True, help='Name of the library')
-@click.option('-d', '--description', type=str, default='', help='Description of the library')
-@click.option('-a', '--append', type=bool, is_flag=True, help='Append to the existing library')
-def ingest(input, name, description, append):
+@click.option('--prefix', type=str, default='', help='Prefix to add to terms')
+@click.option('--postfix', type=str, default='', help='Postfix to add to terms')
+def ingest(input, prefix, postfix):
   from plpy import plpy
   try:
-    import_gene_set_library(plpy, input, name, description, append)
+    import_gene_set_library(plpy, input, prefix=prefix, postfix=postfix)
   except:
     plpy.conn.rollback()
     raise
@@ -261,7 +260,8 @@ def create_release(publications):
   plpy.con.commit()
 
 @cli.command()
-def update_background():
+@click.option('--enrich-url', envvar='ENRICH_URL', default='http://127.0.0.1:8000')
+def update_background(enrich_url):
   ''' A background is tied to a complete set of genes across all gene sets
   but also to a computed index in the enrich API. This function creates a
   new one, and drops the old one after ensuring the index is ready.
@@ -278,16 +278,18 @@ def update_background():
     from app_public_v2.gene_set gs, jsonb_each(gs.gene_ids) gsg(gene_id, nil)
     returning id;
   ''')
+  plpy.conn.commit()
   # trigger index creation for the new background
-  requests.get(f"http://127.0.0.1:8000/{new_background}")
+  assert requests.get(f"{enrich_url}/{new_background['id']}").ok
   # remove old backgrounds
   plpy.execute(
-    plpy.prepare('delete from app_public_v2.background where id = any($1)', ['uuid[]']),
+    plpy.prepare('delete from app_public_v2.background where id = any($1::uuid[])', ['text[]']),
     [current_backgrounds]
   )
+  plpy.conn.commit()
   # remove index for the old background
   for current_background in current_backgrounds:
-    requests.delete(f"http://127.0.0.1:8000/{current_background}")
+    assert requests.delete(f"{enrich_url}/{current_background}").ok
 
 if __name__ == '__main__':
   cli()
