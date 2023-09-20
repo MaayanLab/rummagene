@@ -10,3 +10,5 @@ COPY requirements.txt /tmp/requirements.txt
 RUN set -x \
   && pip install -r /tmp/requirements.txt --break-system-packages \
   && rm /tmp/requirements.txt
+
+ADD ./docker-entrypoint-initdb.d /docker-entrypoint-initdb.d
