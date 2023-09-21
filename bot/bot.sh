@@ -3,28 +3,31 @@
 # it assumes that the rummagene directory is next to the tablemining directory
 
 PYTHON=python
+which $PYTHON > /dev/null || exit 1
 
-which $PYTHON || exit 1
+WORK_DIR=data/$(date +%Y-%m-%d)
+if [ -d $WORK_DIR ]; then rm -r $WORK_DIR; fi
+mkdir -p $WORK_DIR
+ln -s ../done.txt $WORK_DIR/done.txt
 
-echo "removing old oa_file_list.csv... (listing of PMC bundles)"
-if [ -d ./data -a -f ./data/oa_file_list.csv ]; then 
-  mv ./data/oa_file_list.csv ./data/oa_file_list.csv.bak
-fi
+echo "assembling output.gmt... (new gene sets extracted from PMC articles)"
+PTH=$WORK_DIR $PYTHON ./download_extract.py || exit 1
 
-# TODO: download_extract.py can have an argument to write *new*
-#  items to another file, we then only have to clean and ingest the new
-#  stuff, and can join it with the old stuff after
-echo "updating output.gmt... (gene sets extracted from PMC articles)"
-$PYTHON ./download_extract.py || exit 1
-
-echo "updating output-clean.gmt... (pruned, and normalized gene sets)"
-$PYTHON ./clean.py || exit 1
+echo "assembling output-clean.gmt... (pruned, and normalized gene sets)"
+PTH=$WORK_DIR $PYTHON ./clean.py || exit 1
 
 echo "ingesting new gene sets..."
-$PYTHON ./helper.py ingest -i ./data/output-clean.gmt || exit 1
+$PYTHON ./helper.py ingest -i $WORK_DIR/output-clean.gmt || exit 1
 
-echo "updating total publications..."
-$PYTHON ./helper.py set-total-publications "$(wc -l ./data/done.txt | awk '{ print $1 }')" || exit 1
+echo "registering a new release..."
+$PYTHON ./helper.py create-release "$(wc -l $WORK_DIR/done.new.txt | awk '{ print $1 }')" || exit 1
 
-echo "updating background..."
-$PYTHON ./helper.py update-background || exit 1
+echo "updating app background..."
+ENRICH_URL=$ENRICH_URL $PYTHON ./helper.py update-background || exit 1
+
+echo "adding to output.gmt..."
+cat $WORK_DIR/output.gmt >> data/output.gmt
+cat $WORK_DIR/output-clean.gmt >> data/output-clean.gmt
+
+# echo "cleanup work_dir..."
+# rm $WORK_DIR
