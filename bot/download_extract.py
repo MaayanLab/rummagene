@@ -22,9 +22,9 @@ import pandas as pd
 from docx import Document
 from maayanlab_bioinformatics.harmonization.ncbi_genes import ncbi_genes_lookup
 
-import tabula
-java = shutil.which('java')
-assert java, 'Missing java, necessary for tabula-py'
+# import tabula
+# java = shutil.which('java')
+# assert java, 'Missing java, necessary for tabula-py'
 
 soffice = shutil.which('soffice', path=':'.join(filter(None, [os.environ.get('PATH'), '/Applications/LibreOffice.app/Contents/MacOS/'])))
 assert soffice, 'Missing `soffice` binary for converting doc to docx'
@@ -197,19 +197,21 @@ def read_xml_tables(f):
       else:
         yield label, tbl
 
-@register_ext_handler('.pdf')
-def read_pdf_tables(f):
-  ''' pdf tables read by tabula library
-  '''
-  results = tabula.read_pdf(f, pages='all', multiple_tables=True, silent=True)
-  if type(results) == list:
-    for i, df in enumerate(results):
-      yield f"{i}", df
-  elif type(results) == dict:
-    for key, df in results.items():
-      yield key, df
-  else:
-    raise NotImplementedError()
+# it's unclear whether this really gives us any new information, and it is extremely expensive to compute
+#  so for now I'm leaving it out.
+# @register_ext_handler('.pdf')
+# def read_pdf_tables(f):
+#   ''' pdf tables read by tabula library
+#   '''
+#   results = tabula.read_pdf(f, pages='all', multiple_tables=True, silent=True)
+#   if type(results) == list:
+#     for i, df in enumerate(results):
+#       yield f"{i}", df
+#   elif type(results) == dict:
+#     for key, df in results.items():
+#       yield key, df
+#   else:
+#     raise NotImplementedError()
 
 def extract_tables_from_oa_package(oa_package):
   ''' Given a oa_package (open access bundle with paper & figures) extract all applicable tables
