@@ -1,106 +1,124 @@
 'use client'
 import React from 'react'
-import { useSuspenseQuery } from '@apollo/experimental-nextjs-app-support/ssr'
-import { TermSearchDocument, TermSearchQuery } from '@/graphql'
-import ensureArray from '@/utils/ensureArray'
-import { useRouter } from 'next/navigation'
+import { useTermSearchQuery } from '@/graphql'
 import TermTable from '@/components/termTable'
-import Loading from '@/components/loading'
 import Image from 'next/image'
+import { useQsState } from '@/utils/useQsState'
+import HomeLayout from '@/app/homeLayout'
 
-function TermSearchResults({ terms }: { terms: string[] }) {
-  const { data } = useSuspenseQuery<TermSearchQuery>(TermSearchDocument, {
+function TermSearchResults({ terms }: { terms: string }) {
+  const { data } = useTermSearchQuery({
     variables: {
       terms,
       first: 10000
     }
   })
-
+  if (!data) {
+    return (
+      <>
+        <Image className={'rounded mx-auto'} src={'/images/loading.gif'} width={125} height={250} alt={'Loading...'} />
+        <p>Rummaging for gene sets with your search term.</p>
+      </>
+    )
+  }
   return (
-    <React.Suspense fallback={<><Image className={'rounded mx-auto'} src={'/images/loading.gif'} width={125} height={250} alt={'Loading...'} /><p>Rummaging for gene sets with your search term.</p></>}>
-      <div className='text-center mt-5'>
-        <p className='text-lg'> Your search term is contained in {data.geneSetTermSearch?.totalCount} gene sets.</p>
-        <TermTable terms={data.geneSetTermSearch?.nodes}></TermTable>
-      </div>
-    </React.Suspense>
+    <div className='text-center mt-5'>
+      <p className='text-lg'> Your search term is contained in {data.geneSetTermSearch?.totalCount} gene sets.</p>
+      <TermTable terms={data.geneSetTermSearch?.nodes}></TermTable>
+    </div>
   )
 }
 
-export default function TermSearchPage({
-  searchParams
-}: {
-  searchParams: {
-    q: string | string[] | undefined
-  },
-}) {
-  const router = useRouter()
-  const terms = React.useMemo(() =>
-    ensureArray(searchParams.q).flatMap(el => el.split(/\s+/g)).filter(el => el.length > 0),
-    [searchParams.q])
-  const [rawTerms, setRawTerms] = React.useState(terms.join(' '))
-  const [searchTerms, setSearchTerms] = React.useState<string[]>(terms)
+const examples = [
+  'neuron',
+  'CRISPR',
+  'PBMC',
+]
 
-  return (
-    <>
-    <div className='flex-col'>
-      <form
-        className="flex flex-row items-center gap-2"
-        onSubmit={evt => {
-          evt.preventDefault()
-          router.push(`/term-search?q=${encodeURIComponent(rawTerms)}`, {
-            scroll: false,
-          })
-          setSearchTerms(rawTerms.split(' ').filter(el => el.length > 0))
-        }}
-      >
-        <span className="label-text text-lg">Term</span>
-        <input
-          type="text"
-          className="input input-bordered"
-          placeholder="neuron"
-          value={rawTerms}
-          onChange={evt => {
-            setRawTerms(evt.currentTarget.value)
-          }}
+export default function TermSearchPage() {
+  const [terms, setTerms] = useQsState('q', '')
+  const [rawTerms, setRawTerms] = React.useState('')
+  React.useEffect(() => {setRawTerms(terms)}, [terms])
+  if (!terms) {
+    return (
+      <HomeLayout>
+        <h1 className="text-xl">Query extracted gene set table titles to find relevant gene sets</h1>
+        <form
+          className="flex flex-col items-center gap-2 mt-5"
           onSubmit={evt => {
-            setSearchTerms(terms)
+            evt.preventDefault()
+            setRawTerms(rawTerms)
           }}
-        />
-        <button
-          type="submit"
-          className="btn normal-case"
-        >Search gene sets</button>
-       <div className='ml-10'> Query extracted gene set table titles to find relevant gene sets.</div>
-      </form>
-      <p className="prose p-2">
-        try an example:
-        <a
-          className="font-bold text-sm cursor-pointer"
-          onClick={() => {
-            setRawTerms('neuron')
-            setSearchTerms(['neuron'])
+        >
+          <span className="label-text text-lg">Search Term(s)</span>
+          <input
+            type="text"
+            className="input input-bordered"
+            placeholder="neuron"
+            value={rawTerms}
+            onChange={evt => {
+              setRawTerms(evt.currentTarget.value)
+            }}
+          />
+          <button
+            type="submit"
+            className="btn normal-case"
+          >Search gene sets</button>
+        </form>
+        <p className="prose p-2">
+          try an example:&nbsp;
+          {examples.flatMap((example, i) => [
+            i > 0 ? <React.Fragment key={i}>, </React.Fragment> : null,
+            <a
+              key={example}
+              className="font-bold text-sm cursor-pointer"
+              onClick={() => {setTerms(example)}}
+            >{example}</a>
+          ])}
+        </p>
+      </HomeLayout>
+    )
+  } else {
+    return (
+      <>
+      <div className='flex-col'>
+        <form
+          className="flex flex-row items-center gap-2"
+          onSubmit={evt => {
+            evt.preventDefault()
+            setTerms(rawTerms)
           }}
-        > neuron</a>,
-        <a
-          className="font-bold text-sm cursor-pointer"
-          onClick={() => {
-            setRawTerms('CRISPR')
-            setSearchTerms(['CRISPR'])
-          }}
-        > CRISPR</a>, 
-        <a
-          className="font-bold text-sm cursor-pointer"
-          onClick={() => {
-            setRawTerms('PBMC')
-            setSearchTerms(['PBMC'])
-          }}
-        > PBMC</a>
-      </p>
-      </div>
-      {searchTerms.length > 0 ?
-      <React.Suspense fallback={<Loading/>}>
-        <TermSearchResults terms={searchTerms} />
-      </React.Suspense>: <></>}
-    </>
-  )
+        >
+          <span className="label-text text-lg">Term</span>
+          <input
+            type="text"
+            className="input input-bordered"
+            placeholder="neuron"
+            value={rawTerms}
+            onChange={evt => {
+              setRawTerms(evt.currentTarget.value)
+            }}
+          />
+          <button
+            type="submit"
+            className="btn normal-case"
+          >Search gene sets</button>
+        <div className='ml-10'> Query extracted gene set table titles to find relevant gene sets.</div>
+        </form>
+        <p className="prose p-2">
+          try an example:&nbsp;
+          {examples.flatMap((example, i) => [
+            i > 0 ? <React.Fragment key={i}>, </React.Fragment> : null,
+            <a
+              key={example}
+              className="font-bold text-sm cursor-pointer"
+              onClick={() => {setTerms(example)}}
+            >{example}</a>
+          ])}
+        </p>
+        </div>
+        {terms ? <TermSearchResults terms={terms} /> : null}
+      </>
+    )
+  }
 }
