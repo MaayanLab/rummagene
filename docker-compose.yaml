@@ -39,10 +39,16 @@ services:
       - EMAIL
     volumes:
       - ./data/bot/:/work/data
-    #labels:
-    #  ofelia.enabled: "true"
-    #  ofelia.job-exec.update-db.schedule: "@weekly"
-    #  ofelia.job-exec.update-db.command: "/work/bot.sh"
+    labels:
+      ofelia.enabled: "true"
+      # 0 second
+      # 0 minute
+      # 9 hour
+      # * day of month
+      # * month of year
+      # 1 day of week (monday)
+      ofelia.job-exec.update-db.schedule: "0 0 9 * * 1"
+      ofelia.job-exec.update-db.command: "/work/bot.sh"
   cron:
     image: mcuadros/ofelia:latest
     command: daemon --docker
