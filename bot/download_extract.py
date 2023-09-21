@@ -16,12 +16,18 @@ import xml.etree.ElementTree as ET
 from pathlib import Path, PurePosixPath
 
 import tqdm
-import tabula
 import numpy as np
 import pandas as pd
+
 from docx import Document
 from maayanlab_bioinformatics.harmonization.ncbi_genes import ncbi_genes_lookup
 
+import tabula
+java = shutil.which('java')
+assert java, 'Missing java, necessary for tabula-py'
+
+soffice = shutil.which('soffice', path=':'.join(filter(None, [os.environ.get('PATH'), '/Applications/LibreOffice.app/Contents/MacOS/'])))
+assert soffice, 'Missing `soffice` binary for converting doc to docx'
 
 class _DevNull:
   ''' File handle that does nothing
@@ -195,8 +201,7 @@ def read_xml_tables(f):
 def read_pdf_tables(f):
   ''' pdf tables read by tabula library
   '''
-  with contextlib.redirect_stderr(_DevNull()):
-    results = tabula.read_pdf(f, pages='all', multiple_tables=True)
+  results = tabula.read_pdf(f, pages='all', multiple_tables=True, silent=True)
   if type(results) == list:
     for i, df in enumerate(results):
       yield f"{i}", df
@@ -383,9 +388,5 @@ def main(data_dir = Path(), oa_file_list = None):
 if __name__ == '__main__':
   import os
   from dotenv import load_dotenv; load_dotenv()
-  java = shutil.which('java')
-  assert java, 'Missing java, necessary for tabula-py'
-  soffice = shutil.which('soffice', path=':'.join(filter(None, [os.environ.get('PATH'), '/Applications/LibreOffice.app/Contents/MacOS/'])))
-  assert soffice, 'Missing `soffice` binary for converting doc to docx'
   data_dir = Path(os.environ.get('PTH', 'data'))
   main(data_dir)
