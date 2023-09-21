@@ -28,6 +28,7 @@ ENRICH_URL=$ENRICH_URL $PYTHON ./helper.py update-background || exit 1
 echo "adding to output.gmt..."
 cat $WORK_DIR/output.gmt >> data/output.gmt
 cat $WORK_DIR/output-clean.gmt >> data/output-clean.gmt
+cat $WORK_DIR/done.new.txt >> data/done.txt
 
 # echo "cleanup work_dir..."
 # rm $WORK_DIR
