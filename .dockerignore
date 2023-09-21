@@ -1,6 +1,7 @@
 __pycache__
 .DS_Store
 .env*.local
+.git
 .pnp.js
 .venv
 .vercel
@@ -10,10 +11,10 @@ __pycache__
 /.pnp
 /build
 /coverage
+/enrich
 /node_modules
 /out/
 data
-/enrich
 next-env.d.ts
 npm-debug.log*
 yarn-debug.log*
