@@ -6,7 +6,7 @@ This is a webserver for gene set enrichment analysis on a very large gene set --
 
 Rather than splitting up the meta and data APIs, all functionality is incorporated into a postgres database.
 
-We use postgraphile to serve the database on a graphql endpoint -- this endpoint can then be used for all necessary sigcom functionality, including both metadata search, filtering, and enrichment analysis.
+We use postgraphile to serve the database on a graphql endpoint -- this endpoint can then be used for all necessary functionality, including both metadata search, filtering, and enrichment analysis. For speed purposes, enrichment is done through a companion API written in rust, the database itself communicates with this API, it is transparent to the application or users of the database.
 
 ## Usage
 ```bash
@@ -14,31 +14,26 @@ We use postgraphile to serve the database on a graphql endpoint -- this endpoint
 cp .env.example .env
 # review & edit .env
 
-# start db/graphql
-docker-compose up -d
-# visit http://localhost:5000/graphiql
+# start db
+docker-compose up -d postgres
 
-# create db
+# create db/ensure it's fully migrated
 dbmate up
+
+# start companion API
+docker-compose up -d enrich
+
+# start app (production)
+docker-compose up -d app
+# start app (development)
+npm run dev
 ```
 
 ## Provisioning
 ```bash
-python ingest.py -i your-gmt.gmt -n 'Your GMT' -d 'Your description'
+python ./bot/helper.py ingest -i your-gmt.gmt
 ```
 
-## Example Queries
+## Writing Queries
 See `src/graphql/core.graphql`
-
-## Next Steps
-- [ ] ingest metadata about the PMCs  (<https://ftp.ncbi.nlm.nih.gov/pub/pmc/>)
-  - `PMC-ids.csv.gz` has info like PMIDs/DOIs, Journal, Date of Publication, and more for PMCs
-  - DOIs can be used to extract more information with datacite
-  - [ ] use this information to enrich the website
-- [ ] proper pagination support throughout the UI
-
-## Future Directions
-I expect to work on this when I get back - daniel
-
-- [ ] originally I was using gene_ids in a jsonb field, I want to go back to this since it's simpler, faster to load, & performs better, the only reason I moved to fully normalized was in an attempt to speed up enrichment analysis, but in the end I don't think it helped.
-- [ ] I have code for very fast queries using precomputed bitvectors, just need to work out computation of those bitvectors on ingest, keeping them up to date, and using them for enrichment queries.
+These can be tested/developed at <http://localhost:3000/graphiql>
