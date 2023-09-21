@@ -28,3 +28,29 @@ services:
       - 5432:5432
     volumes:
       - ./data/postgres/:/var/lib/postgresql/data
+  bot:
+    build: bot
+    image: maayanlab/rummagene-bot:v3
+    command: ["sleep", "infinity"]
+    environment:
+      - DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      - ENRICH_URL=http://enrich:8000
+      - API_KEY
+      - EMAIL
+    volumes:
+      - ./data/bot/:/work/data
+    labels:
+      ofelia.enabled: "true"
+      # 0 second
+      # 0 minute
+      # 9 hour
+      # * day of month
+      # * month of year
+      # 1 day of week (monday)
+      ofelia.job-exec.update-db.schedule: "0 0 9 * * 1"
+      ofelia.job-exec.update-db.command: "/work/bot.sh"
+  cron:
+    image: mcuadros/ofelia:latest
+    command: daemon --docker
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro

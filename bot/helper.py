@@ -257,7 +257,7 @@ def create_release(publications):
     [publications],
   )
   plpy.execute('refresh materialized view app_private_v2.pmc_stats;')
-  plpy.con.commit()
+  plpy.conn.commit()
 
 @cli.command()
 @click.option('--enrich-url', envvar='ENRICH_URL', default='http://127.0.0.1:8000')
