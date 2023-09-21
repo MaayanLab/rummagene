@@ -10,7 +10,11 @@ export default function Download() {
       </p>
       <br />
       <div className="flex flex-col items-center">
-        <a href="/download.gmt" className="btn" download="download.gmt">Download all <Stats show_gene_sets /></a>
+        <a href="/download.gmt" className="btn btn-lg p-12 flex flex-col flex-nowrap" download="download.gmt">
+          <span>Download</span>
+          <span><Stats show_gene_sets /></span>
+          <span>(approx 700MB)</span>
+        </a>
       </div>
       <br />
       <p>
