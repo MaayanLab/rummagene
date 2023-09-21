@@ -7,6 +7,7 @@ services:
       - DATABASE_URL=postgres://$POSTGRES_USER:$POSTGRES_PASSWORD@postgres/$POSTGRES_DB
       - AUTHORIZATION_HEADER=$AUTHORIZATION_HEADER
       - NODE_ENV=production
+      - ENRICH_URL=http://enrich:8000
     ports:
       - 3000:3000
   enrich:
@@ -14,6 +15,8 @@ services:
     image: maayanlab/rummagene-enrich:v3
     environment:
       - 'ROCKET_DATABASES={postgres={url="postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres/${POSTGRES_DB}"}}'
+    ports:
+      - 8000:8000
   postgres:
     build: db
     image: maayanlab/rummagene-postgres:v3
