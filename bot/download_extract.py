@@ -315,11 +315,12 @@ def filter_oa_file_list_by(oa_file_list, pmc_ids):
 def fetch_extract_gmt_from_oa_package(oa_package):
   ''' Given the oa_package name from the oa_file_list, we'll download it temporarily and then extract a gmt out of it
   '''
-  with tempfile.NamedTemporaryFile(suffix=''.join(PurePosixPath(oa_package).suffixes)) as tmp:
-    with urllib.request.urlopen(f"https://ftp.ncbi.nlm.nih.gov/pub/pmc/{oa_package}") as fr:
-      shutil.copyfileobj(fr, tmp)
-    tmp.flush()
-    return extract_gmt_from_oa_package(tmp.name)
+  with raise_on_timeout(5*60):
+    with tempfile.NamedTemporaryFile(suffix=''.join(PurePosixPath(oa_package).suffixes)) as tmp:
+      with urllib.request.urlopen(f"https://ftp.ncbi.nlm.nih.gov/pub/pmc/{oa_package}") as fr:
+        shutil.copyfileobj(fr, tmp)
+      tmp.flush()
+      return extract_gmt_from_oa_package(tmp.name)
 
 def try_except_as_option(fn, *args, **kwargs):
   ''' Run a function in a try except and return an error, result tuple
