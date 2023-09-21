@@ -332,7 +332,7 @@ def try_except_as_option(fn, *args, **kwargs):
 def task(record):
   return (record, *try_except_as_option(fetch_extract_gmt_from_oa_package, record['File']))
 
-def main(data_dir = Path(), oa_file_list = None):
+def main(data_dir = Path(), oa_file_list = None, progress = 'done.txt', progress_output = 'done.new.txt', output = 'output.gmt'):
   '''
   Work through oa_file_list (see: fetch_oa_file_list)
     -- you can filter it and provide it to this function
@@ -340,8 +340,9 @@ def main(data_dir = Path(), oa_file_list = None):
   Write all results to output.gmt
   '''
   data_dir.mkdir(parents=True, exist_ok=True)
-  done_file = data_dir / 'done.txt'
-  output = data_dir / 'output.gmt'
+  done_file = data_dir / progress
+  new_done_file = data_dir / progress_output
+  output_file = data_dir / output
 
   # find out what we've already processed
   if done_file.exists():
@@ -359,8 +360,8 @@ def main(data_dir = Path(), oa_file_list = None):
 
   # fetch and extract gmts from oa_packages using a process pool
   #  append gmt term, genesets as they are ready into one gmt file
-  with done_file.open('a') as done_file_fh:
-    with output.open('a') as output_fh:
+  with new_done_file.open('a') as done_file_fh:
+    with output_file.open('a') as output_fh:
       with mp.Pool() as pool:
         for record, err, res in tqdm.tqdm(
           pool.imap_unordered(
