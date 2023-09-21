@@ -2,6 +2,7 @@ mod async_rwlockhashmap;
 
 #[macro_use] extern crate rocket;
 extern crate bit_set;
+use async_std::sync::RwLock;
 use futures::StreamExt;
 use rocket::http::ContentType;
 use std::future;
@@ -51,6 +52,7 @@ struct BackgroundQuery {
 // This structure stores a persistent many-reader single-writer hashmap containing cached indexes for a given background id
 struct PersistentState { 
     bitmaps: RwLockHashMap<Uuid, Bitmap>,
+    latest: RwLock<Option<Uuid>>,
     cache: Cache<Arc<BackgroundQuery>, Arc<Vec<Arc<QueryResult>>>>,
 }
 
@@ -138,6 +140,10 @@ async fn ensure_index(db: &mut Connection<Postgres>, state: &State<PersistentSta
 
     let duration = start.elapsed();
     println!("[{}] initialized in {:?}", background_id, duration);
+    {
+        let mut latest = state.latest.write().await;
+        latest.replace(background_id);
+    }
     Ok(())
 }
 
@@ -167,7 +173,14 @@ async fn get_gmt(
     state: &State<PersistentState>,
     background_id: String,
 ) -> Result<TextStream![String + '_], Custom<String>> {
-    let background_id = Uuid::parse_str(&background_id).map_err(|e| Custom(Status::InternalServerError, e.to_string()))?;
+    let background_id = {
+        if background_id == "latest" {
+            let latest = state.latest.read().await;
+            latest.clone().ok_or(Custom(Status::NotFound, String::from("Nothing loaded")))?
+        } else {
+            Uuid::parse_str(&background_id).map_err(|e| Custom(Status::BadRequest, e.to_string()))?
+        }
+    };
     ensure_index(&mut db, &state, background_id).await.map_err(|e| Custom(Status::InternalServerError, e.to_string()))?;
     let bitmap = state.bitmaps.get(&background_id).await.ok_or(Custom(Status::InternalServerError, String::from("Can't find background")))?;
     Ok(TextStream! {
@@ -191,7 +204,14 @@ async fn delete(
     state: &State<PersistentState>,
     background_id: &str,
 ) -> Result<(), Custom<String>> {
-    let background_id = Uuid::parse_str(background_id).map_err(|e| Custom(Status::BadRequest, e.to_string()))?;
+    let background_id = {
+        if background_id == "latest" {
+            let latest = state.latest.read().await;
+            latest.clone().ok_or(Custom(Status::NotFound, String::from("Nothing loaded")))?
+        } else {
+            Uuid::parse_str(&background_id).map_err(|e| Custom(Status::BadRequest, e.to_string()))?
+        }
+    };
     if !state.bitmaps.contains_key(&background_id).await {
         return Err(Custom(Status::NotFound, String::from("Not Found")));
     }
@@ -215,7 +235,14 @@ async fn query(
     offset: Option<usize>,
     limit: Option<usize>,
 ) -> Result<QueryResponse, Custom<String>> {
-    let background_id = Uuid::parse_str(background_id).map_err(|e| Custom(Status::BadRequest, e.to_string()))?;
+    let background_id = {
+        if background_id == "latest" {
+            let latest = state.latest.read().await;
+            latest.clone().ok_or(Custom(Status::NotFound, String::from("Nothing loaded")))?
+        } else {
+            Uuid::parse_str(&background_id).map_err(|e| Custom(Status::BadRequest, e.to_string()))?
+        }
+    };
     ensure_index(&mut db, &state, background_id).await.map_err(|e| Custom(Status::InternalServerError, e.to_string()))?;
     let start = Instant::now();
     let input_gene_set = input_gene_set.0.into_iter().map(|gene| Uuid::parse_str(&gene)).collect::<Result<Vec<_>, _>>().map_err(|e| Custom(Status::BadRequest, e.to_string()))?;
@@ -309,6 +336,7 @@ fn rocket() -> _ {
     rocket::build()
         .manage(PersistentState {
             bitmaps: RwLockHashMap::new(),
+            latest: RwLock::new(None),
             cache: Cache::new(),
         })
         .attach(Postgres::init())
