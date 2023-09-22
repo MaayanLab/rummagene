@@ -2,7 +2,7 @@ mod async_rwlockhashmap;
 
 #[macro_use] extern crate rocket;
 extern crate bit_set;
-use async_std::sync::RwLock;
+use async_lock::RwLock;
 use futures::StreamExt;
 use rocket::http::ContentType;
 use std::future;
@@ -43,7 +43,7 @@ impl Bitmap {
     }
 }
 
-#[derive(Clone, Eq, Ord, PartialEq, PartialOrd)]
+#[derive(Eq, Ord, PartialEq, PartialOrd)]
 struct BackgroundQuery {
     background_id: Uuid,
     input_gene_set: BitSet,
@@ -100,44 +100,45 @@ async fn ensure_index(db: &mut Connection<Postgres>, state: &State<PersistentSta
     if state.bitmaps.contains_key(&background_id).await {
         return Ok(())
     }
-    // this lets us write a new bitmap by only blocking the whole hashmap for a short period to register the new bitmap
-    // after which we block the new empty bitmap for writing
-    let bitmap = state.bitmaps.insert(background_id, Bitmap::new()).await;
-    let mut bitmap = bitmap.write().await;
 
     println!("[{}] initializing", background_id);
     let start = Instant::now();
+    {
+        // this lets us write a new bitmap by only blocking the whole hashmap for a short period to register the new bitmap
+        // after which we block the new empty bitmap for writing
+        let mut bitmap = state.bitmaps.insert_write(background_id, Bitmap::new()).await;
 
-    let background_info = sqlx::query("select id, (select jsonb_object_agg(g.id, g.symbol) from jsonb_each(gene_ids) bg(gene_id, nil) inner join app_public_v2.gene g on bg.gene_id::uuid = g.id) as genes from app_public_v2.background b where id = $1::uuid;")
-        .bind(background_id.to_string())
-        .fetch_one(&mut **db).await.map_err(|e| e.to_string())?;
-    let background_genes: sqlx::types::Json<HashMap<String, String>> = background_info.try_get("genes").map_err(|e| e.to_string())?;
-    let mut background_genes = background_genes.iter().map(|(id, symbol)| Ok((Uuid::parse_str(id).map_err(|e| e.to_string())?, symbol.clone()))).collect::<Result<Vec<_>, String>>()?;
-    background_genes.sort_unstable();
-    bitmap.columns.reserve(background_genes.len());
-    bitmap.columns_str.reserve(background_genes.len());
-    for (i, (gene_id, gene)) in background_genes.into_iter().enumerate() {
-        bitmap.columns.insert(gene_id, i);
-        bitmap.columns_str.push(gene);
+        let background_info = sqlx::query("select id, (select jsonb_object_agg(g.id, g.symbol) from jsonb_each(gene_ids) bg(gene_id, nil) inner join app_public_v2.gene g on bg.gene_id::uuid = g.id) as genes from app_public_v2.background b where id = $1::uuid;")
+            .bind(background_id.to_string())
+            .fetch_one(&mut **db).await.map_err(|e| e.to_string())?;
+
+        let background_genes: sqlx::types::Json<HashMap<String, String>> = background_info.try_get("genes").map_err(|e| e.to_string())?;
+        let mut background_genes = background_genes.iter().map(|(id, symbol)| Ok((Uuid::parse_str(id).map_err(|e| e.to_string())?, symbol.clone()))).collect::<Result<Vec<_>, String>>()?;
+        background_genes.sort_unstable();
+        bitmap.columns.reserve(background_genes.len());
+        bitmap.columns_str.reserve(background_genes.len());
+        for (i, (gene_id, gene)) in background_genes.into_iter().enumerate() {
+            bitmap.columns.insert(gene_id, i);
+            bitmap.columns_str.push(gene);
+        }
+
+        // compute the index in memory
+        sqlx::query("select id, term, gene_ids from app_public_v2.gene_set;")
+            .fetch(&mut **db)
+            .for_each(|row| {
+                let row = row.unwrap();
+                let gene_set_id: uuid::Uuid = row.try_get("id").unwrap();
+                let term: String = row.try_get("term").unwrap();
+                let gene_ids: sqlx::types::Json<HashMap<String, sqlx::types::JsonValue>> = row.try_get("gene_ids").unwrap();
+                let gene_ids = gene_ids.keys().map(|gene_id| Uuid::parse_str(gene_id).unwrap()).collect::<Vec<Uuid>>();
+                let bitset = bitvec(&bitmap.columns, gene_ids);
+                bitmap.index.push(gene_set_id);
+                bitmap.index_str.push(term);
+                bitmap.values.push(bitset);
+                future::ready(())
+            })
+            .await;
     }
-
-    // compute the index in memory
-    sqlx::query("select id, term, gene_ids from app_public_v2.gene_set;")
-        .fetch(&mut **db)
-        .for_each(|row| {
-            let row = row.unwrap();
-            let gene_set_id: uuid::Uuid = row.try_get("id").unwrap();
-            let term: String = row.try_get("term").unwrap();
-            let gene_ids: sqlx::types::Json<HashMap<String, sqlx::types::JsonValue>> = row.try_get("gene_ids").unwrap();
-            let gene_ids = gene_ids.keys().map(|gene_id| Uuid::parse_str(gene_id).unwrap()).collect::<Vec<Uuid>>();
-            let bitset = bitvec(&bitmap.columns, gene_ids);
-            bitmap.index.push(gene_set_id);
-            bitmap.index_str.push(term);
-            bitmap.values.push(bitset);
-            future::ready(())
-        })
-        .await;
-
     let duration = start.elapsed();
     println!("[{}] initialized in {:?}", background_id, duration);
     {
@@ -155,8 +156,7 @@ async fn ensure(
 ) -> Result<Value, Custom<String>> {
     let background_id = Uuid::parse_str(background_id).map_err(|e| Custom(Status::BadRequest, e.to_string()))?;
     ensure_index(&mut db, &state, background_id).await.map_err(|e| Custom(Status::InternalServerError, e.to_string()))?;
-    let bitmap = state.bitmaps.get(&background_id).await.ok_or(Custom(Status::NotFound, String::from("Can't find background")))?;
-    let bitmap = bitmap.read().await;
+    let bitmap = state.bitmaps.get_read(&background_id).await.ok_or(Custom(Status::NotFound, String::from("Can't find background")))?;
     Ok(json!({
         "columns": bitmap.columns.len(),
         "index": bitmap.index.len(),
@@ -182,9 +182,8 @@ async fn get_gmt(
         }
     };
     ensure_index(&mut db, &state, background_id).await.map_err(|e| Custom(Status::InternalServerError, e.to_string()))?;
-    let bitmap = state.bitmaps.get(&background_id).await.ok_or(Custom(Status::InternalServerError, String::from("Can't find background")))?;
+    let bitmap = state.bitmaps.get_read(&background_id).await.ok_or(Custom(Status::InternalServerError, String::from("Can't find background")))?;
     Ok(TextStream! {
-        let bitmap = bitmap.read().await;
         for (row_id, gene_set) in bitmap.index_str.iter().zip(bitmap.values.iter()) {
             let mut line = String::new();
             line.push_str(row_id);
@@ -215,8 +214,9 @@ async fn delete(
     if !state.bitmaps.contains_key(&background_id).await {
         return Err(Custom(Status::NotFound, String::from("Not Found")));
     }
-    state.bitmaps.remove(&background_id).await;
-    println!("[{}] deleted", background_id);
+    if state.bitmaps.remove(&background_id).await {
+        println!("[{}] deleted", background_id);
+    }
     Ok(())
 }
 
@@ -246,8 +246,7 @@ async fn query(
     ensure_index(&mut db, &state, background_id).await.map_err(|e| Custom(Status::InternalServerError, e.to_string()))?;
     let start = Instant::now();
     let input_gene_set = input_gene_set.0.into_iter().map(|gene| Uuid::parse_str(&gene)).collect::<Result<Vec<_>, _>>().map_err(|e| Custom(Status::BadRequest, e.to_string()))?;
-    let bitmap = state.bitmaps.get(&background_id).await.ok_or(Custom(Status::NotFound, String::from("Can't find background")))?;
-    let bitmap = bitmap.read().await;
+    let bitmap = state.bitmaps.get_read(&background_id).await.ok_or(Custom(Status::NotFound, String::from("Can't find background")))?;
     let input_gene_set = bitvec(&bitmap.columns, input_gene_set);
     let background_query = Arc::new(BackgroundQuery { background_id, input_gene_set });
     let results = {
@@ -291,7 +290,7 @@ async fn query(
             let adj_pvalues = adjust(&pvalues, Procedure::BenjaminiHochberg);
             // create final results, adding gene_set_id & adj_pvalues
             let mut results: Vec<_> = results
-                .into_iter()
+                .par_iter()
                 .filter_map(|result| {
                     let adj_pvalue = *adj_pvalues.get(result.index)?;
                     if adj_pvalue > adj_pvalue_le { return None }
