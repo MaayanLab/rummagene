@@ -4,7 +4,7 @@ export default function Pagination(props: {
   pageSize: number
   onChange: (page: number) => void,
 }) {
-  const lastPage = props.totalCount ? Math.floor(props.totalCount/props.pageSize)+(props.totalCount%props.pageSize === 0 ? 1 : 0) : Infinity
+  const lastPage = props.totalCount ? Math.floor(props.totalCount/props.pageSize)+(props.totalCount%props.pageSize === 0 ? 0 : 1) : Infinity
   return (
     <div className="join">
       {props.page > 2 ? <button className="join-item btn" onClick={() => {props.onChange(1)}}>{1}</button> : null}
