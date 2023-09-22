@@ -25,6 +25,12 @@ use std::time::Instant;
 
 use async_rwlockhashmap::RwLockHashMap;
 
+/**
+ * Without this alternative allocator, very large chunks of memory do not get released back to the OS causing a large memory footprint over time.
+ */
+#[global_allocator]
+static GLOBAL: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
+
 #[derive(Database)]
 #[database("postgres")]
 struct Postgres(sqlx::PgPool);
