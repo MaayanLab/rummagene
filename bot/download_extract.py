@@ -46,8 +46,10 @@ def _timeout_thread(timeout: int, done: threading.Event):
       return
   if not done.is_set():
     done.set()
-    import _thread
-    _thread.interrupt_main()
+    import os, signal
+    os.kill(mp.current_process().pid, signal.SIGINT)
+    # import _thread
+    # _thread.interrupt_main()
 
 @contextlib.contextmanager
 def raise_on_timeout(timeout = 60):
