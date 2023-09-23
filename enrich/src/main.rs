@@ -1,7 +1,6 @@
 mod async_rwlockhashmap;
 
 #[macro_use] extern crate rocket;
-extern crate bit_set;
 use async_lock::RwLock;
 use futures::StreamExt;
 use rocket::http::ContentType;
@@ -14,7 +13,6 @@ use rocket_db_pools::sqlx::{self, Row};
 use std::collections::HashMap;
 use rayon::prelude::*;
 use uuid::Uuid;
-use bit_set::BitSet;
 use fishers_exact::fishers_exact;
 use adjustp::{adjust, Procedure};
 use rocket::{State, response::status::Custom, http::Status};
@@ -22,6 +20,7 @@ use rocket::serde::{json::{json, Json, Value}, Serialize};
 use std::sync::Arc;
 use retainer::Cache;
 use std::time::Instant;
+use fnv::FnvHashSet;
 
 use async_rwlockhashmap::RwLockHashMap;
 
@@ -36,23 +35,51 @@ static GLOBAL: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
 struct Postgres(sqlx::PgPool);
 
 struct Bitmap {
-    columns: HashMap<Uuid, usize>,
+    columns: HashMap<Uuid, u32>,
     columns_str: Vec<String>,
     index: Vec<Uuid>,
     index_str: Vec<String>,
-    values: Vec<BitSet>,
+    values: Vec<FnvHashSet<u32>>,
 }
 
 impl Bitmap {
     fn new() -> Self {
-        Bitmap { columns: HashMap::new(), columns_str: Vec::new(), index: Vec::new(), index_str: Vec::new(), values: Vec::new() }
+        Bitmap {
+            columns: HashMap::new(),
+            columns_str: Vec::new(),
+            index: Vec::new(),
+            index_str: Vec::new(),
+            values: Vec::new(),
+        }
     }
 }
 
-#[derive(Eq, Ord, PartialEq, PartialOrd)]
+#[derive(Eq, PartialEq)]
 struct BackgroundQuery {
     background_id: Uuid,
-    input_gene_set: BitSet,
+    input_gene_set: FnvHashSet<u32>,
+}
+
+impl PartialOrd for BackgroundQuery {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        match self.background_id.partial_cmp(&other.background_id) {
+            Some(cmp) if cmp != std::cmp::Ordering::Equal => Some(cmp),
+            _ => self.input_gene_set.iter().collect::<Vec<&u32>>().partial_cmp(
+                &other.input_gene_set.iter().collect::<Vec<&u32>>()
+            ),
+        }
+    }
+}
+
+impl Ord for BackgroundQuery {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        match self.background_id.cmp(&other.background_id) {
+            std::cmp::Ordering::Equal => self.input_gene_set.iter().collect::<Vec<&u32>>().cmp(
+                &other.input_gene_set.iter().collect::<Vec<&u32>>()
+            ),
+            cmp => cmp,
+        }
+    }
 }
 
 // This structure stores a persistent many-reader single-writer hashmap containing cached indexes for a given background id
@@ -97,8 +124,8 @@ impl<'r> Responder<'r, 'static> for QueryResponse {
     }
 }
 
-fn bitvec(background: &HashMap<Uuid, usize>, gene_set: Vec<Uuid>) -> BitSet {
-    BitSet::from_iter(gene_set.iter().filter_map(|gene_id| Some(*background.get(gene_id)?)))
+fn bitvec(background: &HashMap<Uuid, u32>, gene_set: Vec<Uuid>) -> FnvHashSet<u32> {
+    gene_set.iter().filter_map(|gene_id| Some(*background.get(gene_id)?)).collect()
 }
 
 // Ensure the specific background_id exists in state, resolving it if necessary
@@ -124,7 +151,7 @@ async fn ensure_index(db: &mut Connection<Postgres>, state: &State<PersistentSta
         bitmap.columns.reserve(background_genes.len());
         bitmap.columns_str.reserve(background_genes.len());
         for (i, (gene_id, gene)) in background_genes.into_iter().enumerate() {
-            bitmap.columns.insert(gene_id, i);
+            bitmap.columns.insert(gene_id, i as u32);
             bitmap.columns_str.push(gene);
         }
 
@@ -196,7 +223,7 @@ async fn get_gmt(
             line.push_str("\t");
             for col_ind in gene_set.iter() {
                 line.push_str("\t");
-                line.push_str(&bitmap.columns_str[col_ind]);
+                line.push_str(&bitmap.columns_str[*col_ind as usize]);
             }
             line.push_str("\n");
             yield line
