@@ -173,22 +173,24 @@ CREATE TABLE app_public_v2.background (
 
 
 --
--- Name: indexed_enrich(app_public_v2.background, uuid[], integer, double precision, double precision, integer, integer); Type: FUNCTION; Schema: app_private_v2; Owner: -
+-- Name: indexed_enrich(app_public_v2.background, uuid[], character varying, integer, double precision, double precision, integer, integer); Type: FUNCTION; Schema: app_private_v2; Owner: -
 --
 
-CREATE FUNCTION app_private_v2.indexed_enrich(background app_public_v2.background, gene_ids uuid[], overlap_ge integer DEFAULT 1, pvalue_le double precision DEFAULT 0.05, adj_pvalue_le double precision DEFAULT 0.05, "offset" integer DEFAULT 0, first integer DEFAULT 100) RETURNS app_public_v2.paginated_enrich_result
-    LANGUAGE plpython3u IMMUTABLE STRICT PARALLEL SAFE
+CREATE FUNCTION app_private_v2.indexed_enrich(background app_public_v2.background, gene_ids uuid[], filter_term character varying DEFAULT NULL::character varying, overlap_ge integer DEFAULT 1, pvalue_le double precision DEFAULT 0.05, adj_pvalue_le double precision DEFAULT 0.05, "offset" integer DEFAULT NULL::integer, first integer DEFAULT NULL::integer) RETURNS app_public_v2.paginated_enrich_result
+    LANGUAGE plpython3u IMMUTABLE PARALLEL SAFE
     AS $$
   import requests
+  params = dict(
+    overlap_ge=overlap_ge,
+    pvalue_le=pvalue_le,
+    adj_pvalue_le=adj_pvalue_le,
+  )
+  if filter_term: params['filter_term'] = filter_term
+  if offset: params['offset'] = offset
+  if first: params['limit'] = first
   req = requests.post(
     f"http://enrich:8000/{background['id']}",
-    params=dict(
-      overlap_ge=overlap_ge,
-      pvalue_le=pvalue_le,
-      adj_pvalue_le=adj_pvalue_le,
-      offset=offset,
-      limit=first,
-    ),
+    params=params,
     json=gene_ids,
   )
   total_count = req.headers.get('Content-Range').partition('/')[-1]
@@ -642,16 +644,17 @@ $$;
 
 
 --
--- Name: background_enrich(app_public_v2.background, character varying[], integer, double precision, double precision, integer, integer); Type: FUNCTION; Schema: app_public_v2; Owner: -
+-- Name: background_enrich(app_public_v2.background, character varying[], character varying, integer, double precision, double precision, integer, integer); Type: FUNCTION; Schema: app_public_v2; Owner: -
 --
 
-CREATE FUNCTION app_public_v2.background_enrich(background app_public_v2.background, genes character varying[], overlap_ge integer DEFAULT 1, pvalue_le double precision DEFAULT 0.05, adj_pvalue_le double precision DEFAULT 0.05, "offset" integer DEFAULT 0, first integer DEFAULT 100) RETURNS app_public_v2.paginated_enrich_result
-    LANGUAGE sql IMMUTABLE STRICT SECURITY DEFINER PARALLEL SAFE
+CREATE FUNCTION app_public_v2.background_enrich(background app_public_v2.background, genes character varying[], filter_term character varying DEFAULT NULL::character varying, overlap_ge integer DEFAULT 1, pvalue_le double precision DEFAULT 0.05, adj_pvalue_le double precision DEFAULT 0.05, "offset" integer DEFAULT NULL::integer, first integer DEFAULT NULL::integer) RETURNS app_public_v2.paginated_enrich_result
+    LANGUAGE sql IMMUTABLE SECURITY DEFINER PARALLEL SAFE
     AS $$
   select r.*
   from app_private_v2.indexed_enrich(
     background_enrich.background,
-    (select coalesce(array_agg(gene_id), '{}'::uuid[]) from app_public_v2.gene_map(genes) gm),
+    (select array_agg(gene_id) from app_public_v2.gene_map(genes) gm),
+    background_enrich.filter_term,
     background_enrich.overlap_ge,
     background_enrich.pvalue_le,
     background_enrich.adj_pvalue_le,
@@ -1528,6 +1531,13 @@ CREATE INDEX gene_synonyms_idx ON app_public_v2.gene USING gin (synonyms);
 
 
 --
+-- Name: release_created_idx; Type: INDEX; Schema: app_public_v2; Owner: -
+--
+
+CREATE INDEX release_created_idx ON app_public_v2.release USING btree (created);
+
+
+--
 -- Name: gene_set_gene gene_set_gene_gene_id_fkey; Type: FK CONSTRAINT; Schema: app_public; Owner: -
 --
 
@@ -1595,4 +1605,6 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20230918153613'),
     ('20230920195024'),
     ('20230920201419'),
-    ('20230925141013');
+    ('20230925141013'),
+    ('20230925165804'),
+    ('20230925181844');

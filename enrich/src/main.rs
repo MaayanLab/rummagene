@@ -250,12 +250,13 @@ async fn delete(
 // query a specific background_id, providing the bitset vector as input
 //  the result are the gene_set_ids & relevant metrics
 // this can be pretty fast since the index is saved in memory and the overlaps can be computed in parallel
-#[post("/<background_id>?<overlap_ge>&<pvalue_le>&<adj_pvalue_le>&<offset>&<limit>", data = "<input_gene_set>")]
+#[post("/<background_id>?<filter_term>&<overlap_ge>&<pvalue_le>&<adj_pvalue_le>&<offset>&<limit>", data = "<input_gene_set>")]
 async fn query(
     mut db: Connection<Postgres>,
     state: &State<PersistentState>,
     input_gene_set: Json<Vec<String>>,
     background_id: &str,
+    filter_term: Option<String>,
     overlap_ge: Option<u32>,
     pvalue_le: Option<f64>,
     adj_pvalue_le: Option<f64>,
@@ -284,12 +285,13 @@ async fn query(
             let overlap_ge = overlap_ge.unwrap_or(1);
             let pvalue_le =  pvalue_le.unwrap_or(1.0);
             let adj_pvalue_le =  adj_pvalue_le.unwrap_or(1.0);
+            let filter_term = filter_term.and_then(|filter_term| Some(filter_term.to_lowercase()));
             // parallel overlap computation
             let n_background = bitmap.columns.len() as u32;
             let n_user_gene_id = background_query.input_gene_set.len() as u32;
             let results: Vec<_> = bitmap.values.par_iter()
                 .enumerate()
-                .filter_map(|(index, (row_id, _row_str, gene_set))| {
+                .filter_map(|(index, (_row_id, _row_str, gene_set))| {
                     let n_overlap = gene_set.intersection(&background_query.input_gene_set).count() as u32;
                     if n_overlap < overlap_ge {
                         return None
@@ -320,10 +322,15 @@ async fn query(
                 .par_iter()
                 .filter_map(|result| {
                     let adj_pvalue = *adj_pvalues.get(result.index)?;
+                    let (gene_set_id, gene_set_term, _gene_set) = bitmap.values.get(result.index)?;
                     if adj_pvalue > adj_pvalue_le { return None }
-                    let gene_set_id = bitmap.values.get(result.index)?.0.to_string();
+                    if let Some(filter_term) = &filter_term {
+                        if !gene_set_term.to_lowercase().contains(filter_term) {
+                            return None
+                        }
+                    }
                     Some(Arc::new(QueryResult {
-                        gene_set_id,
+                        gene_set_id: gene_set_id.to_string(),
                         n_overlap: result.n_overlap,
                         odds_ratio: result.odds_ratio,
                         pvalue: result.pvalue,
