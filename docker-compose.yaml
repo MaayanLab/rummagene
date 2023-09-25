@@ -31,7 +31,7 @@ services:
   bot:
     build: bot
     image: maayanlab/rummagene-bot:v3
-    command: ["sleep", "infinity"]
+    command: ["bash", "-c", "cd /work/data && touch log && tail -f log"]
     environment:
       - DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       - ENRICH_URL=http://enrich:8000
@@ -48,7 +48,7 @@ services:
       # * month of year
       # 1 day of week (monday)
       ofelia.job-exec.update-db.schedule: "0 0 9 * * 1"
-      ofelia.job-exec.update-db.command: "/work/bot.sh"
+      ofelia.job-exec.update-db.command: "/work/bot.sh > /work/data/log 2> /work/data/log"
   cron:
     image: mcuadros/ofelia:latest
     command: daemon --docker
