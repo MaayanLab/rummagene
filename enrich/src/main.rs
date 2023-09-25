@@ -53,12 +53,13 @@ impl Bitmap {
 #[derive(Eq, PartialEq)]
 struct BackgroundQuery {
     background_id: Uuid,
+    filter_term: Option<String>,
     input_gene_set: FnvHashSet<u32>,
 }
 
 impl PartialOrd for BackgroundQuery {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        match self.background_id.partial_cmp(&other.background_id) {
+        match (&self.background_id, &self.filter_term).partial_cmp(&(&other.background_id, &other.filter_term)) {
             Some(cmp) if cmp != std::cmp::Ordering::Equal => Some(cmp),
             _ => self.input_gene_set.iter().collect::<Vec<&u32>>().partial_cmp(
                 &other.input_gene_set.iter().collect::<Vec<&u32>>()
@@ -69,7 +70,7 @@ impl PartialOrd for BackgroundQuery {
 
 impl Ord for BackgroundQuery {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        match self.background_id.cmp(&other.background_id) {
+        match (&self.background_id, &self.filter_term).cmp(&(&other.background_id, &other.filter_term)) {
             std::cmp::Ordering::Equal => self.input_gene_set.iter().collect::<Vec<&u32>>().cmp(
                 &other.input_gene_set.iter().collect::<Vec<&u32>>()
             ),
@@ -276,7 +277,8 @@ async fn query(
     let input_gene_set = input_gene_set.0.into_iter().map(|gene| Uuid::parse_str(&gene)).collect::<Result<Vec<_>, _>>().map_err(|e| Custom(Status::BadRequest, e.to_string()))?;
     let bitmap = state.bitmaps.get_read(&background_id).await.ok_or(Custom(Status::NotFound, String::from("Can't find background")))?;
     let input_gene_set = bitvec(&bitmap.columns, input_gene_set);
-    let background_query = Arc::new(BackgroundQuery { background_id, input_gene_set });
+    let filter_term = filter_term.and_then(|filter_term| Some(filter_term.to_lowercase()));
+    let background_query = Arc::new(BackgroundQuery { background_id, input_gene_set, filter_term });
     let results = {
         let results = state.cache.get(&background_query).await;
         if let Some(results) = results {
@@ -285,7 +287,6 @@ async fn query(
             let overlap_ge = overlap_ge.unwrap_or(1);
             let pvalue_le =  pvalue_le.unwrap_or(1.0);
             let adj_pvalue_le =  adj_pvalue_le.unwrap_or(1.0);
-            let filter_term = filter_term.and_then(|filter_term| Some(filter_term.to_lowercase()));
             // parallel overlap computation
             let n_background = bitmap.columns.len() as u32;
             let n_user_gene_id = background_query.input_gene_set.len() as u32;
@@ -324,7 +325,7 @@ async fn query(
                     let adj_pvalue = *adj_pvalues.get(result.index)?;
                     let (gene_set_id, gene_set_term, _gene_set) = bitmap.values.get(result.index)?;
                     if adj_pvalue > adj_pvalue_le { return None }
-                    if let Some(filter_term) = &filter_term {
+                    if let Some(filter_term) = &background_query.filter_term {
                         if !gene_set_term.to_lowercase().contains(filter_term) {
                             return None
                         }
