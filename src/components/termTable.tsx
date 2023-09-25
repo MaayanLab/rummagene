@@ -59,7 +59,7 @@ export default function TermTable({ terms }: { terms: { __typename?: "GeneSet" |
             {dataFiltered?.map(el => {
               return (
                 <tr key={el?.term} className={"hover:bg-gray-100 dark:hover:bg-gray-700"}>
-                  <td><p className="break-all w-9/12"><LinkedTerm term={`${el?.term}`}></LinkedTerm></p></td>
+                  <td className="break-all"><LinkedTerm term={`${el?.term}`}></LinkedTerm></td>
                   <td className='w-3/12'>
                     <button
                       className='btn btn-outline text-xs p-2 h-auto'
