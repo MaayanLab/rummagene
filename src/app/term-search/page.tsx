@@ -47,7 +47,7 @@ export default function TermSearchPage() {
           className="flex flex-col items-center gap-2 mt-5"
           onSubmit={evt => {
             evt.preventDefault()
-            setRawTerms(rawTerms)
+            setTerms(rawTerms)
           }}
         >
           <span className="label-text text-lg">Search Term(s)</span>
