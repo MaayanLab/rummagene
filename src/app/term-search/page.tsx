@@ -24,7 +24,7 @@ function TermSearchResults({ terms }: { terms: string }) {
   return (
     <div className='text-center mt-5'>
       <p className='text-lg'> Your search term is contained in {data.geneSetTermSearch?.totalCount} gene sets.</p>
-      <TermTable terms={data.geneSetTermSearch?.nodes}></TermTable>
+      {data.geneSetTermSearch?.nodes && data.geneSetTermSearch?.nodes.length > 0 ? <TermTable terms={data.geneSetTermSearch?.nodes}></TermTable> : null}
     </div>
   )
 }

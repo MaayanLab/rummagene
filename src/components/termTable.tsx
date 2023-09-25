@@ -4,21 +4,21 @@ import { useViewGeneSetQuery } from '@/graphql';
 import GeneSetModal from './geneSetModal';
 
 
-export default function TermTable({ terms }: { terms?: { __typename?: "GeneSet" | undefined; term?: string | null | undefined; id?: any; nGeneIds?: number | null | undefined; }[] }) {
+export default function TermTable({ terms }: { terms: { __typename?: "GeneSet" | undefined; term?: string | null | undefined; id?: any; nGeneIds?: number | null | undefined; }[] }) {
   const [page, setPage] = React.useState(0)
   const [numPerPage, setNumPerPage] = React.useState(10)
 
   const [searchTerm, setSearchTerm] = React.useState('')
-  const [dataFiltered, setDataFiltered] = React.useState(terms?.slice(page * numPerPage, numPerPage * (page + 1)))
-  const [total, setTotal] = React.useState(terms?.length)
-  const [maxPage, setMaxPage] = React.useState(Math.floor((terms?.length || 10) / numPerPage))
+  const [dataFiltered, setDataFiltered] = React.useState(terms.slice(page * numPerPage, numPerPage * (page + 1)))
+  const [total, setTotal] = React.useState(terms.length)
+  const [maxPage, setMaxPage] = React.useState(Math.floor((terms.length || 10) / numPerPage))
 
-  const [geneSetId, setGeneSetId] = React.useState(terms?.[0].id)
-  const [currTerm, setCurrTerm] = React.useState(terms?.[0].term)
+  const [geneSetId, setGeneSetId] = React.useState(terms[0].id)
+  const [currTerm, setCurrTerm] = React.useState(terms[0].term)
   const [showModal, setShowModal] = React.useState(false)
 
   React.useEffect(() => {
-    const searchFilteredData = terms?.filter(el => {
+    const searchFilteredData = terms.filter(el => {
       return (el?.term?.toLowerCase().includes(searchTerm.toLowerCase()))
     })
     setTotal(searchFilteredData?.length)
