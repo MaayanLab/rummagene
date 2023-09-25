@@ -34,7 +34,7 @@ export default function TermTable({ terms }: { terms: { __typename?: "GeneSet" |
   return (
     <>
       <GeneSetModal geneset={genesQuery?.data?.geneSet?.genes.nodes.map(({ symbol }) => symbol)} term={currTerm} showModal={showModal} setShowModal={setShowModal}></GeneSetModal>
-      <div className='border m-5 mt-1 overflow-y-scroll'>
+      <div className='border m-5 mt-1'>
 
         <div className='text-right p-1'>
 
