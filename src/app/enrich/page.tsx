@@ -14,6 +14,7 @@ import Pagination from '@/components/pagination'
 import { useQsState } from '@/utils/useQsState'
 import Stats from '../stats'
 import Image from 'next/image'
+import GeneSetModal from '@/components/geneSetModal'
 
 const pageSize = 10
 
@@ -122,7 +123,7 @@ function EnrichmentResults({ userGeneSet, setModalGeneSet }: { userGeneSet?: Fet
   )
 }
 
-function GeneSetModal(props: { modalGeneSet: GeneSetModalT, setModalGeneSet: React.Dispatch<React.SetStateAction<GeneSetModalT>> }) {
+function GeneSetModalWrapper(props: { modalGeneSet: GeneSetModalT, setModalGeneSet: React.Dispatch<React.SetStateAction<GeneSetModalT>> }) {
   const { data: geneSet } = useViewGeneSetQuery({
     skip: props.modalGeneSet?.type !== 'GeneSet',
     variables: props.modalGeneSet?.type === 'GeneSet' ? {
@@ -137,37 +138,19 @@ function GeneSetModal(props: { modalGeneSet: GeneSetModalT, setModalGeneSet: Rea
     } : undefined,
   })
   return (
-    <>
-      <input
-        type="checkbox"
-        id="geneSetModal"
-        className="modal-toggle"
-        onChange={evt => {
-          if (!evt.currentTarget.checked) {
-            props.setModalGeneSet(undefined)
-          }
-        }}
-      />
-      <div className="modal">
-        <div className="modal-box">
-          <h3 className="text-lg font-bold">
-            <LinkedTerm term={props.modalGeneSet?.description} />
-          </h3>
-          <textarea
-            className="w-full"
-            readOnly
-            rows={8}
-            value={
-              props.modalGeneSet?.type === 'GeneSet' ? geneSet?.geneSet?.genes.nodes.map(gene => gene.symbol).join('\n')
-              : props.modalGeneSet?.type === 'GeneSetOverlap' ? overlap?.geneSet?.overlap.nodes.map(gene => gene.symbol).join('\n')
-              : props.modalGeneSet?.type === 'UserGeneSet' ? props.modalGeneSet.genes.join('\n')
-              : ''
-            }
-          />
-        </div>
-        <label className="modal-backdrop" htmlFor="geneSetModal">Close</label>
-      </div>
-    </>
+    <GeneSetModal
+      showModal={props.modalGeneSet !== undefined}
+      term={props.modalGeneSet?.description}
+      geneset={
+        props.modalGeneSet?.type === 'GeneSet' ? geneSet?.geneSet?.genes.nodes.map(gene => gene.symbol)
+        : props.modalGeneSet?.type === 'GeneSetOverlap' ? overlap?.geneSet?.overlap.nodes.map(gene => gene.symbol)
+        : props.modalGeneSet?.type === 'UserGeneSet' ? props.modalGeneSet.genes
+        : undefined
+      }
+      setShowModal={show => {
+        if (!show) props.setModalGeneSet(undefined)
+      }}
+    />
   )
 }
 
@@ -203,7 +186,7 @@ export default function Enrich({
       <div className="container mx-auto">
         <EnrichmentResults userGeneSet={userGeneSet} setModalGeneSet={setModalGeneSet} />
       </div>
-      <GeneSetModal modalGeneSet={modalGeneSet} setModalGeneSet={setModalGeneSet} />
+      <GeneSetModalWrapper modalGeneSet={modalGeneSet} setModalGeneSet={setModalGeneSet} />
     </>
   )
 }
