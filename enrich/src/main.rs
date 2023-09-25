@@ -349,11 +349,19 @@ async fn query(
     let (range_start, range_end, results) = match (offset.unwrap_or(0), limit) {
         (0, None) => (0, range_total, results),
         (offset, None) => {
-            let results = Arc::new(results[offset..].to_vec());
+            let results = if offset >= results.len() {
+                Arc::new(Vec::new())
+            } else {
+                Arc::new(results[offset..].to_vec())
+            };
             (offset, range_total, results)
         },
         (offset, Some(limit)) => {
-            let results = Arc::new(results[offset..(offset+limit)].to_vec());
+            let results = if offset >= results.len() {
+                Arc::new(Vec::new())
+            } else {
+                Arc::new(results[offset..std::cmp::min(results.len(), offset+limit)].to_vec())
+            };
             (offset, offset + results.len(), results)
         },
     };

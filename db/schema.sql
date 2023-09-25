@@ -651,7 +651,7 @@ CREATE FUNCTION app_public_v2.background_enrich(background app_public_v2.backgro
   select r.*
   from app_private_v2.indexed_enrich(
     background_enrich.background,
-    (select array_agg(gene_id) from app_public_v2.gene_map(genes) gm),
+    (select coalesce(array_agg(gene_id), '{}'::uuid[]) from app_public_v2.gene_map(genes) gm),
     background_enrich.overlap_ge,
     background_enrich.pvalue_le,
     background_enrich.adj_pvalue_le,
@@ -1594,4 +1594,5 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20230906154745'),
     ('20230918153613'),
     ('20230920195024'),
-    ('20230920201419');
+    ('20230920201419'),
+    ('20230925141013');
