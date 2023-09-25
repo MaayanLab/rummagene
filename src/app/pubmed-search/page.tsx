@@ -81,7 +81,7 @@ export default function PubMedSearchPage() {
   if (!search) {
     return (
       <HomeLayout>
-        <h1 className="text-xl">Query PubMed Central and recieve gene sets extracted from the returned paper</h1>
+        <h1 className="text-xl">Query PubMed Central and receive gene sets extracted from the returned paper</h1>
         <form
           className="flex flex-col items-center gap-2 mt-5"
           onSubmit={evt => {
@@ -142,7 +142,7 @@ export default function PubMedSearchPage() {
               type="submit"
               className="btn normal-case"
             >Search PMC</button>
-            <div className='ml-10'>Query PubMed Central and recieve gene sets extracted from the returned papers.</div>
+            <div className='ml-10'>Query PubMed Central and receive gene sets extracted from the returned papers.</div>
           </form>
           <p className="prose p-2">
             try an example:&nbsp;
