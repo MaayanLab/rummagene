@@ -112,3 +112,11 @@ query OverlapQuery($id: UUID!, $genes: [String]!) {
     }
   }
 }
+
+query LatestRelease {
+  releases(orderBy: CREATED_DESC, first: 1) {
+    nodes {
+      created
+    }
+  }
+}
