@@ -289,7 +289,7 @@ def update_background(enrich_url):
   plpy.conn.commit()
   # remove index for the old background
   for current_background in current_backgrounds:
-    assert requests.delete(f"{enrich_url}/{current_background}").ok
+    requests.delete(f"{enrich_url}/{current_background}")
 
 if __name__ == '__main__':
   cli()
