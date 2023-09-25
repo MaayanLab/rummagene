@@ -29,6 +29,7 @@ async function pubmed_search(search: string) {
 function PubMedSearchResults({ search }: { search: string }) {
   const { data: pmcData, error, isLoading } = useSWR(() => search, pubmed_search)
   const pmcids = React.useMemo(() => pmcData?.esearchresult?.idlist?.map(id => 'PMC' + id.toString()) ?? [], [pmcData])
+  const pmcCount = React.useMemo(() => pmcData?.esearchresult?.count !== undefined ? Number(pmcData?.esearchresult?.count) : 0, [pmcData])
   const { data } = useTermsPmcsQuery({
     skip: pmcids.length === 0,
     variables: { pmcids }
@@ -55,10 +56,10 @@ function PubMedSearchResults({ search }: { search: string }) {
   if (error) return <div className="text-center p-5"><div className="text-center"><Image className={'rounded mx-auto'} src={'/images/loading.gif'} width={125} height={250} alt={'Loading...'} /> </div>Failed to fetch articles from PubMed Central... trying again in a few seconds.</div>
   if (isLoading) return <Loading/>
   if (!pmcData?.esearchresult?.idlist || !pmcsInDb) return null
-  if (pmcsInDb.length < 1) return <div className="text-center p-5">Your query returned {Intl.NumberFormat("en-US", {}).format(Number(pmcData?.esearchresult?.count))} articles, but none of the top 5000 are contained in the Rummagene database. Please try refining your query.</div>
+  if (pmcsInDb.length < 1) return <div className="text-center p-5">Your query returned {Intl.NumberFormat("en-US", {}).format(pmcCount)} articles, but none of them are contained in the Rummagene database. Please try refining your query.</div>
   return (
     <>
-      <div className='p-5 text-center'>The top 5000 results from your query identified {Intl.NumberFormat("en-US", {}).format(pmcsInDb.length)} articles which have extracted gene sets in the Rummagene database.</div>
+      <div className='p-5 text-center'>Your query returned {Intl.NumberFormat("en-US", {}).format(pmcCount)} articles, {Intl.NumberFormat("en-US", {}).format(pmcsInDb.length)} {pmcCount > 5000 ? <>of the top 5000</> : null} have extracted gene sets in the Rummagene database.</div>
       <PmcSearchColumns pmc_terms={pmc_terms} pmcs={pmcsInDb} gene_set_ids={gene_set_ids}></PmcSearchColumns>
     </>
   )
