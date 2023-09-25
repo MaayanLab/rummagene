@@ -63,16 +63,11 @@ function EnrichmentResults({ userGeneSet, setModalGeneSet }: { userGeneSet?: Fet
             </tr>
           </thead>
           <tbody>
-            {!enrichmentResults?.currentBackground?.enrich ? [0,1,2,3,4,5,6,7,8,9].map((_, j) => (
-              <tr key={j}>
-                <th className={`h-4 bg-gray-${j%2==0?2:3}00 m-6 rounded`}>&nbsp;</th>
-                <td className={`h-4 bg-gray-${j%2==0?2:3}00 m-6 rounded`}>&nbsp;</td>
-                <td className={`h-4 bg-gray-${j%2==0?2:3}00 m-6 rounded`}>&nbsp;</td>
-                <td className={`h-4 bg-gray-${j%2==0?2:3}00 m-6 rounded`}>&nbsp;</td>
-                <td className={`h-4 bg-gray-${j%2==0?2:3}00 m-6 rounded`}>&nbsp;</td>
-                <td className={`h-4 bg-gray-${j%2==0?2:3}00 m-6 rounded`}>&nbsp;</td>
+            {!enrichmentResults?.currentBackground?.enrich ?
+              <tr>
+                <td colSpan={7}><Loading /></td>
               </tr>
-            )) : null}
+            : null}
             {enrichmentResults?.currentBackground?.enrich?.nodes?.map((enrichmentResult, j) => (
               <tr key={j}>
                 <th><LinkedTerm term={enrichmentResult?.geneSet?.term} /></th>
