@@ -45,6 +45,7 @@ export default function RootLayout({
               <ul>
                 <li><Link href="/about">About</Link></li>
                 <li><Link href="mailto:avi.maayan@mssm.edu" target="_blank">Contact Us</Link></li>
+                <li><Link href="https://creativecommons.org/licenses/by-nc/4.0/" target="_blank">License</Link></li>
               </ul>
             </div>
             <div className="text-center">
