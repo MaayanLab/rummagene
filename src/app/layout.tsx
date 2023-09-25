@@ -44,7 +44,7 @@ export default function RootLayout({
             <div className="text-center pt-5">
               <ul>
                 <li><Link href="/about">About</Link></li>
-                <li><Link href="mailto:avi.maayan@mssm.edu">Contact Us</Link></li>
+                <li><Link href="mailto:avi.maayan@mssm.edu" target="_blank">Contact Us</Link></li>
               </ul>
             </div>
             <div className="text-center">
