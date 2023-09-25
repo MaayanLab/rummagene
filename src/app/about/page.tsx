@@ -35,7 +35,7 @@ export default function About() {
           </p>
           <br></br>
           <p>
-            This site is programatically accessible via a <Link href="/graphiql" className="underline cursor-pointer">GraphQL API</Link>.
+            This site is programatically accessible via a <Link href="/graphiql" className="underline cursor-pointer" target="_blank">GraphQL API</Link>.
           </p>
           <br></br>
           <p>
