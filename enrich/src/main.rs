@@ -37,9 +37,7 @@ struct Postgres(sqlx::PgPool);
 struct Bitmap {
     columns: HashMap<Uuid, u32>,
     columns_str: Vec<String>,
-    index: Vec<Uuid>,
-    index_str: Vec<String>,
-    values: Vec<FnvHashSet<u32>>,
+    values: Vec<(Uuid, String, FnvHashSet<u32>)>,
 }
 
 impl Bitmap {
@@ -47,8 +45,6 @@ impl Bitmap {
         Bitmap {
             columns: HashMap::new(),
             columns_str: Vec::new(),
-            index: Vec::new(),
-            index_str: Vec::new(),
             values: Vec::new(),
         }
     }
@@ -165,9 +161,7 @@ async fn ensure_index(db: &mut Connection<Postgres>, state: &State<PersistentSta
                 let gene_ids: sqlx::types::Json<HashMap<String, sqlx::types::JsonValue>> = row.try_get("gene_ids").unwrap();
                 let gene_ids = gene_ids.keys().map(|gene_id| Uuid::parse_str(gene_id).unwrap()).collect::<Vec<Uuid>>();
                 let bitset = bitvec(&bitmap.columns, gene_ids);
-                bitmap.index.push(gene_set_id);
-                bitmap.index_str.push(term);
-                bitmap.values.push(bitset);
+                bitmap.values.push((gene_set_id, term, bitset));
                 future::ready(())
             })
             .await;
@@ -192,7 +186,7 @@ async fn ensure(
     let bitmap = state.bitmaps.get_read(&background_id).await.ok_or(Custom(Status::NotFound, String::from("Can't find background")))?;
     Ok(json!({
         "columns": bitmap.columns.len(),
-        "index": bitmap.index.len(),
+        "index": bitmap.values.len(),
     }))
 }
 
@@ -217,9 +211,9 @@ async fn get_gmt(
     ensure_index(&mut db, &state, background_id).await.map_err(|e| Custom(Status::InternalServerError, e.to_string()))?;
     let bitmap = state.bitmaps.get_read(&background_id).await.ok_or(Custom(Status::InternalServerError, String::from("Can't find background")))?;
     Ok(TextStream! {
-        for (row_id, gene_set) in bitmap.index_str.iter().zip(bitmap.values.iter()) {
+        for (_row_id, row_str, gene_set) in bitmap.values.iter() {
             let mut line = String::new();
-            line.push_str(row_id);
+            line.push_str(row_str);
             line.push_str("\t");
             for col_ind in gene_set.iter() {
                 line.push_str("\t");
@@ -295,7 +289,7 @@ async fn query(
             let n_user_gene_id = background_query.input_gene_set.len() as u32;
             let results: Vec<_> = bitmap.values.par_iter()
                 .enumerate()
-                .filter_map(|(index, gene_set)| {
+                .filter_map(|(index, (row_id, _row_str, gene_set))| {
                     let n_overlap = gene_set.intersection(&background_query.input_gene_set).count() as u32;
                     if n_overlap < overlap_ge {
                         return None
@@ -316,7 +310,7 @@ async fn query(
                 })
                 .collect();
             // extract pvalues from results and compute adj_pvalues
-            let mut pvalues = vec![1.0; bitmap.index.len()];
+            let mut pvalues = vec![1.0; bitmap.values.len()];
             for result in &results {
                 pvalues[result.index] = result.pvalue;
             }
@@ -327,7 +321,7 @@ async fn query(
                 .filter_map(|result| {
                     let adj_pvalue = *adj_pvalues.get(result.index)?;
                     if adj_pvalue > adj_pvalue_le { return None }
-                    let gene_set_id = bitmap.index.get(result.index)?.to_string();
+                    let gene_set_id = bitmap.values.get(result.index)?.0.to_string();
                     Some(Arc::new(QueryResult {
                         gene_set_id,
                         n_overlap: result.n_overlap,
