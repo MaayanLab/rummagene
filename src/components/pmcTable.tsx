@@ -53,7 +53,7 @@ export default function PmcTable({ terms, data, gene_set_ids }: { terms?: Map<st
             }}
           />
         </div>
-        <table className="table table-pin-rows table-pin-cols table-auto">
+        <table className="table table-xs table-pin-rows table-pin-cols table-auto">
           <thead>
             <tr>
               <td className='w-32'>PMC</td>
@@ -90,7 +90,7 @@ export default function PmcTable({ terms, data, gene_set_ids }: { terms?: Map<st
                         <td><p className="break-words w-96">{term}</p></td>
                         <td>
                           <button
-                            className='btn btn-outline text-xs p-2 h-auto'
+                            className='btn btn-xs btn-outline p-2 h-auto'
                             data-te-toggle="modal"
                             data-te-target="#geneSetModal"
                             data-te-ripple-init

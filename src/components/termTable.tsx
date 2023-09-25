@@ -48,7 +48,7 @@ export default function TermTable({ terms }: { terms: { __typename?: "GeneSet" |
             }}
           />
         </div>
-        <table className="table table-pin-cols table-auto">
+        <table className="table table-xs table-pin-cols table-auto">
           <thead>
             <tr>
               <td >Term</td>
@@ -62,7 +62,7 @@ export default function TermTable({ terms }: { terms: { __typename?: "GeneSet" |
                   <td className="break-all"><LinkedTerm term={`${el?.term}`}></LinkedTerm></td>
                   <td className='w-3/12'>
                     <button
-                      className='btn btn-outline text-xs p-2 h-auto'
+                      className='btn btn-xs btn-outline p-2 h-auto'
                       data-te-toggle="modal"
                       data-te-target="#geneSetModal"
                       data-te-ripple-init
