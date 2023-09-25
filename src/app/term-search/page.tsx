@@ -5,6 +5,7 @@ import TermTable from '@/components/termTable'
 import Image from 'next/image'
 import { useQsState } from '@/utils/useQsState'
 import HomeLayout from '@/app/homeLayout'
+import Stats from '../stats'
 
 function TermSearchResults({ terms }: { terms: string }) {
   const { data } = useTermSearchQuery({
@@ -17,13 +18,15 @@ function TermSearchResults({ terms }: { terms: string }) {
     return (
       <>
         <Image className={'rounded mx-auto'} src={'/images/loading.gif'} width={125} height={250} alt={'Loading...'} />
-        <p>Rummaging for gene sets with your search term.</p>
+        <p>Rummaging through <Stats show_gene_sets /> with your search term.</p>
       </>
     )
   }
   return (
-    <div className='text-center mt-5'>
-      <p className='text-lg'> Your search term is found in the table titles of {data.geneSetTermSearch?.totalCount} gene sets.</p>
+    <div className="flex flex-col gap-2 my-2">
+      <h2 className="text-md font-bold">
+        After rummaging through <Stats show_gene_sets />. Rummagene <Image className="inline-block rounded" src="/images/rummagene_logo.png" width={50} height={100} alt="Rummagene"></Image> found your search term in the table titles of {data.geneSetTermSearch?.totalCount} gene sets.
+      </h2>
       {data.geneSetTermSearch?.nodes && data.geneSetTermSearch?.nodes.length > 0 ? <TermTable terms={data.geneSetTermSearch?.nodes}></TermTable> : null}
     </div>
   )
