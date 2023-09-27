@@ -53,13 +53,12 @@ impl Bitmap {
 #[derive(Eq, PartialEq)]
 struct BackgroundQuery {
     background_id: Uuid,
-    filter_term: Option<String>,
     input_gene_set: FnvHashSet<u32>,
 }
 
 impl PartialOrd for BackgroundQuery {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
-        match (&self.background_id, &self.filter_term).partial_cmp(&(&other.background_id, &other.filter_term)) {
+        match self.background_id.partial_cmp(&other.background_id) {
             Some(cmp) if cmp != std::cmp::Ordering::Equal => Some(cmp),
             _ => self.input_gene_set.iter().collect::<Vec<&u32>>().partial_cmp(
                 &other.input_gene_set.iter().collect::<Vec<&u32>>()
@@ -70,7 +69,7 @@ impl PartialOrd for BackgroundQuery {
 
 impl Ord for BackgroundQuery {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        match (&self.background_id, &self.filter_term).cmp(&(&other.background_id, &other.filter_term)) {
+        match self.background_id.cmp(&other.background_id) {
             std::cmp::Ordering::Equal => self.input_gene_set.iter().collect::<Vec<&u32>>().cmp(
                 &other.input_gene_set.iter().collect::<Vec<&u32>>()
             ),
@@ -83,7 +82,7 @@ impl Ord for BackgroundQuery {
 struct PersistentState { 
     bitmaps: RwLockHashMap<Uuid, Bitmap>,
     latest: RwLock<Option<Uuid>>,
-    cache: Cache<Arc<BackgroundQuery>, Arc<Vec<Arc<QueryResult>>>>,
+    cache: Cache<Arc<BackgroundQuery>, Arc<Vec<PartialQueryResult>>>,
 }
 
 // The response data, containing the ids, and relevant metrics
@@ -92,6 +91,7 @@ struct PartialQueryResult {
     n_overlap: u32,
     odds_ratio: f64,
     pvalue: f64,
+    adj_pvalue: f64,
 }
 
 #[derive(Serialize, Debug)]
@@ -104,7 +104,7 @@ struct QueryResult {
 }
 
 struct QueryResponse {
-    results: Arc<Vec<Arc<QueryResult>>>,
+    results: Vec<QueryResult>,
     content_range: (usize, usize, usize),
 }
 
@@ -278,19 +278,19 @@ async fn query(
     let bitmap = state.bitmaps.get_read(&background_id).await.ok_or(Custom(Status::NotFound, String::from("Can't find background")))?;
     let input_gene_set = bitvec(&bitmap.columns, input_gene_set);
     let filter_term = filter_term.and_then(|filter_term| Some(filter_term.to_lowercase()));
-    let background_query = Arc::new(BackgroundQuery { background_id, input_gene_set, filter_term });
+    let overlap_ge = overlap_ge.unwrap_or(1);
+    let pvalue_le =  pvalue_le.unwrap_or(1.0);
+    let adj_pvalue_le =  adj_pvalue_le.unwrap_or(1.0);
+    let background_query = Arc::new(BackgroundQuery { background_id, input_gene_set });
     let results = {
         let results = state.cache.get(&background_query).await;
         if let Some(results) = results {
             results.value().clone()
         } else {
-            let overlap_ge = overlap_ge.unwrap_or(1);
-            let pvalue_le =  pvalue_le.unwrap_or(1.0);
-            let adj_pvalue_le =  adj_pvalue_le.unwrap_or(1.0);
             // parallel overlap computation
             let n_background = bitmap.columns.len() as u32;
             let n_user_gene_id = background_query.input_gene_set.len() as u32;
-            let results: Vec<_> = bitmap.values.par_iter()
+            let mut results: Vec<_> = bitmap.values.par_iter()
                 .enumerate()
                 .filter_map(|(index, (_row_id, _row_str, gene_set))| {
                     let n_overlap = gene_set.intersection(&background_query.input_gene_set).count() as u32;
@@ -309,7 +309,7 @@ async fn query(
                         return None
                     }
                     let odds_ratio = ((n_overlap as f64) / (n_user_gene_id as f64)) / ((n_gs_gene_id as f64) / (n_background as f64));
-                    Some(PartialQueryResult { index, n_overlap, odds_ratio, pvalue })
+                    Some(PartialQueryResult { index, n_overlap, odds_ratio, pvalue, adj_pvalue: 1.0 })
                 })
                 .collect();
             // extract pvalues from results and compute adj_pvalues
@@ -317,54 +317,55 @@ async fn query(
             for result in &results {
                 pvalues[result.index] = result.pvalue;
             }
+            // add adj_pvalues to results
             let adj_pvalues = adjust(&pvalues, Procedure::BenjaminiHochberg);
-            // create final results, adding gene_set_id & adj_pvalues
-            let mut results: Vec<_> = results
-                .par_iter()
-                .filter_map(|result| {
-                    let adj_pvalue = *adj_pvalues.get(result.index)?;
-                    let (gene_set_id, gene_set_term, _gene_set) = bitmap.values.get(result.index)?;
-                    if adj_pvalue > adj_pvalue_le { return None }
-                    if let Some(filter_term) = &background_query.filter_term {
-                        if !gene_set_term.to_lowercase().contains(filter_term) {
-                            return None
-                        }
-                    }
-                    Some(Arc::new(QueryResult {
-                        gene_set_id: gene_set_id.to_string(),
-                        n_overlap: result.n_overlap,
-                        odds_ratio: result.odds_ratio,
-                        pvalue: result.pvalue,
-                        adj_pvalue,
-                    }))
-                })
-                .collect();
+            results.retain_mut(|result| {
+                if let Some(adj_pvalue) = adj_pvalues.get(result.index) {
+                    result.adj_pvalue = *adj_pvalue;
+                }
+                result.adj_pvalue <= adj_pvalue_le
+            });
             results.sort_unstable_by(|a, b| a.pvalue.partial_cmp(&b.pvalue).unwrap_or(std::cmp::Ordering::Equal));
             let results = Arc::new(results);
-            state.cache.insert(background_query, results.clone(), 10000).await;
+            state.cache.insert(background_query, results.clone(), 30000).await;
             let duration = start.elapsed();
             println!("[{}] {} genes enriched in {:?}", background_id, n_user_gene_id, duration);
             results
         }
     };
+    let mut results: Vec<_> = results
+        .iter()
+        .filter_map(|result| {
+            let (gene_set_id, gene_set_term, _gene_set) = bitmap.values.get(result.index)?;
+            if let Some(filter_term) = &filter_term {
+                if !gene_set_term.to_lowercase().contains(filter_term) { return None }
+            }
+            Some(QueryResult {
+                gene_set_id: gene_set_id.to_string(),
+                n_overlap: result.n_overlap,
+                odds_ratio: result.odds_ratio,
+                pvalue: result.pvalue,
+                adj_pvalue: result.adj_pvalue,
+            })
+        })
+        .collect();
     let range_total = results.len();
-    let (range_start, range_end, results) = match (offset.unwrap_or(0), limit) {
-        (0, None) => (0, range_total, results),
+    let (range_start, range_end) = match (offset.unwrap_or(0), limit) {
+        (0, None) => (0, range_total),
         (offset, None) => {
-            let results = if offset >= results.len() {
-                Arc::new(Vec::new())
-            } else {
-                Arc::new(results[offset..].to_vec())
+            if offset < results.len() {
+                results.drain(..offset);
             };
-            (offset, range_total, results)
+            (offset, range_total)
         },
         (offset, Some(limit)) => {
-            let results = if offset >= results.len() {
-                Arc::new(Vec::new())
-            } else {
-                Arc::new(results[offset..std::cmp::min(results.len(), offset+limit)].to_vec())
+            if offset < results.len() {
+                results.drain(..offset);
+                if limit < results.len() {
+                    results.drain(limit..);
+                }
             };
-            (offset, offset + results.len(), results)
+            (offset, offset + results.len())
         },
     };
     Ok(QueryResponse {
