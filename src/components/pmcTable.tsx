@@ -56,11 +56,11 @@ export default function PmcTable({ terms, data, gene_set_ids }: { terms?: Map<st
         <table className="table table-xs table-pin-rows table-pin-cols table-auto">
           <thead>
             <tr>
-              <td className='w-32'>PMC</td>
-              <td className='w-1/4'>Title</td>
-              <td className='w-20'>Year</td>
-              <td className='w-20'># Terms</td>
-              <td className='w-10'></td>
+              <th>PMC</th>
+              <th>Title</th>
+              <th className="w-20">Year</th>
+              <th># Terms</th>
+              <th></th>
             </tr>
           </thead>
           <tbody>
@@ -87,8 +87,8 @@ export default function PmcTable({ terms, data, gene_set_ids }: { terms?: Map<st
                   {terms?.get(el?.pmcid)?.map(term => {
                     return (
                       <tr key={term} id={term} className='hidden'>
-                        <td><p className="break-words w-96">{term}</p></td>
-                        <td>
+                        <td colSpan={2}>{term}</td>
+                        <td colSpan={4}>
                           <button
                             className='btn btn-xs btn-outline p-2 h-auto'
                             data-te-toggle="modal"
@@ -103,8 +103,6 @@ export default function PmcTable({ terms, data, gene_set_ids }: { terms?: Map<st
                           ><p>View Gene Set ({gene_set_ids?.get(term)?.at(1) || 'n'})</p>
                           </button>
                         </td>
-                        <td></td>
-                        <td></td>
                       </tr>)
                   })}
                 </>
