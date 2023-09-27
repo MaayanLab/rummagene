@@ -1,6 +1,6 @@
 # Rummagene
 
-<https://rummagene.dev.maayanlab.cloud/>
+<https://rummagene.com/>
 
 This is a webserver for gene set enrichment analysis on a very large gene set -- one constructed by extracting gene sets from PMC OA, see <https://github.com/MaayanLab/TableMining> for that.
 
