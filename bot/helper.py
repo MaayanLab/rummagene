@@ -158,7 +158,7 @@ def import_paper_info(plpy):
   ]
 
   # use information from bulk download metadata table (https://ftp.ncbi.nlm.nih.gov/pub/pmc/)
-  pmc_meta = pd.read_csv('https://ftp.ncbi.nlm.nih.gov/pub/pmc/PMC-ids.csv.gz', usecols=['PMCID', 'Year', 'DOI'], index_col='PMCID')
+  pmc_meta = pd.read_csv('https://ftp.ncbi.nlm.nih.gov/pub/pmc/PMC-ids.csv.gz', usecols=['PMCID', 'Year', 'DOI'], index_col='PMCID', compression='gzip')
   pmc_meta = pmc_meta[pmc_meta.index.isin(to_ingest)]
   if pmc_meta.shape[0] == 0:
     return
