@@ -20,9 +20,9 @@ export default function Stats({
   if (show_gene_sets) {
     return (data?.geneSets?.totalCount !== undefined && show_gene_sets) ? <><span className={classNames({'font-bold': bold})}>{Intl.NumberFormat("en-US", {}).format(data.geneSets.totalCount)}</span>&nbsp;gene sets</> : <span className='loading'>loading</span>
   } else if (show_pmcs){
-    return (data?.pmcs?.totalCount !== undefined ? <><span className={classNames({'font-bold': bold})}>{Intl.NumberFormat("en-US", {}).format(data.pmcs.totalCount)}</span>&nbsp;publications</> : <span className='loading'>loading</span>)
+    return (data?.pmcs?.totalCount !== undefined ? <><span className={classNames({'font-bold': bold})}>{Intl.NumberFormat("en-US", {}).format(data.pmcs.totalCount)}</span>&nbsp;articles</> : <span className='loading'>loading</span>)
   } else if (show_publications) {
-    return (data?.pmcStats?.nPublicationsProcessed !== undefined ? <><span className={classNames({'font-bold': bold})}>{Intl.NumberFormat("en-US", {}).format(data.pmcStats.nPublicationsProcessed)}</span>&nbsp;publications</> : <span className='loading'>loading</span>) 
+    return (data?.pmcStats?.nPublicationsProcessed !== undefined ? <><span className={classNames({'font-bold': bold})}>{Intl.NumberFormat("en-US", {}).format(data.pmcStats.nPublicationsProcessed)}</span>&nbsp;PMC articles</> : <span className='loading'>loading</span>) 
   } else if (show_sets_analyzed) {
     return (data?.userGeneSets?.totalCount !== undefined ? <><span className={classNames({'font-bold': bold})}>{Intl.NumberFormat("en-US", {}).format(data.userGeneSets.totalCount)}</span>&nbsp;sets analyzed</> : <span className='loading'>loading</span>)
   } else{
