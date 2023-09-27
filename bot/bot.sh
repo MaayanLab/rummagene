@@ -19,6 +19,12 @@ PTH=$WORK_DIR $PYTHON ./clean.py || exit 1
 echo "ingesting new gene sets..."
 $PYTHON ./helper.py ingest -i $WORK_DIR/output-clean.gmt || exit 1
 
+echo "downloading latest PMC metadata..."
+curl -L https://ftp.ncbi.nlm.nih.gov/pub/pmc/PMC-ids.csv.gz > data/PMC-ids.csv.gz  || exit 1
+
+echo "ingesting latest PMC metadata..."
+$PYTHON ./helper.py ingest-paper-info || exit 1
+
 echo "registering a new release..."
 $PYTHON ./helper.py create-release "$(wc -l $WORK_DIR/done.new.txt | awk '{ print $1 }')" || exit 1
 
