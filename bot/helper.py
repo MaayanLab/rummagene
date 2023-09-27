@@ -160,6 +160,7 @@ def import_paper_info(plpy):
   title_dict = {}
   for i in tqdm(range(0, len(to_ingest), 250), 'Pulling titles...'):
      while True:
+        i = 0
         try:
           ids_string = ",".join([re.sub("[^0-9]", "", id) for id in to_ingest[i:i+250]])
           res = requests.get(f'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=pmc&retmode=json&id={ids_string}')
@@ -169,6 +170,9 @@ def import_paper_info(plpy):
         except Exception as e:
             print(e)
             print('Error resolving info. Retrying...')
+            i += 1
+            if i >= 10:
+              raise RuntimeError(f'Error connecting to E-utilites api...')
             continue
         break
     
