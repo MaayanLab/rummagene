@@ -165,23 +165,23 @@ def import_paper_info(plpy):
 
   title_dict = {}
   for i in tqdm(range(0, len(to_ingest), 250), 'Pulling titles...'):
-     while True:
-        i = 0
-        try:
-          ids_string = ",".join([re.sub(r"^PMC(\d+)$", r"\1", id) for id in to_ingest[i:i+250]])
-          res = requests.get(f'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=pmc&retmode=json&id={ids_string}')
-          ids_info = res.json()
-          for id in ids_info['result']['uids']:
-            title_dict[f"PMC{id}"] = ids_info['result'][id]['title']
-          break
-        except KeyboardInterrupt:
-          raise
-        except Exception as e:
-            print(e)
-            print('Error resolving info. Retrying...')
-            i += 1
-            if i >= 10:
-              raise RuntimeError(f'Error connecting to E-utilites api...')
+    while True:
+      j = 0
+      try:
+        ids_string = ",".join([re.sub(r"^PMC(\d+)$", r"\1", id) for id in to_ingest[i:i+250]])
+        res = requests.get(f'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=pmc&retmode=json&id={ids_string}')
+        ids_info = res.json()
+        for id in ids_info['result']['uids']:
+          title_dict[f"PMC{id}"] = ids_info['result'][id]['title']
+        break
+      except KeyboardInterrupt:
+        raise
+      except Exception as e:
+        print(e)
+        print('Error resolving info. Retrying...')
+        j += 1
+        if j >= 10:
+          raise RuntimeError(f'Error connecting to E-utilites api...')
 
   copy_from_records(
     plpy.conn, 'app_public_v2.pmc_info', ('pmcid', 'yr', 'doi', 'title'),
