@@ -142,44 +142,61 @@ def import_paper_info(plpy):
   import requests
   import re
 
-  # retrieve all pmc ids from gene sets
-  all_pmcs = {r['pmc'] for r in plpy.cursor('select * from app_public_v2.pmc', [])}
-  # retrieve all pmc ids already enriched with info
-  pmc_info_ingested = {r['pmcid'] for r in plpy.cursor('select pmcid from app_public_v2.pmc_info', [])}
-
   # find subset to add info to
-  to_ingest = list(all_pmcs - pmc_info_ingested)
+  to_ingest = [
+    r['pmc']
+    for r in plpy.cursor(
+      '''
+        select pmc
+        from app_public_v2.pmc
+        where pmc not in (
+          select pmcid
+          from app_public_v2.pmc_info
+        )
+      '''
+    )
+  ]
 
   # use information from bulk download metadata table (https://ftp.ncbi.nlm.nih.gov/pub/pmc/)
-  try:
-    pmc_meta = pd.read_csv('data/PMC-ids.csv', usecols=['PMCID', 'Year', 'DOI'], index_col='PMCID')
-    pmc_meta = pmc_meta[pmc_meta.index.isin(to_ingest)]
-  except:
-    raise RuntimeError('PMC metadata not found... you can download the latest verision from: https://ftp.ncbi.nlm.nih.gov/pub/pmc/')
-  
+  pmc_meta = pd.read_csv('https://ftp.ncbi.nlm.nih.gov/pub/pmc/PMC-ids.csv.gz', usecols=['PMCID', 'Year', 'DOI'], index_col='PMCID', compression='gzip')
+  pmc_meta = pmc_meta[pmc_meta.index.isin(to_ingest)]
+  if pmc_meta.shape[0] == 0:
+    return
+
   title_dict = {}
   for i in tqdm(range(0, len(to_ingest), 250), 'Pulling titles...'):
-     while True:
-        try:
-          ids_string = ",".join([re.sub("[^0-9]", "", id) for id in to_ingest[i:i+250]])
-          res = requests.get(f'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=pmc&retmode=json&id={ids_string}')
-          ids_info = res.json()
-          for id in ids_info['result']['uids']:
-            title_dict[f'PMC{id}'] = ids_info['result'][id]['title']
-        except Exception as e:
-            print(e)
-            print('Error resolving info. Retrying...')
-            continue
+    while True:
+      j = 0
+      try:
+        ids_string = ",".join([re.sub(r"^PMC(\d+)$", r"\1", id) for id in to_ingest[i:i+250]])
+        res = requests.get(f'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=pmc&retmode=json&id={ids_string}')
+        ids_info = res.json()
+        for id in ids_info['result']['uids']:
+          title_dict[f"PMC{id}"] = ids_info['result'][id]['title']
         break
-    
+      except KeyboardInterrupt:
+        raise
+      except Exception as e:
+        print(e)
+        print('Error resolving info. Retrying...')
+        j += 1
+        if j >= 10:
+          raise RuntimeError(f'Error connecting to E-utilites api...')
 
-  for pmc in tqdm(pmc_meta.index.values, desc='Inserting PMC info..'):
-    pmc_info = pmc_meta.loc[pmc]
-    plpy.execute(
-      'insert into app_public_v2.pmc_info (pmcid, yr, doi, title) values (%s, %s, %s, %s)',
-      [pmc, int(pmc_info['Year']), pmc_info['DOI'], title_dict[pmc]],
-    )
-  
+  copy_from_records(
+    plpy.conn, 'app_public_v2.pmc_info', ('pmcid', 'yr', 'doi', 'title'),
+    tqdm((
+      dict(
+        pmcid=pmc,
+        yr=int(pmc_meta.at[pmc, 'Year']),
+        doi=pmc_meta.at[pmc, 'DOI'],
+        title=title_dict[pmc],
+      )
+      for pmc in pmc_meta.index.values
+    ),
+    total=len(to_ingest),
+    desc='Inserting PMC info..')
+  )
 
 @click.group()
 def cli(): pass
