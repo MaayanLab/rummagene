@@ -142,13 +142,20 @@ def import_paper_info(plpy):
   import requests
   import re
 
-  # retrieve all pmc ids from gene sets
-  all_pmcs = {r['pmc'] for r in plpy.cursor('select pmc from app_public_v2.pmc', [])}
-  # retrieve all pmc ids already enriched with info
-  pmc_info_ingested = {r['pmcid'] for r in plpy.cursor('select pmcid from app_public_v2.pmc_info', [])}
-
   # find subset to add info to
-  to_ingest = list(all_pmcs - pmc_info_ingested)
+  to_ingest = [
+    r['pmc']
+    for r in plpy.cursor(
+      '''
+        select pmc
+        from app_public_v2.pmc
+        where pmc not in (
+          select pmcid
+          from app_public_v2.pmc_info
+        )
+      '''
+    )
+  ]
 
   # use information from bulk download metadata table (https://ftp.ncbi.nlm.nih.gov/pub/pmc/)
   pmc_meta = pd.read_csv('https://ftp.ncbi.nlm.nih.gov/pub/pmc/PMC-ids.csv.gz', usecols=['PMCID', 'Year', 'DOI'], index_col='PMCID')
