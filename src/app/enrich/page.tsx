@@ -191,9 +191,7 @@ export default function Enrich({
           }}
         >{userGeneSet?.userGeneSet?.description || 'Gene set'}{userGeneSet ? <> ({userGeneSet?.userGeneSet?.genes?.length ?? '?'} genes)</> : null}</label>
       </div>
-      <div className="container mx-auto">
-        <EnrichmentResults userGeneSet={userGeneSet} setModalGeneSet={setModalGeneSet} />
-      </div>
+      <EnrichmentResults userGeneSet={userGeneSet} setModalGeneSet={setModalGeneSet} />
       <GeneSetModalWrapper modalGeneSet={modalGeneSet} setModalGeneSet={setModalGeneSet} />
     </>
   )

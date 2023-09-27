@@ -4,9 +4,7 @@ import Link from "next/link"
 
 export default function About() {
   return (
-    <div className="prose p-5">
-
-
+    <div className="prose">
       <h2 className="title text-xl font-medium mb-3">About Rummagene</h2>
       <div className="flex">
         <div className="flex-col">

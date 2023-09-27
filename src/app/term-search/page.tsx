@@ -47,7 +47,7 @@ export default function TermSearchPage() {
       <HomeLayout>
         <h1 className="text-xl">Query extracted gene set table titles to find relevant gene sets</h1>
         <form
-          className="flex flex-col items-center gap-2 mt-5"
+          className="flex flex-col items-center gap-2"
           onSubmit={evt => {
             evt.preventDefault()
             setTerms(rawTerms)
@@ -68,7 +68,7 @@ export default function TermSearchPage() {
             className="btn normal-case"
           >Search gene sets</button>
         </form>
-        <p className="prose p-2">
+        <p className="prose">
           try an example:&nbsp;
           {examples.flatMap((example, i) => [
             i > 0 ? <React.Fragment key={i}>, </React.Fragment> : null,
@@ -86,7 +86,7 @@ export default function TermSearchPage() {
       <>
       <div className='flex-col'>
         <form
-          className="flex flex-row items-center gap-2"
+          className="flex flex-row items-center gap-4"
           onSubmit={evt => {
             evt.preventDefault()
             setTerms(rawTerms)
@@ -106,7 +106,7 @@ export default function TermSearchPage() {
             type="submit"
             className="btn normal-case"
           >Search gene sets</button>
-        <div className='ml-10'> Query extracted gene set table titles to find relevant gene sets.</div>
+        <div> Query extracted gene set table titles to find relevant gene sets.</div>
         </form>
         <p className="prose p-2">
           try an example:&nbsp;

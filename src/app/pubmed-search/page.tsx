@@ -83,7 +83,7 @@ export default function PubMedSearchPage() {
       <HomeLayout>
         <h1 className="text-xl">Query PubMed Central and receive gene sets extracted from the returned paper</h1>
         <form
-          className="flex flex-col items-center gap-2 mt-5"
+          className="flex flex-col items-center gap-4"
           onSubmit={evt => {
             evt.preventDefault()
             setSearch(rawSearch)
