@@ -17,7 +17,7 @@ export default function Download() {
         This database is updated weekly to extract gene sets automatically from newly published open access PMC articles.
       </p>
       <div className="grid lg:grid-cols-2 gap-4 my-4">
-        <a className="stats shadow" href="https://s3.dev.maayanlab.cloud/biotablemind/table-mining.gmt.gz" download="table-mining.gmt.gz">
+        <a className="stats shadow" href="https://s3.dev.maayanlab.cloud/rummagene/table-mining.gmt.gz" download="table-mining.gmt.gz">
           <div className="stat gap-2">
             <div className="stat-title">table-mining.gmt.gz</div>
             <div className="stat-value">729,968 columns</div>
@@ -26,7 +26,7 @@ export default function Download() {
             </div>
           </div>
         </a>
-        <a className="stats shadow" href="https://s3.dev.maayanlab.cloud/biotablemind/table-mining-clean.gmt.gz" download="table-mining-clean.gmt.gz">
+        <a className="stats shadow" href="https://s3.dev.maayanlab.cloud/rummagene/table-mining-clean.gmt.gz" download="table-mining-clean.gmt.gz">
           <div className="stat gap-2">
             <div className="stat-title">table-mining-clean.gmt.gz</div>
             <div className="stat-value">642,389 gene sets</div>
