@@ -40,10 +40,12 @@ function EnrichmentResults({ userGeneSet, setModalGeneSet }: { userGeneSet?: Fet
   )
   const [page, setPage] = useQsState('page', 1)
   const [term, setTerm] = useQsState('q', '')
+  const [rawTerm, setRawTerm] = React.useState('')
   const { data: enrichmentResults } = useEnrichmentQueryQuery({
     skip: genes.length === 0,
     variables: { genes, filterTerm: term, offset: (page-1)*pageSize, first: pageSize },
   })
+  React.useEffect(() => {setRawTerm(term)}, [term])
   return (
     <div className="flex flex-col gap-2 my-2">
       <h2 className="text-md font-bold">
@@ -51,18 +53,33 @@ function EnrichmentResults({ userGeneSet, setModalGeneSet }: { userGeneSet?: Fet
           <>Rummaging through <Stats show_gene_sets />.</>
           : <>After rummaging through <Stats show_gene_sets />. Rummagene <Image className="inline-block rounded" src="/images/rummagene_logo.png" width={50} height={100} alt="Rummagene"></Image> found {Intl.NumberFormat("en-US", {}).format(enrichmentResults?.currentBackground?.enrich?.totalCount || 0)} statistically significant matches.</>}
       </h2>
-      <div className='text-right pt-3 pr-3'>
-        <span className="label-text text-base">Search: </span>
+      <form
+        className="join flex flex-row place-content-end place-items-center"
+        onSubmit={evt => {
+          evt.preventDefault()
+          setPage(1)
+          setTerm(rawTerm)
+        }}
+      >
         <input
           type="text"
-          className="input input-bordered"
-          value={term}
-          onChange={evt => {
-            setPage(1)
-            setTerm(evt.currentTarget.value)
-          }}
+          className="input input-bordered join-item"
+          value={rawTerm}
+          onChange={evt => {setRawTerm(evt.currentTarget.value)}}
         />
-      </div>
+        <button
+          type="submit"
+          className="btn join-item"
+        >&#x1F50D;</button>
+        <button
+          type="reset"
+          className="btn join-item"
+          onClick={evt => {
+            setPage(1)
+            setTerm('')
+          }}
+        >&#x232B;</button>
+      </form>
       <div className="overflow-x-auto">
         <table className="table table-xs">
           <thead>
