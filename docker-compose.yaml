@@ -48,7 +48,7 @@ services:
       # * month of year
       # 1 day of week (monday)
       ofelia.job-exec.update-db.schedule: "0 0 9 * * 1"
-      ofelia.job-exec.update-db.command: "/work/bot.sh > /work/data/log 2> /work/data/log"
+      ofelia.job-exec.update-db.command: "/bin/sh -c '/work/bot.sh > /work/data/log 2> /work/data/log'"
   cron:
     image: mcuadros/ofelia:latest
     command: daemon --docker
