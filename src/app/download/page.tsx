@@ -35,6 +35,15 @@ export default function Download() {
             </div>
           </div>
         </a>
+        <a className="stats shadow" href="https://s3.dev.maayanlab.cloud/rummagene/umap.tsv.gz" download="umap.tsv.gz">
+          <div className="stat gap-2">
+            <div className="stat-title">umap.tsv.gz</div>
+            <div className="stat-value">642,389 points</div>
+            <div className="stat-desc whitespace-normal">
+              <span className="whitespace-nowrap">12.4MB compressed</span>, <span className="whitespace-nowrap">51.3MB uncompressed</span>, <span className="whitespace-nowrap">Last Updated Mon Oct 2 2023</span>
+            </div>
+          </div>
+        </a>
         <a className="stats shadow" href="/download.gmt" download="download.gmt">
           <div className="stat gap-2">
             <div className="stat-title">latest.gmt</div>
