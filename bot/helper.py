@@ -1,6 +1,7 @@
-import typing as t
 import click
 import psycopg2
+import traceback
+import typing as t
 from pathlib import Path
 from tqdm import tqdm
 
@@ -172,12 +173,15 @@ def import_paper_info(plpy):
         res = requests.get(f'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=pmc&retmode=json&id={ids_string}')
         ids_info = res.json()
         for id in ids_info['result']['uids']:
-          title_dict[f"PMC{id}"] = ids_info['result'][id]['title']
+          try:
+            title_dict[f"PMC{id}"] = ids_info['result'][id]['title']
+          except KeyError:
+            pass
         break
       except KeyboardInterrupt:
         raise
       except Exception as e:
-        print(e)
+        traceback.print_exc()
         print('Error resolving info. Retrying...')
         j += 1
         if j >= 10:
@@ -193,6 +197,7 @@ def import_paper_info(plpy):
         title=title_dict[pmc],
       )
       for pmc in pmc_meta.index.values
+      if pmc in title_dict
     ),
     total=len(to_ingest),
     desc='Inserting PMC info..')
