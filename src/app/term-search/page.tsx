@@ -3,7 +3,7 @@ import React from 'react'
 import { useTermSearchQuery } from '@/graphql'
 import TermTable from '@/components/termTable'
 import Image from 'next/image'
-import { useQsState } from '@/utils/useQsState'
+import useQsState from '@/utils/useQsState'
 import HomeLayout from '@/app/homeLayout'
 import Stats from '../stats'
 
@@ -39,10 +39,10 @@ const examples = [
 ]
 
 export default function TermSearchPage() {
-  const [terms, setTerms] = useQsState('q', '')
+  const [queryString, setQueryString] = useQsState({ q: '' })
   const [rawTerms, setRawTerms] = React.useState('')
-  React.useEffect(() => {setRawTerms(terms)}, [terms])
-  if (!terms) {
+  React.useEffect(() => {setRawTerms(queryString.q ?? '')}, [queryString.q])
+  if (!queryString.q) {
     return (
       <HomeLayout>
         <h1 className="text-xl">Query extracted gene set table titles to find relevant gene sets</h1>
@@ -50,7 +50,7 @@ export default function TermSearchPage() {
           className="flex flex-col items-center gap-2"
           onSubmit={evt => {
             evt.preventDefault()
-            setTerms(rawTerms)
+            setQueryString({ q: rawTerms })
           }}
         >
           <span className="label-text text-lg">Search Term(s)</span>
@@ -75,7 +75,7 @@ export default function TermSearchPage() {
             <a
               key={example}
               className="font-bold text-sm cursor-pointer"
-              onClick={() => {setTerms(example)}}
+              onClick={() => {setQueryString({ q: example })}}
             >{example}</a>
           ])}
         </p>
@@ -89,7 +89,7 @@ export default function TermSearchPage() {
           className="flex flex-row items-center gap-4"
           onSubmit={evt => {
             evt.preventDefault()
-            setTerms(rawTerms)
+            setQueryString({ q: rawTerms })
           }}
         >
           <span className="label-text text-lg">Term</span>
@@ -115,12 +115,12 @@ export default function TermSearchPage() {
             <a
               key={example}
               className="font-bold text-sm cursor-pointer"
-              onClick={() => {setTerms(example)}}
+              onClick={() => {setQueryString({ q: example })}}
             >{example}</a>
           ])}
         </p>
         </div>
-        {terms ? <TermSearchResults terms={terms} /> : null}
+        {queryString.q ? <TermSearchResults terms={queryString.q} /> : null}
       </>
     )
   }

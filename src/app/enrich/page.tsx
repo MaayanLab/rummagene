@@ -11,7 +11,7 @@ import ensureArray from "@/utils/ensureArray"
 import LinkedTerm from '@/components/linkedTerm'
 import Loading from '@/components/loading'
 import Pagination from '@/components/pagination'
-import { useQsState } from '@/utils/useQsState'
+import useQsState from '@/utils/useQsState'
 import Stats from '../stats'
 import Image from 'next/image'
 import GeneSetModal from '@/components/geneSetModal'
@@ -38,9 +38,9 @@ function EnrichmentResults({ userGeneSet, setModalGeneSet }: { userGeneSet?: Fet
     ensureArray(userGeneSet?.userGeneSet?.genes).filter((gene): gene is string => !!gene).map(gene => gene.toUpperCase()),
     [userGeneSet]
   )
-  const [page, setPage] = useQsState('page', 1)
-  const [term, setTerm] = useQsState('q', '')
+  const [queryString, setQueryString] = useQsState({ page:  '1', q: '' })
   const [rawTerm, setRawTerm] = React.useState('')
+  const { page, term } = React.useMemo(() => ({ page: queryString.page ? +queryString.page : 1, term: queryString.q ?? '' }), [queryString])
   const { data: enrichmentResults } = useEnrichmentQueryQuery({
     skip: genes.length === 0,
     variables: { genes, filterTerm: term, offset: (page-1)*pageSize, first: pageSize },
@@ -57,8 +57,7 @@ function EnrichmentResults({ userGeneSet, setModalGeneSet }: { userGeneSet?: Fet
         className="join flex flex-row place-content-end place-items-center"
         onSubmit={evt => {
           evt.preventDefault()
-          setPage(1)
-          setTerm(rawTerm)
+          setQueryString({ page: '1', q: rawTerm })
         }}
       >
         <input
@@ -75,8 +74,7 @@ function EnrichmentResults({ userGeneSet, setModalGeneSet }: { userGeneSet?: Fet
           type="reset"
           className="btn join-item"
           onClick={evt => {
-            setPage(1)
-            setTerm('')
+            setQueryString({ page: '1', q: '' })
           }}
         >&#x232B;</button>
       </form>
@@ -141,7 +139,9 @@ function EnrichmentResults({ userGeneSet, setModalGeneSet }: { userGeneSet?: Fet
           page={page}
           totalCount={enrichmentResults?.currentBackground?.enrich?.totalCount ? enrichmentResults?.currentBackground?.enrich.totalCount : undefined}
           pageSize={pageSize}
-          onChange={page => setPage(page)}
+          onChange={page => {
+            setQueryString({ page: `${page}`, q: term })
+          }}
         />
       </div>
     </div>

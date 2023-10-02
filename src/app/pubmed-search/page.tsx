@@ -5,7 +5,7 @@ import { useTermsPmcsQuery } from '@/graphql'
 import PmcSearchColumns from '@/components/pmcSearchData'
 import Image from 'next/image'
 import Loading from '@/components/loading'
-import { useQsState } from '@/utils/useQsState'
+import useQsState from '@/utils/useQsState'
 import HomeLayout from '@/app/homeLayout'
 import Stats from '../stats'
 
@@ -78,9 +78,9 @@ const examples = [
 
 export default function PubMedSearchPage() {
   const [rawSearch, setRawSearch] = React.useState('')
-  const [search, setSearch] = useQsState('q', '')
-  React.useEffect(() => setRawSearch(search), [search])
-  if (!search) {
+  const [queryString, setQueryString] = useQsState({ q: '' })
+  React.useEffect(() => setRawSearch(queryString.q ?? ''), [queryString.q])
+  if (!queryString.q) {
     return (
       <HomeLayout>
         <h1 className="text-xl">Query PubMed Central and receive gene sets extracted from the returned paper</h1>
@@ -88,7 +88,7 @@ export default function PubMedSearchPage() {
           className="flex flex-col items-center gap-4"
           onSubmit={evt => {
             evt.preventDefault()
-            setSearch(rawSearch)
+            setQueryString({ q: rawSearch })
           }}
         >
           <span className="label-text text-lg">Search Term(s)</span>
@@ -113,7 +113,7 @@ export default function PubMedSearchPage() {
             <a
               key={example}
               className="font-bold text-sm cursor-pointer"
-              onClick={() => {setSearch(example)}}
+              onClick={() => {setQueryString({ q: example })}}
             >{example}</a>
           ])}
         </p>
@@ -127,7 +127,7 @@ export default function PubMedSearchPage() {
             className="flex flex-row items-center gap-2 mt-5"
             onSubmit={evt => {
               evt.preventDefault()
-              setSearch(rawSearch)
+              setQueryString({ q: rawSearch })
             }}
           >
             <span className="label-text text-lg">Search Term(s)</span>
@@ -153,12 +153,12 @@ export default function PubMedSearchPage() {
               <a
                 key={example}
                 className="font-bold text-sm cursor-pointer"
-                onClick={() => {setSearch(example)}}
+                onClick={() => {setQueryString({ q: example })}}
               >{example}</a>
             ])}
           </p>
         </div>
-        {search ? <PubMedSearchResults search={search} /> : null}
+        {queryString.q ? <PubMedSearchResults search={queryString.q} /> : null}
       </>
     )
   }
