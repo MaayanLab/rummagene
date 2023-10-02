@@ -1,7 +1,11 @@
-import React, { use } from 'react'
-import LinkedTerm from './linkedTerm';
+import React from 'react'
+import LinkedTerm from '@/components/linkedTerm';
 import { useViewGeneSetQuery } from '@/graphql';
-import GeneSetModal from './geneSetModal';
+import GeneSetModal from '@/components/geneSetModal';
+import useQsState from '@/utils/useQsState';
+import Pagination from '@/components/pagination';
+
+const pageSize = 10
 
 interface pmcData {
   __typename?: "PmcInfo" | undefined;
@@ -12,27 +16,19 @@ interface pmcData {
 }
 
 export default function PmcTable({ terms, data, gene_set_ids }: { terms?: Map<string, string[]>, data?: pmcData[], gene_set_ids?: Map<string, string[]> }) {
-  const [page, setPage] = React.useState(0)
-  const [numPerPage, setNumPerPage] = React.useState(10)
+  const [queryString, setQueryString] = useQsState({ page: '1', f: '' })
+  const { page, searchTerm } = React.useMemo(() => ({ page: queryString.page ? +queryString.page : 1, searchTerm: queryString.f ?? '' }), [queryString])
 
-  const [searchTerm, setSearchTerm] = React.useState('')
-  const [dataFiltered, setDataFiltered] = React.useState(data?.slice(page * numPerPage, numPerPage * (page + 1)))
-  const [total, setTotal] = React.useState(data?.length)
-  const [maxPage, setMaxPage] = React.useState(Math.floor((data?.length || 1) / numPerPage))
+  const dataFiltered = React.useMemo(() =>
+    data?.filter(el => {
+      const rowToSearch = el?.title + (terms?.get(el?.pmcid)?.join(' ') || '')
+      return (rowToSearch?.toLowerCase().includes(searchTerm.toLowerCase()))
+    }),
+  [data, searchTerm])
 
   const [geneSetId, setGeneSetId] = React.useState<string | null>(gene_set_ids?.values().next().value?.at(0) || '')
   const [currTerm, setCurrTerm] = React.useState<string | null>(gene_set_ids?.keys().next().value?.at(0) || '')
   const [showModal, setShowModal] = React.useState(false)
-
-  React.useEffect(() => {
-    const searchFilteredData = data?.filter(el => {
-      const rowToSearch = el?.title + (terms?.get(el?.pmcid)?.join(' ') || '')
-      return (rowToSearch?.toLowerCase().includes(searchTerm.toLowerCase()))
-    })
-    setTotal(searchFilteredData?.length)
-    setMaxPage(Math.floor((searchFilteredData?.length || 1) / numPerPage))
-    setDataFiltered(searchFilteredData?.slice(page * numPerPage, numPerPage * (page + 1)))
-  }, [page, numPerPage, data, terms, searchTerm])
 
   const genesQuery = useViewGeneSetQuery({
     variables: { id: geneSetId }
@@ -49,7 +45,7 @@ export default function PmcTable({ terms, data, gene_set_ids }: { terms?: Map<st
             className="input input-bordered"
             value={searchTerm}
             onChange={evt => {
-              setSearchTerm(evt.currentTarget.value)
+              setQueryString({ page: '1', f: evt.currentTarget.value })
             }}
           />
         </div>
@@ -64,7 +60,7 @@ export default function PmcTable({ terms, data, gene_set_ids }: { terms?: Map<st
             </tr>
           </thead>
           <tbody>
-            {dataFiltered?.map(el => {
+            {dataFiltered?.slice((page-1) * pageSize, page * pageSize).map(el => {
               return (
                 <>
                   <tr key={el?.pmcid} className={"hover:bg-gray-100 dark:hover:bg-gray-700"}>
@@ -112,29 +108,12 @@ export default function PmcTable({ terms, data, gene_set_ids }: { terms?: Map<st
         </table>
       </div>
       <div className="flex flex-col items-center">
-
-        <span className="text-sm text-gray-700 dark:text-gray-400">
-          Showing <span className="font-semibold text-gray-900 dark:text-white">{(page * numPerPage) + 1}</span> to <span className="font-semibold text-gray-900 dark:text-white">{Math.min(numPerPage * (page + 1), total || 0)}</span> of <span className="font-semibold text-gray-900 dark:text-white">{total}</span> Entries
-        </span>
-
-        <div className="inline-flex mt-2 xs:mt-0 mb-5">
-          <button className="flex items-center justify-center px-3 h-8 text-sm font-medium text-white bg-gray-500 rounded-l hover:bg-gray-900 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white"
-            onClick={evt => {
-              if (page > 0) {
-                setPage(page - 1)
-              }
-            }}>
-            Prev
-          </button>
-          <button
-            className="flex items-center justify-center px-3 h-8 text-sm font-medium text-white bg-gray-500 border-0 border-l border-gray-700 rounded-r hover:bg-gray-900 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white"
-            onClick={evt => {
-              if (page < maxPage) setPage(page + 1)
-            }}
-          >
-            Next
-          </button>
-        </div>
+        <Pagination
+          page={page}
+          pageSize={pageSize}
+          totalCount={dataFiltered?.length}
+          onChange={newPage => {setQueryString({ page: `${newPage}` })}}
+        />
       </div>
     </>
   )
