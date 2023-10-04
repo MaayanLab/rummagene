@@ -8,13 +8,13 @@ import {
   useViewGeneSetQuery
 } from '@/graphql'
 import ensureArray from "@/utils/ensureArray"
-import LinkedTerm from '@/components/linkedTerm'
 import Loading from '@/components/loading'
 import Pagination from '@/components/pagination'
 import useQsState from '@/utils/useQsState'
 import Stats from '../stats'
 import Image from 'next/image'
 import GeneSetModal from '@/components/geneSetModal'
+import partition from '@/utils/partition'
 
 const pageSize = 10
 
@@ -82,7 +82,10 @@ function EnrichmentResults({ userGeneSet, setModalGeneSet }: { userGeneSet?: Fet
         <table className="table table-xs">
           <thead>
             <tr>
-              <th>Supporting tables containing matching gene sets</th>
+              <th>Paper</th>
+              <th>Title</th>
+              <th>Supporting Table</th>
+              <th>Column</th>
               <th>Gene Set Size</th>
               <th>Overlap</th>
               <th>Odds</th>
@@ -96,54 +99,83 @@ function EnrichmentResults({ userGeneSet, setModalGeneSet }: { userGeneSet?: Fet
                 <td colSpan={7}><Loading /></td>
               </tr>
             : null}
-            {enrichmentResults?.currentBackground?.enrich?.nodes?.map((enrichmentResult, j) => (
-              <tr key={j}>
-                <th><LinkedTerm term={enrichmentResult?.geneSet?.term} /></th>
-                <td className="whitespace-nowrap text-underline cursor-pointer">
-                  <label
-                    htmlFor="geneSetModal"
-                    className="prose underline cursor-pointer"
-                    onClick={evt => {
-                      setModalGeneSet({
-                        type: 'GeneSet',
-                        id: enrichmentResult?.geneSet?.id,
-                        description: enrichmentResult?.geneSet?.term ?? '',
-                      })
-                    }}
-                  >{enrichmentResult?.geneSet?.nGeneIds}</label>
-                </td>
-                <td className="whitespace-nowrap text-underline cursor-pointer">
-                  <label
-                    htmlFor="geneSetModal"
-                    className="prose underline cursor-pointer"
-                    onClick={evt => {
-                      setModalGeneSet({
-                        type: 'GeneSetOverlap',
-                        id: enrichmentResult?.geneSet?.id,
-                        description: enrichmentResult?.geneSet?.term ?? '',
-                        genes,
-                      })
-                    }}
-                  >{enrichmentResult?.nOverlap}</label>
-                </td>
-                <td className="whitespace-nowrap">{enrichmentResult?.oddsRatio?.toPrecision(3)}</td>
-                <td className="whitespace-nowrap">{enrichmentResult?.pvalue?.toPrecision(3)}</td>
-                <td className="whitespace-nowrap">{enrichmentResult?.adjPvalue?.toPrecision(3)}</td>
-              </tr>
-            ))}
+            {enrichmentResults?.currentBackground?.enrich?.nodes?.map((enrichmentResult, j) => {
+              if (!enrichmentResult?.geneSet) return null
+              const [pmcid, _, term] = partition(enrichmentResult?.geneSet?.term, '-')
+              const m = term ? /^(.+?\.\w+)-+(.+)$/.exec(term) : null
+              const table = m ? m[1] : null
+              const column = m ? m[2] : term
+              return (
+                <tr key={j}>
+                  <th>
+                    <a
+                      className="underline cursor-pointer"
+                      href={`https://www.ncbi.nlm.nih.gov/pmc/articles/${pmcid}/`}
+                      target="_blank"
+                      rel="noreferrer"
+                    >{pmcid}</a>
+                  </th>
+                  <td>{enrichmentResult?.geneSet?.geneSetPmcsById?.nodes[0].pmcInfoByPmcid?.title ?? ''}</td>
+                  <td>
+                    {table ?
+                      <a
+                        className="underline cursor-pointer"
+                        href={`https://www.ncbi.nlm.nih.gov/pmc/articles/${pmcid}/bin/${table}`}
+                        target="_blank"
+                      >
+                        {table}
+                      </a>
+                    : null}
+                  </td>
+                  <td>{column}</td>
+                  <td className="whitespace-nowrap text-underline cursor-pointer">
+                    <label
+                      htmlFor="geneSetModal"
+                      className="prose underline cursor-pointer"
+                      onClick={evt => {
+                        setModalGeneSet({
+                          type: 'GeneSet',
+                          id: enrichmentResult?.geneSet?.id,
+                          description: enrichmentResult?.geneSet?.term ?? '',
+                        })
+                      }}
+                    >{enrichmentResult?.geneSet?.nGeneIds}</label>
+                  </td>
+                  <td className="whitespace-nowrap text-underline cursor-pointer">
+                    <label
+                      htmlFor="geneSetModal"
+                      className="prose underline cursor-pointer"
+                      onClick={evt => {
+                        setModalGeneSet({
+                          type: 'GeneSetOverlap',
+                          id: enrichmentResult?.geneSet?.id,
+                          description: enrichmentResult?.geneSet?.term ?? '',
+                          genes,
+                        })
+                      }}
+                    >{enrichmentResult?.nOverlap}</label>
+                  </td>
+                  <td className="whitespace-nowrap">{enrichmentResult?.oddsRatio?.toPrecision(3)}</td>
+                  <td className="whitespace-nowrap">{enrichmentResult?.pvalue?.toPrecision(3)}</td>
+                  <td className="whitespace-nowrap">{enrichmentResult?.adjPvalue?.toPrecision(3)}</td>
+                </tr>
+              )
+            })}
           </tbody>
         </table>
       </div>
-      <div className="w-full flex flex-col items-center">
-        <Pagination
-          page={page}
-          totalCount={enrichmentResults?.currentBackground?.enrich?.totalCount ? enrichmentResults?.currentBackground?.enrich.totalCount : undefined}
-          pageSize={pageSize}
-          onChange={page => {
-            setQueryString({ page: `${page}`, q: term })
-          }}
-        />
-      </div>
+      {enrichmentResults?.currentBackground?.enrich ?
+        <div className="w-full flex flex-col items-center">
+          <Pagination
+            page={page}
+            totalCount={enrichmentResults?.currentBackground?.enrich?.totalCount ? enrichmentResults?.currentBackground?.enrich.totalCount : undefined}
+            pageSize={pageSize}
+            onChange={page => {
+              setQueryString({ page: `${page}`, q: term })
+            }}
+          />
+        </div>
+      : null}
     </div>
   )
 }
