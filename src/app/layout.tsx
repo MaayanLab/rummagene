@@ -46,7 +46,7 @@ export default function RootLayout({
             <footer className="footer p-5 bg-neutral text-neutral-content flex flex-col justify-stretch place-items-stretch gap-2">
               <div className="place-self-center prose xl:max-w-4xl md:max-w-2xl max-w-xl">
                 <p>Please acknowledge Rummagene in your publications by citing the following reference:</p>
-                <p>Daniel J. B. Clarke, Giacomo B. Marino, Eden Z. Deng, Zhuorui Xie, John Erol Evangelista, Avi Ma'ayan. Rummagene: Mining Gene Sets from Supporting Materials of PMC Publications. <a className="underline" href="https://www.biorxiv.org/content/10.1101/2023.10.03.560783v1" target="_blank">bioRxiv 2023.10.03.560783</a></p>
+                <p>Daniel J. B. Clarke, Giacomo B. Marino, Eden Z. Deng, Zhuorui Xie, John Erol Evangelista, Avi Ma&apos;ayan. Rummagene: Mining Gene Sets from Supporting Materials of PMC Publications. <a className="underline" href="https://www.biorxiv.org/content/10.1101/2023.10.03.560783v1" target="_blank">bioRxiv 2023.10.03.560783</a></p>
               </div>
               <div className="flex place-content-evenly">
                 <div className="text-center pt-5">
