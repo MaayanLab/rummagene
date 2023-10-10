@@ -31,15 +31,17 @@ export default function About() {
           <p>
             This database is updated weekly to extract gene sets automatically from newly published open access PMC articles.
           </p>
-          <br></br>
+          <br />
           <p>
             This site is programatically accessible via a <Link href="/graphiql" className="underline cursor-pointer" target="_blank">GraphQL API</Link>.
           </p>
-          <br></br>
+          <br />
           <p>
           Rummagene is actively being developed by <a className='underline cursor' href="https://labs.icahn.mssm.edu/maayanlab/">the Ma&apos;ayan Lab</a>
           </p>
-          
+          <br />
+          <p>Please acknowledge Rummagene in your publications by citing the following reference:</p>
+          <p>Daniel J. B. Clarke, Giacomo B. Marino, Eden Z. Deng, Zhuorui Xie, John Erol Evangelista, Avi Ma&apos;ayan. Rummagene: Mining Gene Sets from Supporting Materials of PMC Publications. <a className="underline" href="https://www.biorxiv.org/content/10.1101/2023.10.03.560783v1" target="_blank">bioRxiv 2023.10.03.560783</a></p>
         </div>
        
       </div>
