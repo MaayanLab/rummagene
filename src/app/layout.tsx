@@ -43,7 +43,7 @@ export default function RootLayout({
                 </React.Suspense>
               </div>
             </main>
-            <footer className="flex-none footer p-5 bg-neutral text-neutral-content flex place-content-evenly">
+            <footer className="flex-none footer p-5 mt-5 bg-neutral text-neutral-content flex place-content-evenly">
               <div className="text-center pt-5">
                 <ul>
                   <li><Link href="mailto:avi.maayan@mssm.edu" target="_blank">Contact Us</Link></li>
