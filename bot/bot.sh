@@ -12,9 +12,12 @@ ln -s ../done.txt $WORK_DIR/done.txt
 
 echo "assembling output.gmt... (new gene sets extracted from PMC articles)"
 PTH=$WORK_DIR $PYTHON ./download_extract.py || exit 1
+test -f $WORK_DIR/output.gmt || exit 1
+test -f $WORK_DIR/done.new.txt || exit 1
 
 echo "assembling output-clean.gmt... (pruned, and normalized gene sets)"
 PTH=$WORK_DIR $PYTHON ./clean.py || exit 1
+test -f $WORK_DIR/output-clean.gmt || exit 1
 
 echo "ingesting new gene sets..."
 $PYTHON ./helper.py ingest -i $WORK_DIR/output-clean.gmt || exit 1
