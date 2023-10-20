@@ -187,21 +187,22 @@ def import_paper_info(plpy):
         if j >= 10:
           raise RuntimeError(f'Error connecting to E-utilites api...')
 
-  copy_from_records(
-    plpy.conn, 'app_public_v2.pmc_info', ('pmcid', 'yr', 'doi', 'title'),
-    tqdm((
-      dict(
-        pmcid=pmc,
-        yr=int(pmc_meta.at[pmc, 'Year']),
-        doi=pmc_meta.at[pmc, 'DOI'],
-        title=title_dict[pmc],
-      )
-      for pmc in pmc_meta.index.values
-      if pmc in title_dict
-    ),
-    total=len(to_ingest),
-    desc='Inserting PMC info..')
-  )
+  if title_dict:
+    copy_from_records(
+      plpy.conn, 'app_public_v2.pmc_info', ('pmcid', 'yr', 'doi', 'title'),
+      tqdm((
+        dict(
+          pmcid=pmc,
+          yr=int(pmc_meta.at[pmc, 'Year']),
+          doi=pmc_meta.at[pmc, 'DOI'],
+          title=title_dict[pmc],
+        )
+        for pmc in pmc_meta.index.values
+        if pmc in title_dict
+      ),
+      total=len(title_dict),
+      desc='Inserting PMC info..')
+    )
 
 @click.group()
 def cli(): pass
