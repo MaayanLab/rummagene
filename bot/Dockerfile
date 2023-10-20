@@ -1,4 +1,4 @@
-FROM python
+FROM python:3.11
 
 COPY deps.txt /tmp/deps.txt
 RUN set -x \
