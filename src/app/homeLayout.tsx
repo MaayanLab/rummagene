@@ -4,9 +4,9 @@ import Stats from './stats'
 
 export default function HomeLayout({ children }: React.PropsWithChildren<{}>) {
   return (
-    <div className="hero">
-      <div className="hero-content flex-col lg:flex-row justify-center">
-        <div className="card flex-shrink-0 max-w-xs shadow-2xl bg-base-100">
+    <div className="flex justify-center">
+      <div className="flex flex-col lg:flex-row items-center justify-center">
+        <div className="card max-w-xs shadow-2xl bg-base-100 flex-shrink-0">
           <div className="card-body">
             {children}
           </div>

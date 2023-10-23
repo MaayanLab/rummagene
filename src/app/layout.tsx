@@ -20,14 +20,14 @@ export default function RootLayout({
   children: React.ReactNode,
 }) {
   return (
-    <html lang="en">
+    <html lang="en" style={{ minWidth: '580px' }}>
       <ApolloWrapper>
         <RuntimeConfig>
           <body className="min-h-screen flex flex-col">
-            <main className="flex-1 flex flex-col">
+            <header>
               <div className="navbar block text-center">
                 <div className="navbar-center">
-                  <ul className="menu menu-horizontal gap-3 text-lg mr-5">
+                  <ul className="menu menu-horizontal gap-3 text-lg justify-center">
                     <Nav />
                   </ul>
                 </div>
@@ -37,11 +37,11 @@ export default function RootLayout({
                   </React.Suspense>
                 </div>
               </div>
-              <div className="mx-8 md:mx-32">
-                <React.Suspense fallback={<span className="loading loading-ring loading-lg"></span>}>
-                  {children}
-                </React.Suspense>
-              </div>
+            </header>
+            <main className="flex-1 flex flex-col justify-stretch mx-8 md:mx-32">
+              <React.Suspense fallback={<span className="loading loading-ring loading-lg"></span>}>
+                {children}
+              </React.Suspense>
             </main>
             <footer className="flex-none footer p-5 mt-5 bg-neutral text-neutral-content flex place-content-evenly">
               <div className="text-center pt-5">
