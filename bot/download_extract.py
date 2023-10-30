@@ -3,14 +3,15 @@ import io
 import os
 import csv
 import sys
+import queue
 import shutil
 import tarfile
 import tempfile
 import traceback
-import threading
 import contextlib
 import subprocess
 import multiprocessing as mp
+from multiprocessing.pool import ThreadPool
 import urllib.request
 import xml.etree.ElementTree as ET
 from pathlib import Path, PurePosixPath
@@ -35,42 +36,34 @@ class _DevNull:
   def write(self, *args, **kwargs): pass
   def flush(self, *args, **kwargs): pass
 
-def _timeout_thread(timeout: int, done: threading.Event):
-  ''' Sleep for timeout seconds or until done is set
-  if we finish before done is set, we set done and interrupt main
-  '''
-  import time
-  for _ in range(timeout):
-    time.sleep(1)
-    if done.is_set():
-      return
-  if not done.is_set():
-    done.set()
-    import os, signal
-    os.kill(mp.current_process().pid, signal.SIGINT)
-    # import _thread
-    # _thread.interrupt_main()
-
-@contextlib.contextmanager
-def raise_on_timeout(timeout = 60):
-  ''' A context manager for running code for at most timeout seconds
-  '''
-  done = threading.Event()
-  thread = threading.Thread(target=_timeout_thread, args=(timeout, done,))
-  thread.start()
+def _run_with_timeout(send, fn, *args):
   try:
-    yield
-  except KeyboardInterrupt:
-    # if done is set, then the timeout thread finished and interrupted main
-    #  we'll raise a timeout error
-    if done.is_set():
-      raise TimeoutError()
+    send.put((None, fn(*args)))
+  except Exception as e:
+    send.put((e, None))
+
+def run_with_timeout(fn, *args, timeout: int = 60):
+  mp_spawn = mp.get_context('spawn')
+  recv = mp_spawn.Queue()
+  proc = mp_spawn.Process(target=_run_with_timeout, args=(recv, fn, *args))
+  proc.start()
+  try:
+    err, res = recv.get(timeout=timeout)
+  except queue.Empty:
+    raise TimeoutError()
+  else:
+    if err is not None:
+      raise err
     else:
-      # otherwise something else triggered this
-      raise
+      return res
   finally:
-    # the code is done, set done so thread exits cleanly
-    done.set()
+    proc.join(1)
+    if proc.exitcode is None:
+      proc.terminate()
+      proc.join(1)
+      if proc.exitcode is None:
+        proc.kill()
+        proc.join(1)
 
 ext_handlers = {}
 def register_ext_handler(*exts):
@@ -224,9 +217,8 @@ def extract_tables_from_oa_package(oa_package):
         handler = ext_handlers.get(PurePosixPath(member.name).suffix.lower())
         if handler:
           try:
-            with raise_on_timeout(60):
-              for k, tbl in handler(tar.extractfile(member)):
-                yield (member.name, k, tbl)
+            for k, tbl in handler(tar.extractfile(member)):
+              yield (member.name, k, tbl)
           except KeyboardInterrupt:
             raise
           except:
@@ -317,25 +309,19 @@ def filter_oa_file_list_by(oa_file_list, pmc_ids):
 def fetch_extract_gmt_from_oa_package(oa_package):
   ''' Given the oa_package name from the oa_file_list, we'll download it temporarily and then extract a gmt out of it
   '''
-  with raise_on_timeout(5*60):
-    with tempfile.NamedTemporaryFile(suffix=''.join(PurePosixPath(oa_package).suffixes)) as tmp:
-      with urllib.request.urlopen(f"https://ftp.ncbi.nlm.nih.gov/pub/pmc/{oa_package}") as fr:
-        shutil.copyfileobj(fr, tmp)
-      tmp.flush()
-      return extract_gmt_from_oa_package(tmp.name)
+  with tempfile.NamedTemporaryFile(suffix=''.join(PurePosixPath(oa_package).suffixes)) as tmp:
+    with urllib.request.urlopen(f"https://ftp.ncbi.nlm.nih.gov/pub/pmc/{oa_package}") as fr:
+      shutil.copyfileobj(fr, tmp)
+    tmp.flush()
+    return extract_gmt_from_oa_package(tmp.name)
 
-def try_except_as_option(fn, *args, **kwargs):
-  ''' Run a function in a try except and return an error, result tuple
-  '''
+def task(record):
   try:
-    return None, fn(*args, **kwargs)
+    return record, None, run_with_timeout(fetch_extract_gmt_from_oa_package, record['File'], timeout=60*5)
   except KeyboardInterrupt:
     raise
   except:
-    return traceback.format_exc(), None
-
-def task(record):
-  return (record, *try_except_as_option(fetch_extract_gmt_from_oa_package, record['File']))
+    return record, traceback.format_exc(), None
 
 def main(data_dir = Path(), oa_file_list = None, progress = 'done.txt', progress_output = 'done.new.txt', output = 'output.gmt'):
   '''
@@ -367,7 +353,7 @@ def main(data_dir = Path(), oa_file_list = None, progress = 'done.txt', progress
   #  append gmt term, genesets as they are ready into one gmt file
   with new_done_file.open('a') as done_file_fh:
     with output_file.open('a') as output_fh:
-      with mp.Pool() as pool:
+      with ThreadPool() as pool:
         for record, err, res in tqdm.tqdm(
           pool.imap_unordered(
             task,
