@@ -1,26 +1,26 @@
 version: '3.9'
 services:
-  app:
+  rummagene-app:
     build: .
-    image: maayanlab/rummagene:v3
+    image: maayanlab/rummagene:0.1.3
     environment:
-      - DATABASE_URL=postgres://$POSTGRES_USER:$POSTGRES_PASSWORD@postgres/$POSTGRES_DB
+      - DATABASE_URL=postgres://$POSTGRES_USER:$POSTGRES_PASSWORD@rummagene-postgres/$POSTGRES_DB
       - AUTHORIZATION_HEADER=$AUTHORIZATION_HEADER
       - NODE_ENV=production
       - ENRICH_URL=http://enrich:8000
       - NEXT_PUBLIC_GA_MEASUREMENT_ID=$NEXT_PUBLIC_GA_MEASUREMENT_ID
     ports:
       - 3000:3000
-  enrich:
+  rummagene-enrich:
     build: enrich
-    image: maayanlab/rummagene-enrich:v3
+    image: maayanlab/rummagene-enrich:0.1.3
     environment:
-      - 'ROCKET_DATABASES={postgres={url="postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres/${POSTGRES_DB}"}}'
+      - 'ROCKET_DATABASES={postgres={url="postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@rummagene-postgres/${POSTGRES_DB}"}}'
     ports:
       - 8000:8000
-  postgres:
+  rummagene-postgres:
     build: db
-    image: maayanlab/rummagene-postgres:v3
+    image: maayanlab/rummagene-postgres:0.1.3
     environment:
       - POSTGRES_DB
       - POSTGRES_USER
@@ -29,12 +29,12 @@ services:
       - 5432:5432
     volumes:
       - ./data/postgres/:/var/lib/postgresql/data
-  bot:
+  rummagene-bot:
     build: bot
-    image: maayanlab/rummagene-bot:v3
+    image: maayanlab/rummagene-bot:0.1.3
     command: ["bash", "-c", "cd /work/data && touch log && tail -f log"]
     environment:
-      - DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      - DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@rummagene-postgres:5432/${POSTGRES_DB}
       - ENRICH_URL=http://enrich:8000
       - API_KEY
       - EMAIL
