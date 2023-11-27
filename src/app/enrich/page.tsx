@@ -66,17 +66,21 @@ function EnrichmentResults({ userGeneSet, setModalGeneSet }: { userGeneSet?: Fet
           value={rawTerm}
           onChange={evt => {setRawTerm(evt.currentTarget.value)}}
         />
-        <button
-          type="submit"
-          className="btn join-item"
-        >&#x1F50D;</button>
-        <button
-          type="reset"
-          className="btn join-item"
-          onClick={evt => {
-            setQueryString({ page: '1', q: '' })
-          }}
-        >&#x232B;</button>
+        <div className="tooltip" data-tip="Search results">
+          <button
+            type="submit"
+            className="btn join-item"
+          >&#x1F50D;</button>
+        </div>
+        <div className="tooltip" data-tip="Clear search">
+          <button
+            type="reset"
+            className="btn join-item"
+            onClick={evt => {
+              setQueryString({ page: '1', q: '' })
+            }}
+          >&#x232B;</button>
+        </div>
       </form>
       <div className="overflow-x-auto">
         <table className="table table-xs">
