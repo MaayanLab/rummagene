@@ -81,6 +81,14 @@ function EnrichmentResults({ userGeneSet, setModalGeneSet }: { userGeneSet?: Fet
             }}
           >&#x232B;</button>
         </div>
+        <a href={`/enrich/download?dataset=${queryString.dataset}&q=${queryString.q}`} download="results.tsv">
+          <div className="tooltip" data-tip="Download results">
+            <button
+              type="button"
+              className="btn join-item font-bold text-2xl pb-1"
+            >&#x21E9;</button>
+          </div>
+        </a>
       </form>
       <div className="overflow-x-auto">
         <table className="table table-xs">
