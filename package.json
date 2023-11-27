@@ -1,6 +1,6 @@
 {
-  "name": "pmc-enrichr",
-  "version": "0.1.0",
+  "name": "rummagene",
+  "version": "0.1.3",
   "private": true,
   "scripts": {
     "dev": "concurrently \"next dev\" \"npm run generate -- --watch ./src/graphql/**/*.graphql\"",
