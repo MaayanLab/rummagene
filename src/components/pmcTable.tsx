@@ -4,6 +4,8 @@ import { useViewGeneSetQuery } from '@/graphql';
 import GeneSetModal from '@/components/geneSetModal';
 import useQsState from '@/utils/useQsState';
 import Pagination from '@/components/pagination';
+import blobTsv from '@/utils/blobTsv';
+import clientDownloadBlob from '@/utils/clientDownloadBlob';
 
 const pageSize = 10
 
@@ -38,8 +40,8 @@ export default function PmcTable({ terms, data, gene_set_ids }: { terms?: Map<st
     <>
       <GeneSetModal geneset={genesQuery?.data?.geneSet?.genes.nodes.map(({ symbol }) => symbol)} term={currTerm} showModal={showModal} setShowModal={setShowModal}></GeneSetModal>
       <div className='border m-5 mt-1'>
-        <div className='text-right pt-3 pr-3'>
-          <span className="label-text text-base">Search: </span>
+        <div className='join flex flex-row place-content-end items-center pt-3 pr-3'>
+          <span className="label-text text-base">Search:&nbsp;</span>
           <input
             type="text"
             className="input input-bordered"
@@ -48,6 +50,38 @@ export default function PmcTable({ terms, data, gene_set_ids }: { terms?: Map<st
               setQueryString({ page: '1', f: evt.currentTarget.value })
             }}
           />
+          <div className="tooltip" data-tip="Search results">
+            <button
+              type="submit"
+              className="btn join-item"
+            >&#x1F50D;</button>
+          </div>
+          <div className="tooltip" data-tip="Clear search">
+            <button
+              type="reset"
+              className="btn join-item"
+              onClick={evt => {
+                setQueryString({ page: '1', f: '' })
+              }}
+            >&#x232B;</button>
+          </div>
+          <div className="tooltip" data-tip="Download results">
+            <button
+              type="button"
+              className="btn join-item font-bold text-2xl pb-1"
+              onClick={evt => {
+                if (!dataFiltered) return
+                const blob = blobTsv(['pmcid', 'title', 'year', 'doi', 'terms'], dataFiltered, item => ({
+                  pmcid: item.pmcid,
+                  title: item.title,
+                  year: item.yr,
+                  doi: item.doi,
+                  terms: terms?.get(item.pmcid)?.join(' ')
+                }))
+                clientDownloadBlob(blob, 'results.tsv')
+              }}
+            >&#x21E9;</button>
+          </div>
         </div>
         <table className="table table-xs table-pin-rows table-pin-cols table-auto">
           <thead>
