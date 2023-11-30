@@ -21,7 +21,7 @@ interface eutilsResult {
 }
 
 async function pubmed_search(search: string) {
-  const url = `https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pmc&term=${search}&sort=relevance&retmode=json&retmax=5000`
+  const url = `https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi?db=pubmed&term=${search}&sort=relevance&retmode=json&retmax=5000`
   const res = await fetch(url)
   const data: eutilsResult = await res.json()
   return data
@@ -54,16 +54,16 @@ function PubMedSearchResults({ search }: { search: string }) {
     })
     return { pmc_terms, gene_set_ids }
   }, [data])
-  if (error) return <div className="text-center p-5"><div className="text-center"><Image className={'rounded mx-auto'} src={'/images/loading.gif'} width={125} height={250} alt={'Loading...'} /> </div>Failed to fetch articles from PubMed Central... trying again in a few seconds.</div>
+  if (error) return <div className="text-center p-5"><div className="text-center"><Image className={'rounded mx-auto'} src={'/images/loading.gif'} width={125} height={250} alt={'Loading...'} /> </div>Failed to fetch articles from PubMed... trying again in a few seconds.</div>
   if (isLoading) return <Loading/>
   if (!pmcData?.esearchresult?.idlist || !pmcsInDb) return null
-  if (pmcsInDb.length < 1) return <div className="text-center p-5">Your query returned {Intl.NumberFormat("en-US", {}).format(pmcCount)} articles, but none of them are contained in the Rummagene database. Please try refining your query.</div>
+  if (pmcsInDb.length < 1) return <div className="text-center p-5">Your query returned {Intl.NumberFormat("en-US", {}).format(pmcCount)} articles, but none of them are contained in the Rummageo database. Please try refining your query.</div>
   return (
     <div className="flex flex-col gap-2 my-2">
       <h2 className="text-md font-bold">
         Your query returned {Intl.NumberFormat("en-US", {}).format(pmcCount)} articles from PubMed Central. {pmcCount > 5000
           ? <>Since there are more than 5,000 papers that match your query, we only display {Intl.NumberFormat("en-US", {}).format(gene_set_ids.size)} gene sets from {Intl.NumberFormat("en-US", {}).format(pmc_terms.size)} publications containing gene sets from the first 5,000 publications returned from your query. Please narrow your search to obtain better results.</>
-          : <>Rummagene <Image className="inline-block rounded" src="/images/rummagene_logo.png" width={50} height={100} alt="Rummagene"></Image> found {Intl.NumberFormat("en-US", {}).format(gene_set_ids.size)} gene sets from {Intl.NumberFormat("en-US", {}).format(pmc_terms.size)} publications containing gene sets from the publications returned from your query.</>}
+          : <>Rummageo <Image className="inline-block rounded" src="/images/rummageo_logo.png" width={50} height={100} alt="Rummageo"></Image> found {Intl.NumberFormat("en-US", {}).format(gene_set_ids.size)} gene sets from {Intl.NumberFormat("en-US", {}).format(pmc_terms.size)} publications containing gene sets from the publications returned from your query.</>}
       </h2>
       <PmcSearchColumns pmc_terms={pmc_terms} pmcs={pmcsInDb} gene_set_ids={gene_set_ids}></PmcSearchColumns>
     </div>

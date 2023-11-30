@@ -136,7 +136,7 @@ def import_gene_set_library(
     desc='Inserting new genesets...'),
   )
 
-  plpy.execute('refresh materialized view concurrently app_public_v2.gene_set_pmc', [])
+  plpy.execute('refresh materialized view concurrently app_public_v2.gene_set_gse', [])
 
 def import_paper_info(plpy):
   import pandas as pd
@@ -145,14 +145,14 @@ def import_paper_info(plpy):
 
   # find subset to add info to
   to_ingest = [
-    r['pmc']
+    r['gse']
     for r in plpy.cursor(
       '''
-        select pmc
-        from app_public_v2.pmc
-        where pmc not in (
-          select pmcid
-          from app_public_v2.pmc_info
+        select gse
+        from app_public_v2.gse
+        where gse not in (
+          select gse
+          from app_public_v2.gse_info
         )
       '''
     )

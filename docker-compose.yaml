@@ -1,8 +1,8 @@
 version: '3.9'
 services:
-  rummagene-app:
+  rummageo-app:
     build: .
-    image: maayanlab/rummagene:0.1.4
+    image: maayanlab/rummageo:0.0.1
     environment:
       - DATABASE_URL=postgres://$POSTGRES_USER:$POSTGRES_PASSWORD@rummagene-postgres/$POSTGRES_DB
       - AUTHORIZATION_HEADER=$AUTHORIZATION_HEADER
@@ -11,16 +11,16 @@ services:
       - NEXT_PUBLIC_GA_MEASUREMENT_ID=$NEXT_PUBLIC_GA_MEASUREMENT_ID
     ports:
       - 3000:3000
-  rummagene-enrich:
+  rummageo-enrich:
     build: enrich
-    image: maayanlab/rummagene-enrich:0.1.3
+    image: maayanlab/rummageo-enrich:0.0.1
     environment:
-      - 'ROCKET_DATABASES={postgres={url="postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@rummagene-postgres/${POSTGRES_DB}"}}'
+      - 'ROCKET_DATABASES={postgres={url="postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@rummageo-postgres/${POSTGRES_DB}"}}'
     ports:
       - 8000:8000
-  rummagene-postgres:
+  rummageo-postgres:
     build: db
-    image: maayanlab/rummagene-postgres:0.1.3
+    image: maayanlab/rummageo-postgres:0.0.1
     environment:
       - POSTGRES_DB
       - POSTGRES_USER
@@ -29,29 +29,3 @@ services:
       - 5432:5432
     volumes:
       - ./data/postgres/:/var/lib/postgresql/data
-  rummagene-bot:
-    build: bot
-    image: maayanlab/rummagene-bot:0.1.3
-    command: ["bash", "-c", "cd /work/data && touch log && tail -f log"]
-    environment:
-      - DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@rummagene-postgres:5432/${POSTGRES_DB}
-      - ENRICH_URL=http://enrich:8000
-      - API_KEY
-      - EMAIL
-    volumes:
-      - ./data/bot/:/work/data
-    labels:
-      ofelia.enabled: "true"
-      # 0 second
-      # 0 minute
-      # 9 hour
-      # * day of month
-      # * month of year
-      # 1 day of week (monday)
-      ofelia.job-exec.update-db.schedule: "0 0 9 * * 1"
-      ofelia.job-exec.update-db.command: "/bin/sh -c '/work/bot.sh > /work/data/log 2> /work/data/log'"
-  cron:
-    image: mcuadros/ofelia:latest
-    command: daemon --docker
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
