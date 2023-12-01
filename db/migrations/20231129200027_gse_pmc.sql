@@ -23,8 +23,7 @@ create materialized view app_public_v2.gene_set_pmid as
 select
   gs.id,
   gse_info.gse,
-  gse_info.pmid,
-  gse_info.pmcid
+  gse_info.pmid
 from app_public_v2.gene_set gs
 join app_public_v2.gse_info gse_info on regexp_replace(gs.term, '^(^GSE\d+)(.*)$', '\1') = gse_info.gse;
 

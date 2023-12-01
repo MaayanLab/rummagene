@@ -335,7 +335,10 @@ $$;
 CREATE TABLE app_public_v2.gse_info (
     gse character varying,
     pmid character varying,
-    pmcid character varying
+    title character varying,
+    yr integer,
+    metadata jsonb,
+    sample_groups jsonb
 );
 
 
@@ -457,8 +460,7 @@ COMMENT ON MATERIALIZED VIEW app_public_v2.gene_set_pmc IS '@foreignKey (id) ref
 CREATE MATERIALIZED VIEW app_public_v2.gene_set_pmid AS
  SELECT gs.id,
     gse_info.gse,
-    gse_info.pmid,
-    gse_info.pmcid
+    gse_info.pmid
    FROM (app_public_v2.gene_set gs
      JOIN app_public_v2.gse_info gse_info ON ((regexp_replace((gs.term)::text, '^(^GSE\d+)(.*)$'::text, '\1'::text) = (gse_info.gse)::text)))
   WITH NO DATA;

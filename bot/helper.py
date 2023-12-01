@@ -136,7 +136,6 @@ def import_gene_set_library(
     desc='Inserting new genesets...'),
   )
 
-  plpy.execute('refresh materialized view concurrently app_public_v2.gene_set_gse', [])
 
 def import_paper_info(plpy):
   import pandas as pd
@@ -203,6 +202,8 @@ def import_paper_info(plpy):
       total=len(title_dict),
       desc='Inserting PMC info..')
     )
+
+  plpy.execute('refresh materialized view concurrently app_public_v2.gene_set_pmid', [])
 
 @click.group()
 def cli(): pass
