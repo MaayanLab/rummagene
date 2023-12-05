@@ -58,6 +58,7 @@ def copy_from_records(conn: 'psycopg2.connection', table: str, columns: list[str
 def import_gene_set_library(
   plpy,
   library: Path | str,
+  species: str = 'human',
   prefix='',
   postfix='',
 ):
@@ -122,12 +123,13 @@ def import_gene_set_library(
   }
 
   copy_from_records(
-    plpy.conn, 'app_public_v2.gene_set', ('term', 'gene_ids', 'n_gene_ids'),
+    plpy.conn, 'app_public_v2.gene_set', ('term', 'gene_ids', 'n_gene_ids', 'species',),
     tqdm((
       dict(
         term=gene_set['term'],
         gene_ids=json.dumps({gene_map[gene]: None for gene in gene_set['genes']}),
         n_gene_ids=len(gene_set['genes']),
+        species=species,
       )
       for gene_set in new_gene_sets
       if gene_set['term'] not in existing_terms
@@ -137,7 +139,7 @@ def import_gene_set_library(
   )
 
 
-def import_paper_info(plpy):
+def import_gse_info(plpy):
   import pandas as pd
   import requests
   import re
@@ -208,53 +210,18 @@ def import_paper_info(plpy):
 @click.group()
 def cli(): pass
 
-@cli.command()
-@click.option('-i', '--input', type=click.Path(exists=True, file_okay=True, path_type=Path), help='GMT file to clean')
-@click.option('-o', '--output', type=click.Path(path_type=Path), help='Output location')
-def clean(input, output):
-  import re
-  from maayanlab_bioinformatics.harmonization.ncbi_genes import ncbi_genes_lookup
-
-  lookup = None
-  def gene_lookup(value):
-    ''' Don't allow pure numbers or spaces--numbers can typically match entrez ids
-    '''
-    if type(value) != str: return None
-    if re.search(r'\s', value): return None
-    if re.match(r'\d+(\.\d+)?', value): return None
-    global lookup
-    if lookup is None:
-      lookup = ncbi_genes_lookup(filters=lambda ncbi: ncbi)
-    return lookup(value)
-
-  terms = set()
-  with input.open('r') as fr:
-    with output.open('w') as fw:
-      for line in filter(None, map(str.strip, fr)):
-        term, _, *geneset = line.split('\t')
-        geneset_mapped = [gene_mapped for gene in geneset for gene_mapped in (gene_lookup(gene),) if gene_mapped]
-        if (
-          len(geneset_mapped) >= 5
-          and len(geneset_mapped) < 2500
-          and len(term) < 200
-          and term not in terms
-        ):
-          terms.add(term)
-          print(
-            term, '',
-            *geneset_mapped,
-            sep='\t',
-            file=fw,
-          )
 
 @cli.command()
 @click.option('-i', '--input', type=click.Path(exists=True, file_okay=True, path_type=Path), help='GMT file to ingest')
 @click.option('--prefix', type=str, default='', help='Prefix to add to terms')
 @click.option('--postfix', type=str, default='', help='Postfix to add to terms')
-def ingest(input, prefix, postfix):
+@click.option('--species', type=str, default='human', help='Terms species')
+def ingest(input, prefix, postfix, species):
   from plpy import plpy
+  print(f'Ingesting {input}...')
+  print(f'species: {species}')
   try:
-    import_gene_set_library(plpy, input, prefix=prefix, postfix=postfix)
+    import_gene_set_library(plpy, input, prefix=prefix, postfix=postfix, species=species)
   except:
     plpy.conn.rollback()
     raise
@@ -262,10 +229,10 @@ def ingest(input, prefix, postfix):
     plpy.conn.commit()
 
 @cli.command()
-def ingest_paper_info():
+def ingest_gse_info():
   from plpy import plpy
   try:
-    import_paper_info(plpy)
+    import_gse_info(plpy)
   except:
     plpy.conn.rollback()
     raise
@@ -285,21 +252,24 @@ def create_release(publications):
 
 @cli.command()
 @click.option('--enrich-url', envvar='ENRICH_URL', default='http://127.0.0.1:8000')
-def update_background(enrich_url):
-  ''' A background is tied to a complete set of genes across all gene sets
+@click.option('--species', type=str, default='human')
+def update_background(enrich_url, species):
+  ''' A background is tied to a complete set of genes across all gene sets of a given species
   but also to a computed index in the enrich API. This function creates a
   new one, and drops the old one after ensuring the index is ready.
   '''
   import requests
   from plpy import plpy
   # record current backgrounds
-  current_backgrounds = [row['id'] for row in plpy.cursor('select id from app_public_v2.background')]  # create updated background
-  new_background, = plpy.cursor('''
-    insert into app_public_v2.background (gene_ids, n_gene_ids)
+  current_backgrounds = [row['id'] for row in plpy.cursor(f"select id, species from app_public_v2.background where species = '{species}'")]  # create updated background
+  new_background, = plpy.cursor(f'''
+    insert into app_public_v2.background (gene_ids, n_gene_ids, species)
     select
       jsonb_object_agg(distinct gsg.gene_id, null) as gene_ids,
-      count(distinct gsg.gene_id) as n_gene_ids
+      count(distinct gsg.gene_id) as n_gene_ids,
+      '{species}' as species
     from app_public_v2.gene_set gs, jsonb_each(gs.gene_ids) gsg(gene_id, nil)
+    where gs.species = '{species}'
     returning id;
   ''')
   plpy.conn.commit()
