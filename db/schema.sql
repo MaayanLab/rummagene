@@ -24,6 +24,13 @@ CREATE SCHEMA app_public_v2;
 
 
 --
+-- Name: postgraphile_watch; Type: SCHEMA; Schema: -; Owner: -
+--
+
+CREATE SCHEMA postgraphile_watch;
+
+
+--
 -- Name: plpython3u; Type: EXTENSION; Schema: -; Owner: -
 --
 
@@ -107,8 +114,33 @@ CREATE TABLE app_public_v2.background (
     id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
     gene_ids jsonb NOT NULL,
     n_gene_ids integer NOT NULL,
+    species character varying NOT NULL,
     created timestamp without time zone DEFAULT now()
 );
+
+
+--
+-- Name: indexed_enrich(app_public_v2.background, uuid[], integer, double precision, double precision, integer, integer); Type: FUNCTION; Schema: app_private_v2; Owner: -
+--
+
+CREATE FUNCTION app_private_v2.indexed_enrich(background app_public_v2.background, gene_ids uuid[], overlap_ge integer DEFAULT 1, pvalue_le double precision DEFAULT 0.05, adj_pvalue_le double precision DEFAULT 0.05, "offset" integer DEFAULT 0, first integer DEFAULT 100) RETURNS app_public_v2.paginated_enrich_result
+    LANGUAGE plpython3u IMMUTABLE STRICT PARALLEL SAFE
+    AS $$
+  import requests
+  req = requests.post(
+    f"http://rummageo-enrich:8000/{background['id']}",
+    params=dict(
+      overlap_ge=overlap_ge,
+      pvalue_le=pvalue_le,
+      adj_pvalue_le=adj_pvalue_le,
+      offset=offset,
+      limit=first,
+    ),
+    json=gene_ids,
+  )
+  total_count = req.headers.get('Content-Range').partition('/')[-1]
+  return dict(nodes=req.json(), total_count=total_count)
+$$;
 
 
 --
@@ -128,7 +160,7 @@ CREATE FUNCTION app_private_v2.indexed_enrich(background app_public_v2.backgroun
   if offset: params['offset'] = offset
   if first: params['limit'] = first
   req = requests.post(
-    f"http://enrich:8000/{background['id']}",
+    f"http://rummageo-enrich:8000/{background['id']}",
     params=params,
     json=gene_ids,
   )
@@ -233,6 +265,7 @@ CREATE TABLE app_public_v2.gene_set (
     term character varying NOT NULL,
     gene_ids jsonb NOT NULL,
     n_gene_ids integer NOT NULL,
+    species character varying NOT NULL,
     created timestamp without time zone DEFAULT now() NOT NULL
 );
 
@@ -432,6 +465,48 @@ CREATE FUNCTION app_public_v2.terms_pmcs_count(pmcids character varying[]) RETUR
     app_public_v2.gene_set_pmc as gsp
     inner join app_public_v2.gene_set as gs on gs.id = gsp.id
   where gsp.pmc = ANY (pmcids);
+$$;
+
+
+--
+-- Name: notify_watchers_ddl(); Type: FUNCTION; Schema: postgraphile_watch; Owner: -
+--
+
+CREATE FUNCTION postgraphile_watch.notify_watchers_ddl() RETURNS event_trigger
+    LANGUAGE plpgsql
+    AS $$
+begin
+  perform pg_notify(
+    'postgraphile_watch',
+    json_build_object(
+      'type',
+      'ddl',
+      'payload',
+      (select json_agg(json_build_object('schema', schema_name, 'command', command_tag)) from pg_event_trigger_ddl_commands() as x)
+    )::text
+  );
+end;
+$$;
+
+
+--
+-- Name: notify_watchers_drop(); Type: FUNCTION; Schema: postgraphile_watch; Owner: -
+--
+
+CREATE FUNCTION postgraphile_watch.notify_watchers_drop() RETURNS event_trigger
+    LANGUAGE plpgsql
+    AS $$
+begin
+  perform pg_notify(
+    'postgraphile_watch',
+    json_build_object(
+      'type',
+      'drop',
+      'payload',
+      (select json_agg(distinct x.schema_name) from pg_event_trigger_dropped_objects() as x)
+    )::text
+  );
+end;
 $$;
 
 
@@ -702,6 +777,23 @@ CREATE INDEX release_created_idx ON app_public_v2.release USING btree (created);
 
 
 --
+-- Name: postgraphile_watch_ddl; Type: EVENT TRIGGER; Schema: -; Owner: -
+--
+
+CREATE EVENT TRIGGER postgraphile_watch_ddl ON ddl_command_end
+         WHEN TAG IN ('ALTER AGGREGATE', 'ALTER DOMAIN', 'ALTER EXTENSION', 'ALTER FOREIGN TABLE', 'ALTER FUNCTION', 'ALTER POLICY', 'ALTER SCHEMA', 'ALTER TABLE', 'ALTER TYPE', 'ALTER VIEW', 'COMMENT', 'CREATE AGGREGATE', 'CREATE DOMAIN', 'CREATE EXTENSION', 'CREATE FOREIGN TABLE', 'CREATE FUNCTION', 'CREATE INDEX', 'CREATE POLICY', 'CREATE RULE', 'CREATE SCHEMA', 'CREATE TABLE', 'CREATE TABLE AS', 'CREATE VIEW', 'DROP AGGREGATE', 'DROP DOMAIN', 'DROP EXTENSION', 'DROP FOREIGN TABLE', 'DROP FUNCTION', 'DROP INDEX', 'DROP OWNED', 'DROP POLICY', 'DROP RULE', 'DROP SCHEMA', 'DROP TABLE', 'DROP TYPE', 'DROP VIEW', 'GRANT', 'REVOKE', 'SELECT INTO')
+   EXECUTE FUNCTION postgraphile_watch.notify_watchers_ddl();
+
+
+--
+-- Name: postgraphile_watch_drop; Type: EVENT TRIGGER; Schema: -; Owner: -
+--
+
+CREATE EVENT TRIGGER postgraphile_watch_drop ON sql_drop
+   EXECUTE FUNCTION postgraphile_watch.notify_watchers_drop();
+
+
+--
 -- PostgreSQL database dump complete
 --
 
@@ -718,4 +810,5 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20230925141013'),
     ('20230925165804'),
     ('20230925181844'),
-    ('20231129200027');
+    ('20231129200027'),
+    ('20231205200001');
