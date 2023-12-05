@@ -94,7 +94,7 @@ function EnrichmentResults({ userGeneSet, setModalGeneSet }: { userGeneSet?: Fet
         <table className="table table-xs">
           <thead>
             <tr>
-              <th>Paper</th>
+              <th>GEO Series</th>
               <th>Title</th>
               <th>Supporting Table</th>
               <th>Column</th>

@@ -35,7 +35,8 @@ create table app_public_v2.gene_set (
   id uuid primary key default uuid_generate_v4(),
   term varchar not null unique,
   gene_ids jsonb not null,
-  n_gene_ids int not null
+  n_gene_ids int not null,
+  species varchar not null
 );
 create index on app_public_v2.gene_set using gin (gene_ids);
 create index on app_public_v2.gene_set using gin (term gin_trgm_ops);
@@ -56,7 +57,8 @@ grant execute on function app_public_v2.gene_map to guest, authenticated;
 create table app_public_v2.background (
   id uuid primary key default uuid_generate_v4(),
   gene_ids jsonb not null,
-  n_gene_ids int not null
+  n_gene_ids int not null,
+  species varchar not null
 );
 create index on app_public_v2.background using gin (gene_ids);
 grant select on table app_public_v2.background to guest;
