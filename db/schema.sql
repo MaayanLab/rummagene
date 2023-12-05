@@ -189,7 +189,7 @@ CREATE FUNCTION app_private_v2.indexed_enrich(background app_public_v2.backgroun
   if offset: params['offset'] = offset
   if first: params['limit'] = first
   req = requests.post(
-    f"http://enrich:8000/{background['id']}",
+    f"http://rummagene-enrich:8000/{background['id']}",
     params=params,
     json=gene_ids,
   )

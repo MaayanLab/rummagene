@@ -149,10 +149,7 @@ def read_txt_tables(f):
 def _read_xml_text(node):
   ''' Read the text from an xml node (or the text from all it's children)
   '''
-  return node.text or ''.join(filter(None, (
-    el.text
-    for el in node.findall('.//')
-  )))
+  return ''.join(node.itertext()) if node is not None else ''
 
 def _read_xml_table(tbl):
   ''' This reads a xml table as a pandas dataframe
@@ -169,18 +166,13 @@ def _read_xml_table(tbl):
   )
   return df
 
-@register_ext_handler('.nxml', '.xml')
-def read_xml_tables(f):
-  ''' Tables are embedded in the xml files, they can be parsed 
+def _read_xml_tables(root):
+  ''' Tables embedded in the xml files, are parsed along with their labels & captions
   '''
-  parsed = ET.parse(f)
-  root = parsed.getroot()
   for tblWrap in root.findall('.//table-wrap'):
-    label = tblWrap.find('./label')
-    if label:
-      label = _read_xml_text(label)
-    else:
-      label = ''
+    label = _read_xml_text(tblWrap.find('./label'))
+    description = _read_xml_text(tblWrap.find('./caption')).replace('\n', ' ').replace('\t', ' ')
+    #
     tbl = tblWrap.find('./table')
     if tbl and tbl.find('./thead') and tbl.find('./tbody'):
       try:
@@ -190,7 +182,32 @@ def read_xml_tables(f):
       except:
         traceback.print_exc()
       else:
-        yield label, tbl
+        yield label, description, tbl
+
+def _read_xml_supplement(tar: tarfile.TarFile, root: ET.Element):
+  ''' Handle supplemental tables -- extract the material files referenced from the tarfile, and use the provided caption
+  '''
+  members = {member_name.name: (member_name, member) for member in tar.getmembers() for member_name in (PurePosixPath(member.name),)}
+  for supplementary_material in root.findall('.//supplementary-material'):
+    media = supplementary_material.find('./media')
+    if not media: continue
+    href = media.attrib['{http://www.w3.org/1999/xlink}href']
+    if href not in members: continue
+    member_name, member = members[href]
+    handler = ext_handlers.get(member_name.suffix)
+    if not handler: continue
+    description = _read_xml_text(media.find('./caption'))
+    for sheet, df in handler(tar.extractfile(member)):
+      yield f"{member_name.parent.name}-{member_name.name}-{slugify(sheet)}", description, df
+
+def extract_tables_from_xml(tar: tarfile.TarFile, member_path: PurePosixPath, f):
+  ''' Reading the .nxml file, we extract tables from the paper and find supplemental material at the bottom
+  '''
+  parsed = ET.parse(f)
+  root = parsed.getroot()
+  for label, description, df in _read_xml_tables(root):
+    yield f"{member_path.parent.name}-{member_path.name}-{slugify(label)}", description, df
+  yield from _read_xml_supplement(tar, root)
 
 # it's unclear whether this really gives us any new information, and it is extremely expensive to compute
 #  so for now I'm leaving it out.
@@ -209,20 +226,14 @@ def read_xml_tables(f):
 #     raise NotImplementedError()
 
 def extract_tables_from_oa_package(oa_package):
-  ''' Given a oa_package (open access bundle with paper & figures) extract all applicable tables
+  ''' Given a oa_package (open access bundle with paper & figures) extract all tables
   '''
   with tarfile.open(oa_package) as tar:
     for member in tar.getmembers():
-      if member.isfile():
-        handler = ext_handlers.get(PurePosixPath(member.name).suffix.lower())
-        if handler:
-          try:
-            for k, tbl in handler(tar.extractfile(member)):
-              yield (member.name, k, tbl)
-          except KeyboardInterrupt:
-            raise
-          except:
-            traceback.print_exc()
+      if not member.isfile(): continue
+      member_path = PurePosixPath(member.name)
+      if member_path.suffix.lower() not in ('.nxml', '.xml'): continue
+      yield from extract_tables_from_xml(tar, member_path, tar.extractfile(member))
 
 lookup = None
 def gene_lookup(value):
@@ -236,7 +247,7 @@ def gene_lookup(value):
     lookup = ncbi_genes_lookup(filters=lambda ncbi: ncbi)
   return lookup(value)
 
-def extract_geneset_columns(df):
+def extract_gene_set_columns(df):
   ''' Given a pandas dataframe, find columns containing mostly mappable genes
   '''
   for col in df.columns:
@@ -256,12 +267,9 @@ def slugify(s):
 def extract_gmt_from_oa_package(oa_package):
   ''' Create a GMT from an oa_package archive
   '''
-  genesets = {}
-  for member_name, table, df in extract_tables_from_oa_package(oa_package):
-    member_name_path = PurePosixPath(member_name)
-    for col, geneset in extract_geneset_columns(df):
-      genesets[f"{member_name_path.parent.name}-{member_name_path.name}-{slugify(table)}-{slugify(col)}"] = geneset
-  return genesets
+  for term, description, df in extract_tables_from_oa_package(oa_package):
+    for column, gene_set in extract_gene_set_columns(df):
+      yield f"{term}-{slugify(column)}", description, gene_set
 
 def fetch_oa_file_list(data_dir = Path()):
   ''' Fetch the PMCID, PMID, oa_file listing; we sort it newest first.
@@ -313,7 +321,7 @@ def fetch_extract_gmt_from_oa_package(oa_package):
     with urllib.request.urlopen(f"https://ftp.ncbi.nlm.nih.gov/pub/pmc/{oa_package}") as fr:
       shutil.copyfileobj(fr, tmp)
     tmp.flush()
-    return extract_gmt_from_oa_package(tmp.name)
+    return list(extract_gmt_from_oa_package(tmp.name))
 
 def task(record):
   try:
@@ -350,7 +358,7 @@ def main(data_dir = Path(), oa_file_list = None, progress = 'done.txt', progress
   oa_file_list = oa_file_list[~oa_file_list['File'].isin(list(done))]
 
   # fetch and extract gmts from oa_packages using a process pool
-  #  append gmt term, genesets as they are ready into one gmt file
+  #  append gmt term, gene_sets as they are ready into one gmt file
   with new_done_file.open('a') as done_file_fh:
     with output_file.open('a') as output_fh:
       with ThreadPool() as pool:
@@ -363,11 +371,11 @@ def main(data_dir = Path(), oa_file_list = None, progress = 'done.txt', progress
           total=oa_file_list_size
         ):
           if err is None:
-            for term, geneset in res.items():
+            for term, description, gene_set in res:
               print(
                 term,
-                '',
-                *geneset,
+                description,
+                *gene_set,
                 sep='\t',
                 file=output_fh,
               )

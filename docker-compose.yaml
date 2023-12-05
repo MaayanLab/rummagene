@@ -7,7 +7,7 @@ services:
       - DATABASE_URL=postgres://$POSTGRES_USER:$POSTGRES_PASSWORD@rummagene-postgres/$POSTGRES_DB
       - AUTHORIZATION_HEADER=$AUTHORIZATION_HEADER
       - NODE_ENV=production
-      - ENRICH_URL=http://enrich:8000
+      - ENRICH_URL=http://rummagene-enrich:8000
       - NEXT_PUBLIC_GA_MEASUREMENT_ID=$NEXT_PUBLIC_GA_MEASUREMENT_ID
     ports:
       - 3000:3000
@@ -35,7 +35,7 @@ services:
     command: ["bash", "-c", "cd /work/data && touch log && tail -f log"]
     environment:
       - DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@rummagene-postgres:5432/${POSTGRES_DB}
-      - ENRICH_URL=http://enrich:8000
+      - ENRICH_URL=http://rummagene-enrich:8000
       - API_KEY
       - EMAIL
     volumes:

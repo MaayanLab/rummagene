@@ -15,7 +15,7 @@ create or replace function app_private_v2.indexed_enrich(
 ) returns app_public_v2.paginated_enrich_result as $$
   import requests
   req = requests.post(
-    f"http://enrich:8000/{background['id']}",
+    f"http://rummagene-enrich:8000/{background['id']}",
     params=dict(
       overlap_ge=overlap_ge,
       pvalue_le=pvalue_le,
