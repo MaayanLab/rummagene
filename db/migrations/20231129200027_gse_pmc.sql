@@ -5,6 +5,7 @@ create table app_public_v2.gse_info (
   pmid varchar,
   title varchar,
   yr int,
+  species varchar,
   metadata jsonb,
   sample_groups jsonb
 );
@@ -64,5 +65,5 @@ grant execute on function app_public_v2.get_pb_info_by_ids to guest, authenticat
 drop table app_public_v2.gse_info;
 drop table app_public_v2.pmid_info;
 drop materialized view app_public_v2.gene_set_pmid;
-drop function app_public_v2.get_pb_info_by_ids;
+drop function app_public_v2.get_pb_info_by_ids(pmids varchar[]);
 

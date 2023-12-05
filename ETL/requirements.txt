@@ -1,0 +1,11 @@
+git+https://github.com/Maayanlab/maayanlab-bioinformatics.git
+nltk
+numpy
+pandas
+plotly
+python-dotenv
+requests
+s3fs
+tqdm
+h5py
+scikit-learn

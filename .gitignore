@@ -5,6 +5,8 @@ data
 __pycache__
 src/graphql/index.ts
 
+ETL/out
+
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
 # dependencies
