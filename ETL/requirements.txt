@@ -9,3 +9,4 @@ s3fs
 tqdm
 h5py
 scikit-learn
+sentence_transformers

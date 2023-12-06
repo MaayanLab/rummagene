@@ -366,11 +366,15 @@ $$;
 --
 
 CREATE TABLE app_public_v2.gse_info (
+    id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
     gse character varying,
     pmid character varying,
     title character varying,
-    yr integer,
-    metadata jsonb,
+    summary character varying,
+    published_date date,
+    species character varying,
+    platform character varying,
+    samples character varying[],
     sample_groups jsonb
 );
 
@@ -511,6 +515,25 @@ $$;
 
 
 --
+-- Name: gene_set_gse; Type: MATERIALIZED VIEW; Schema: app_public_v2; Owner: -
+--
+
+CREATE MATERIALIZED VIEW app_public_v2.gene_set_gse AS
+ SELECT gs.id,
+    regexp_replace((gs.term)::text, '\mGSE([^-]+)\M.*'::text, 'GSE\1'::text) AS gse,
+    gs.species
+   FROM app_public_v2.gene_set gs
+  WITH NO DATA;
+
+
+--
+-- Name: MATERIALIZED VIEW gene_set_gse; Type: COMMENT; Schema: app_public_v2; Owner: -
+--
+
+COMMENT ON MATERIALIZED VIEW app_public_v2.gene_set_gse IS '@foreignKey (id) references app_public_v2.gene_set (id)';
+
+
+--
 -- Name: gene_set_pmc; Type: MATERIALIZED VIEW; Schema: app_public_v2; Owner: -
 --
 
@@ -546,6 +569,36 @@ CREATE MATERIALIZED VIEW app_public_v2.gene_set_pmid AS
 --
 
 COMMENT ON MATERIALIZED VIEW app_public_v2.gene_set_pmid IS '@foreignKey (id) references app_public_v2.gene_set (id)';
+
+
+--
+-- Name: gse; Type: VIEW; Schema: app_public_v2; Owner: -
+--
+
+CREATE VIEW app_public_v2.gse AS
+ SELECT DISTINCT gene_set_gse.gse
+   FROM app_public_v2.gene_set_gse;
+
+
+--
+-- Name: VIEW gse; Type: COMMENT; Schema: app_public_v2; Owner: -
+--
+
+COMMENT ON VIEW app_public_v2.gse IS '@foreignKey (gse) references app_public_v2.gene_set_gse (gse)';
+
+
+--
+-- Name: gsm_meta; Type: TABLE; Schema: app_public_v2; Owner: -
+--
+
+CREATE TABLE app_public_v2.gsm_meta (
+    id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
+    gsm character varying NOT NULL,
+    gse character varying,
+    title character varying,
+    characteristics_ch1 character varying,
+    source_name_ch1 character varying
+);
 
 
 --
@@ -644,6 +697,30 @@ ALTER TABLE ONLY app_public_v2.gene
 
 
 --
+-- Name: gse_info gse_info_pkey; Type: CONSTRAINT; Schema: app_public_v2; Owner: -
+--
+
+ALTER TABLE ONLY app_public_v2.gse_info
+    ADD CONSTRAINT gse_info_pkey PRIMARY KEY (id);
+
+
+--
+-- Name: gsm_meta gsm_meta_gsm_key; Type: CONSTRAINT; Schema: app_public_v2; Owner: -
+--
+
+ALTER TABLE ONLY app_public_v2.gsm_meta
+    ADD CONSTRAINT gsm_meta_gsm_key UNIQUE (gsm);
+
+
+--
+-- Name: gsm_meta gsm_meta_pkey; Type: CONSTRAINT; Schema: app_public_v2; Owner: -
+--
+
+ALTER TABLE ONLY app_public_v2.gsm_meta
+    ADD CONSTRAINT gsm_meta_pkey PRIMARY KEY (id);
+
+
+--
 -- Name: pmc_info pmc_info_pkey; Type: CONSTRAINT; Schema: app_public_v2; Owner: -
 --
 
@@ -711,6 +788,27 @@ CREATE INDEX background_gene_ids_idx ON app_public_v2.background USING gin (gene
 --
 
 CREATE INDEX gene_set_gene_ids_idx ON app_public_v2.gene_set USING gin (gene_ids);
+
+
+--
+-- Name: gene_set_gse_gse_idx; Type: INDEX; Schema: app_public_v2; Owner: -
+--
+
+CREATE INDEX gene_set_gse_gse_idx ON app_public_v2.gene_set_gse USING btree (gse);
+
+
+--
+-- Name: gene_set_gse_id_gse_idx; Type: INDEX; Schema: app_public_v2; Owner: -
+--
+
+CREATE UNIQUE INDEX gene_set_gse_id_gse_idx ON app_public_v2.gene_set_gse USING btree (id, gse);
+
+
+--
+-- Name: gene_set_gse_id_idx; Type: INDEX; Schema: app_public_v2; Owner: -
+--
+
+CREATE INDEX gene_set_gse_id_idx ON app_public_v2.gene_set_gse USING btree (id);
 
 
 --
@@ -811,4 +909,6 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20230925165804'),
     ('20230925181844'),
     ('20231129200027'),
-    ('20231205200001');
+    ('20231205200001'),
+    ('20231205220323'),
+    ('20231206002401');

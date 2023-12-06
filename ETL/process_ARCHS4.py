@@ -1,5 +1,4 @@
 # %%
-import archs4py as a4
 import os
 import json
 import h5py as h5
@@ -12,6 +11,7 @@ from nltk.corpus import stopwords
 nltk.download('stopwords')
 from sklearn.cluster import KMeans
 
+os.makedirs('./ETL/out', exist_ok=True)
 # %%
 # get series meta data
 species='human'
@@ -43,7 +43,6 @@ samps_df['gsm'] = samps_df['gsm'].apply(lambda s: s.decode("utf-8"))
 samps_df['title'] = samps_df['title'].apply(lambda s: s.decode("utf-8"))
 samps_df['characteristics_ch1'] = samps_df['characteristics_ch1'].apply(lambda s: s.decode("utf-8"))
 samps_df['source_name_ch1'] = samps_df['source_name_ch1'].apply(lambda s: s.decode("utf-8"))
-samps_df
 
 # %%
 if not os.path.exists(f'valid_{species}.json'):
@@ -104,10 +103,5 @@ for gse in tqdm(valid):
     for label in set(gse_table['label'].values):
         gse_dict[gse][str(label)] = list(grouped_gse_table.get_group(label)['gsm'].values)
 
-with open(f'gse_groupings_{species}_v2.json', 'w') as fw:
+with open(f'./ETL/out/gse_groupings_{species}_v2.json', 'w') as fw:
     json.dump(gse_dict, fw)
-
-# %%
-
-
-

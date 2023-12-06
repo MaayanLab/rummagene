@@ -1,12 +1,14 @@
 -- migrate:up
 
 create table app_public_v2.gse_info (
+  id uuid primary key default uuid_generate_v4(),
   gse varchar,
   pmid varchar,
   title varchar,
-  yr int,
+  summary varchar,
+  published_date date,
   species varchar,
-  metadata jsonb,
+  platform varchar,
   sample_groups jsonb
 );
 

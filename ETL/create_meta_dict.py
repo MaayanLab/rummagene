@@ -86,11 +86,11 @@ if not os.path.exists(f'gse_gsm_meta_{species}.csv'):
     samps_df['title'] = samps_df['title'].apply(lambda s: s.decode("utf-8"))
     samps_df['characteristics_ch1'] = samps_df['characteristics_ch1'].apply(lambda s: s.decode("utf-8"))
     samps_df['source_name_ch1'] = samps_df['source_name_ch1'].apply(lambda s: s.decode("utf-8"))
-    samps_df.to_csv(f'gse_gsm_meta_{species}.csv')
+    samps_df.to_csv(f'./ETL/out/gse_gsm_meta_{species}.csv')
 else:
-    samps_df = pd.read_csv(f'gse_gsm_meta_{species}.csv', index_col=0)
+    samps_df = pd.read_csv(f'./ETL/out/gse_gsm_meta_{species}.csv', index_col=0)
 
-with open('gse_groupings_mouse.json') as f:
+with open('./ETL/out/gse_groupings_mouse.json') as f:
     gse_groupings = json.load(f)
 
 gse_processed_meta = {}
@@ -115,7 +115,7 @@ for gse in tqdm(list(gse_groupings)):
     gse_processed_meta[gse]['samples'] = gse_groupings[gse]
 
 
-with open(f'gse_processed_meta_{species}.json', 'w') as f:
+with open(f'./ETL/out/gse_processed_meta_{species}.json', 'w') as f:
     json.dump(gse_processed_meta, f)
 
     

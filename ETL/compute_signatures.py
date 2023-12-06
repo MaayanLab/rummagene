@@ -161,5 +161,3 @@ for gse in tqdm(gses):
         compute_sigs(expr_df, gse_groupings[gse], species, gse)
     except:
         print("error extracting counts from ARCHS4")
-
-

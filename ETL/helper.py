@@ -4,6 +4,8 @@ import traceback
 import typing as t
 from pathlib import Path
 from tqdm import tqdm
+import json
+import os
 
 FileDescriptor = t.Union[int, str]
 
@@ -139,73 +141,143 @@ def import_gene_set_library(
   )
 
 
-def import_gse_info(plpy):
+def import_gse_info(plpy, species='human'):
+  import GEOparse
+  from itertools import chain
+  from tqdm import tqdm
   import pandas as pd
-  import requests
-  import re
+  import json
+  from datetime import datetime
 
   # find subset to add info to
   to_ingest = [
     r['gse']
     for r in plpy.cursor(
-      '''
-        select gse
-        from app_public_v2.gse
+      f'''
+        select gse, species
+        from app_public_v2.gene_set_gse
         where gse not in (
           select gse
           from app_public_v2.gse_info
-        )
+          where gse_info.species = '{species}'
+        ) and species = '{species}'
       '''
     )
   ]
 
-  # use information from bulk download metadata table (https://ftp.ncbi.nlm.nih.gov/pub/pmc/)
-  pmc_meta = pd.read_csv('https://ftp.ncbi.nlm.nih.gov/pub/pmc/PMC-ids.csv.gz', usecols=['PMCID', 'Year', 'DOI'], index_col='PMCID', compression='gzip')
-  pmc_meta = pmc_meta[pmc_meta.index.isin(to_ingest)]
-  if pmc_meta.shape[0] == 0:
-    return
+  to_ingest = list(set(to_ingest))
 
-  title_dict = {}
-  for i in tqdm(range(0, len(to_ingest), 250), 'Pulling titles...'):
-    while True:
-      j = 0
-      try:
-        ids_string = ",".join([re.sub(r"^PMC(\d+)$", r"\1", id) for id in to_ingest[i:i+250]])
-        res = requests.get(f'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=pmc&retmode=json&id={ids_string}')
-        ids_info = res.json()
-        for id in ids_info['result']['uids']:
-          try:
-            title_dict[f"PMC{id}"] = ids_info['result'][id]['title']
-          except KeyError:
-            pass
+  print(f'Found {len(to_ingest)} new GSEs to ingest')
+  # fetch processed gse groupings/conditions titles info
+  if not os.path.exists(f'./ETL/out/gse_info_to_ingest_{species}.json'):
+    try:
+      with open(f'./ETL/out/gse_processed_meta_{species}.json') as f:
+        gse_info = json.load(f)
+    except:
+      raise RuntimeError('Please run `python3 ETL/create_meta_dict.py` first for the given species')
+
+    gse_info_to_ingest = {}
+    samples_to_ingest = set()
+
+    for gse in tqdm(to_ingest, desc='Fetching GSE info...'):
+      if ',' in gse:
+        gse_split = gse.split(',')[0]
+      else:
+        gse_split = gse
+      for i in range(10):
+        try:
+          geo_meta = GEOparse.GEOparse.get_GEO(geo=gse_split, silent=True, destdir='./ETL/data/geo')
+        except:
+          print(f'Failed to fetch {gse}')
+          continue
         break
-      except KeyboardInterrupt:
-        raise
-      except Exception as e:
-        traceback.print_exc()
-        print('Error resolving info. Retrying...')
-        j += 1
-        if j >= 10:
-          raise RuntimeError(f'Error connecting to E-utilites api...')
+      gse_info_to_ingest[gse] = {}
+      gse_info_to_ingest[gse]['title'] = geo_meta.get_metadata_attribute('title')
+      gse_info_to_ingest[gse]['summary'] = geo_meta.get_metadata_attribute('summary')
+      try:
+          gse_info_to_ingest[gse]['pmid'] = geo_meta.get_metadata_attribute('pubmed_id')
+      except:
+          gse_info_to_ingest[gse]['pmid'] = None
 
-  if title_dict:
-    copy_from_records(
-      plpy.conn, 'app_public_v2.pmc_info', ('pmcid', 'yr', 'doi', 'title'),
-      tqdm((
-        dict(
-          pmcid=pmc,
-          yr=int(pmc_meta.at[pmc, 'Year']),
-          doi=pmc_meta.at[pmc, 'DOI'],
-          title=title_dict[pmc],
-        )
-        for pmc in pmc_meta.index.values
-        if pmc in title_dict
-      ),
-      total=len(title_dict),
-      desc='Inserting PMC info..')
+      date_object = datetime.strptime(geo_meta.get_metadata_attribute('status'), "Public on %b %d %Y")
+      formatted_date = date_object.strftime("%Y-%m-%d")
+      gse_info_to_ingest[gse]['publication_date'] = formatted_date  # yyyy-mm-dd
+      gse_info_to_ingest[gse]['platform'] = geo_meta.get_metadata_attribute('platform_id')
+      gse_info_to_ingest[gse]['species'] = species
+      gse_info_to_ingest[gse]['sample_groups'] = gse_info[gse]
+
+      samples = list(chain.from_iterable(gse_info[gse]['samples'].values()))
+      samples_to_ingest.update(samples)
+
+    
+    with open(f'./ETL/out/gse_info_to_ingest_{species}.json', 'w') as f:
+      json.dump(gse_info_to_ingest, f)
+    
+    with open(f'./ETL/out/samps_to_ingest_{species}.json', 'w') as f2:
+      json.dump(list(samples_to_ingest), f2)
+  else:
+    with open(f'./ETL/out/gse_info_to_ingest_{species}.json') as f:
+      gse_info_to_ingest = json.load(f)
+    
+    with open(f'./ETL/out/samps_to_ingest_{species}.json') as f2:
+      samples_to_ingest = json.load(f2)
+
+
+  gsms_ingested = [
+    r['gsm']
+    for r in plpy.cursor(
+      f'''
+        select gsm
+        from app_public_v2.gsm_meta
+      '''
     )
+  ]
 
-  plpy.execute('refresh materialized view concurrently app_public_v2.gene_set_pmid', [])
+
+  samps_df = pd.read_csv(f'./ETL/out/gse_gsm_meta_{species}.csv', index_col=0).set_index('gsm')
+
+  samples_to_ingest = list(set(samples_to_ingest) - set(gsms_ingested))
+  samps_df_to_ingest = samps_df.loc[list(samples_to_ingest)]
+
+
+  
+  copy_from_records(
+    plpy.conn, 'app_public_v2.gse_info', ('gse', 'pmid', 'title', 'summary', 'published_date', 'species', 'platform', 'sample_groups'),
+    tqdm((
+      dict(
+        gse=gse,
+        pmid=gse_info_to_ingest[gse]['pmid'],
+        title=gse_info_to_ingest[gse]['title'],
+        summary=gse_info_to_ingest[gse]['summary'],
+        published_date=gse_info_to_ingest[gse]['publication_date'],
+        species=species,
+        platform=gse_info_to_ingest[gse]['platform'],
+        sample_groups=json.dumps(gse_info_to_ingest[gse]['sample_groups']),
+      )
+      for gse in to_ingest
+      if gse in gse_info_to_ingest
+    ),
+    total=len(to_ingest),
+    desc='Inserting GSE info..')
+  )
+
+  copy_from_records(
+    plpy.conn, 'app_public_v2.gsm_meta', ('gsm', 'gse', 'title', 'characteristics_ch1', 'source_name_ch1'),
+    tqdm((
+      dict(
+        gsm=gsm,
+        gse=row['gse'],
+        title=row['title'],
+        characteristics_ch1=row['characteristics_ch1'],
+        source_name_ch1=row['source_name_ch1'],
+      )
+      for gsm, row in samps_df_to_ingest.iterrows()
+    ),
+    total=len(samps_df_to_ingest),
+    desc='Inserting GSM info..')
+  )
+
+  plpy.execute('refresh materialized view app_public_v2.gene_set_pmid', [])
 
 @click.group()
 def cli(): pass
@@ -229,10 +301,11 @@ def ingest(input, prefix, postfix, species):
     plpy.conn.commit()
 
 @cli.command()
-def ingest_gse_info():
+@click.option('--species', type=str, default='human', help='Terms species')
+def ingest_gse_info(species):
   from plpy import plpy
   try:
-    import_gse_info(plpy)
+    import_gse_info(plpy, species)
   except:
     plpy.conn.rollback()
     raise
