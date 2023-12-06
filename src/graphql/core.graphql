@@ -33,6 +33,17 @@ query EnrichmentQuery($genes: [String]!, $filterTerm: String = "", $offset: Int 
           id
           term
           nGeneIds
+          geneSetPmidsById {
+            nodes {
+              gse
+              gseId
+              pmid
+              sampleGroups
+              platform
+              publishedDate
+              title
+            }
+          }
         }
       }
       totalCount

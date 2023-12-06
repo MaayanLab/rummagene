@@ -16,7 +16,7 @@ import Image from 'next/image'
 import GeneSetModal from '@/components/geneSetModal'
 import partition from '@/utils/partition'
 
-const pageSize = 10
+const pageSize = 8
 
 type GeneSetModalT = {
   type: 'UserGeneSet',
@@ -95,9 +95,13 @@ function EnrichmentResults({ userGeneSet, setModalGeneSet }: { userGeneSet?: Fet
           <thead>
             <tr>
               <th>GEO Series</th>
+              <th>PMID</th>
               <th>Title</th>
-              <th>Supporting Table</th>
-              <th>Column</th>
+              <th>Condition 1</th>
+              <th>Condition 2</th>
+              <th>Direction</th>
+              <th>Platform</th>
+              <th>Date</th>
               <th>Gene Set Size</th>
               <th>Overlap</th>
               <th>Odds</th>
@@ -113,33 +117,96 @@ function EnrichmentResults({ userGeneSet, setModalGeneSet }: { userGeneSet?: Fet
             : null}
             {enrichmentResults?.currentBackground?.enrich?.nodes?.map((enrichmentResult, j) => {
               if (!enrichmentResult?.geneSet) return null
-              const [pmcid, _, term] = partition(enrichmentResult?.geneSet?.term, '-')
-              const m = term ? /^(.+?\.\w+)-+(.+)$/.exec(term) : null
-              const table = m ? m[1] : null
-              const column = m ? m[2] : term
+              const [gse, cond1, _ , cond2, __ , dir] = partition(enrichmentResult?.geneSet?.term)
+              console.log(gse, cond1, cond2, dir)
+              const m = term
+              var pmid = enrichmentResult?.geneSet?.geneSetPmidsById?.nodes[0]?.pmid ?? null
+              if (pmid?.includes(',')) {
+                pmid = JSON.parse(pmid.replace(/'/g, '"')).join(',')
+              }
+              var platform = enrichmentResult?.geneSet?.geneSetPmidsById?.nodes[0]?.platform ?? ''
+              if (platform?.includes(',')) {
+                platform = JSON.parse(platform.replace(/'/g, '"')).join(',')
+              }
               return (
                 <tr key={j}>
                   <th>
+                  {gse.includes(',') ? <>
                     <a
                       className="underline cursor-pointer"
-                      href={`https://www.ncbi.nlm.nih.gov/pmc/articles/${pmcid}/`}
+                      href={`https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=${gse.split(',')[0]}`}
                       target="_blank"
                       rel="noreferrer"
-                    >{pmcid}</a>
+                    >{gse.split(',')[0]}</a>
+                    <a
+                      className="underline cursor-pointer"
+                      href={`https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=${gse.split(',')[1]}`}
+                      target="_blank"
+                      rel="noreferrer"
+                    >{gse.split(',')[1]}</a></>
+                  : 
+                    <a
+                      className="underline cursor-pointer"
+                      href={`https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=${gse}`}
+                      target="_blank"
+                      rel="noreferrer"
+                    >{gse}</a>
+                  }</th>
+                  <th>
+                    {pmid ? pmid.includes(',') ? 
+                      <><a
+                      className="underline cursor-pointer"
+                      href={`https://pubmed.ncbi.nlm.nih.gov/${pmid.split(',')[0]}/`}
+                      target="_blank"
+                      rel="noreferrer"
+                    >{pmid.split(',')[0]}</a>, 
+                    <a
+                      className="underline cursor-pointer"
+                      href={`https://pubmed.ncbi.nlm.nih.gov/${pmid.split(',')[1]}/`}
+                      target="_blank"
+                      rel="noreferrer"
+                    >{pmid.split(',')[1]}</a></> :
+                    <a
+                      className="underline cursor-pointer"
+                      href={`https://pubmed.ncbi.nlm.nih.gov/${pmid}/`}
+                      target="_blank"
+                      rel="noreferrer"
+                    >{pmid}</a> : <>N/A</> }
                   </th>
-                  <td>{enrichmentResult?.geneSet?.geneSetPmcsById?.nodes[0].pmcInfoByPmcid?.title ?? ''}</td>
+                  <td>{enrichmentResult?.geneSet?.geneSetPmidsById?.nodes[0]?.title ?? ''}</td>
                   <td>
-                    {table ?
-                      <a
-                        className="underline cursor-pointer"
-                        href={`https://www.ncbi.nlm.nih.gov/pmc/articles/${pmcid}/bin/${table}`}
-                        target="_blank"
-                      >
-                        {table}
-                      </a>
-                    : null}
+                    {enrichmentResult?.geneSet?.geneSetPmidsById?.nodes[0]?.sampleGroups?.titles[cond1] ?? ''}
                   </td>
-                  <td>{column}</td>
+                  <td>
+                    {enrichmentResult?.geneSet?.geneSetPmidsById?.nodes[0]?.sampleGroups?.titles[cond2] ?? ''}
+                  </td>
+                  <td>
+                    {dir === 'up' ? 'Up' : dir === 'dn' ? 'Down' : 'Up/Down'}
+                  </td>
+                  <td>
+                  {platform ? platform.includes(',') ? 
+                      <><a
+                      className="underline cursor-pointer"
+                      href={`https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=${platform.split(',')[0]}/`}
+                      target="_blank"
+                      rel="noreferrer"
+                    >{platform.split(',')[0]}</a>, 
+                    <a
+                      className="underline cursor-pointer"
+                      href={`https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=${platform.split(',')[1]}/`}
+                      target="_blank"
+                      rel="noreferrer"
+                    >{platform.split(',')[1]}</a></> :
+                    <a
+                      className="underline cursor-pointer"
+                      href={`https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=${platform}/`}
+                      target="_blank"
+                      rel="noreferrer"
+                    >{platform}</a> : <>N/A</> }
+                  </td>
+                  <td>
+                    {enrichmentResult?.geneSet?.geneSetPmidsById?.nodes[0]?.publishedDate ?? ''}
+                  </td>
                   <td className="whitespace-nowrap text-underline cursor-pointer">
                     <label
                       htmlFor="geneSetModal"
