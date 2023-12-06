@@ -374,7 +374,6 @@ CREATE TABLE app_public_v2.gse_info (
     published_date date,
     species character varying,
     platform character varying,
-    samples character varying[],
     sample_groups jsonb
 );
 
@@ -534,6 +533,43 @@ COMMENT ON MATERIALIZED VIEW app_public_v2.gene_set_gse IS '@foreignKey (id) ref
 
 
 --
+-- Name: gene_set_pmid; Type: MATERIALIZED VIEW; Schema: app_public_v2; Owner: -
+--
+
+CREATE MATERIALIZED VIEW app_public_v2.gene_set_pmid AS
+ SELECT gs.id,
+    gse_info.id AS gse_id,
+    gse_info.gse,
+    gse_info.pmid
+   FROM (app_public_v2.gene_set gs
+     JOIN app_public_v2.gse_info gse_info ON ((regexp_replace((gs.term)::text, '^(^GSE\d+)(.*)$'::text, '\1'::text) = (gse_info.gse)::text)))
+  WITH NO DATA;
+
+
+--
+-- Name: MATERIALIZED VIEW gene_set_pmid; Type: COMMENT; Schema: app_public_v2; Owner: -
+--
+
+COMMENT ON MATERIALIZED VIEW app_public_v2.gene_set_pmid IS '@foreignKey (id) references app_public_v2.gene_set (id)';
+
+
+--
+-- Name: gene_set_gse_info; Type: VIEW; Schema: app_public_v2; Owner: -
+--
+
+CREATE VIEW app_public_v2.gene_set_gse_info AS
+ SELECT gsp.id,
+    gsp.gse_id,
+    gse_info.gse,
+    gse_info.title,
+    gse_info.sample_groups,
+    gse_info.platform,
+    gse_info.published_date
+   FROM (app_public_v2.gene_set_pmid gsp
+     JOIN app_public_v2.gse_info gse_info ON (((gsp.gse)::text = (gse_info.gse)::text)));
+
+
+--
 -- Name: gene_set_pmc; Type: MATERIALIZED VIEW; Schema: app_public_v2; Owner: -
 --
 
@@ -549,26 +585,6 @@ CREATE MATERIALIZED VIEW app_public_v2.gene_set_pmc AS
 --
 
 COMMENT ON MATERIALIZED VIEW app_public_v2.gene_set_pmc IS '@foreignKey (id) references app_public_v2.gene_set (id)';
-
-
---
--- Name: gene_set_pmid; Type: MATERIALIZED VIEW; Schema: app_public_v2; Owner: -
---
-
-CREATE MATERIALIZED VIEW app_public_v2.gene_set_pmid AS
- SELECT gs.id,
-    gse_info.gse,
-    gse_info.pmid
-   FROM (app_public_v2.gene_set gs
-     JOIN app_public_v2.gse_info gse_info ON ((regexp_replace((gs.term)::text, '^(^GSE\d+)(.*)$'::text, '\1'::text) = (gse_info.gse)::text)))
-  WITH NO DATA;
-
-
---
--- Name: MATERIALIZED VIEW gene_set_pmid; Type: COMMENT; Schema: app_public_v2; Owner: -
---
-
-COMMENT ON MATERIALIZED VIEW app_public_v2.gene_set_pmid IS '@foreignKey (id) references app_public_v2.gene_set (id)';
 
 
 --
@@ -840,13 +856,6 @@ CREATE INDEX gene_set_pmid_id_idx ON app_public_v2.gene_set_pmid USING btree (id
 
 
 --
--- Name: gene_set_pmid_id_pmid_idx; Type: INDEX; Schema: app_public_v2; Owner: -
---
-
-CREATE UNIQUE INDEX gene_set_pmid_id_pmid_idx ON app_public_v2.gene_set_pmid USING btree (id, pmid);
-
-
---
 -- Name: gene_set_pmid_pmid_idx; Type: INDEX; Schema: app_public_v2; Owner: -
 --
 
@@ -911,4 +920,5 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20231129200027'),
     ('20231205200001'),
     ('20231205220323'),
-    ('20231206002401');
+    ('20231206002401'),
+    ('20231206165544');

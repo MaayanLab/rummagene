@@ -12,6 +12,9 @@ create table app_public_v2.gse_info (
   sample_groups jsonb
 );
 
+grant select on app_public_v2.gse_info to guest;
+grant all privileges on app_public_v2.gse_info to authenticated;
+
 create table app_public_v2.pmid_info (
   id uuid primary key default uuid_generate_v4(),
   pmid varchar not null unique,
@@ -21,12 +24,20 @@ create table app_public_v2.pmid_info (
   doi varchar
 );
 
+grant select on app_public_v2.gse_info to guest;
+grant all privileges on app_public_v2.gse_info to authenticated;
+
 -- Create the materialized view gene_set_pmid
 create materialized view app_public_v2.gene_set_pmid as
 select
   gs.id,
+  gse_info.id as gse_id,
   gse_info.gse,
-  gse_info.pmid
+  gse_info.pmid,
+  gse_info.title,
+  gse_info.sample_groups,
+  gse_info.platform,
+  gse_info.published_date
 from app_public_v2.gene_set gs
 join app_public_v2.gse_info gse_info on regexp_replace(gs.term, '^(^GSE\d+)(.*)$', '\1') = gse_info.gse;
 
