@@ -17,7 +17,6 @@ import Stats from '../stats'
 import Image from 'next/image'
 import GeneSetModal from '@/components/geneSetModal'
 import partition from '@/utils/partition'
-import { spec } from 'node:test/reporters'
 
 const pageSize = 8
 
@@ -47,7 +46,6 @@ function EnrichmentResults({ userGeneSet, setModalGeneSet }: { userGeneSet?: Fet
   backgrounds?.backgrounds?.nodes?.forEach(background => {
     backgroundIds[background?.species ?? ''] = background?.id ?? ''
   })
-  console.log(species)
   const [queryString, setQueryString] = useQsState({ page: '1', q: '' })
   const [rawTerm, setRawTerm] = React.useState('')
   const { page, term } = React.useMemo(() => ({ page: queryString.page ? +queryString.page : 1, term: queryString.q ?? '' }), [queryString])
@@ -55,14 +53,14 @@ function EnrichmentResults({ userGeneSet, setModalGeneSet }: { userGeneSet?: Fet
     skip: genes.length === 0,
     variables: { genes, filterTerm: term, offset: (page - 1) * pageSize, first: pageSize, id: backgroundIds[species] },
   })
-  console.log(enrichmentResults)
+
   React.useEffect(() => { setRawTerm(term) }, [term])
   return (
     <div className="flex flex-col gap-2 my-2">
       <h2 className="text-md font-bold">
         {!enrichmentResults?.background?.enrich ?
-          <>Rummaging through <Stats show_gene_sets />.</>
-          : <>After rummaging through <Stats show_gene_sets />. Rummageo <Image className="inline-block rounded" src="/images/rummageo_logo.png" width={50} height={100} alt="Rummageo"></Image> found {Intl.NumberFormat("en-US", {}).format(enrichmentResults?.background?.enrich?.totalCount || 0)} statistically significant matches.</>}
+          <>Rummaging through {species =="human" ? <Stats  show_human_gene_sets /> : <Stats  show_mouse_gene_sets />} </>
+          : <>After rummaging through {species =="human" ? <Stats  show_human_gene_sets /> : <Stats  show_mouse_gene_sets />}. Rummageo <Image className="inline-block rounded" src="/images/rummageo_logo.png" width={50} height={100} alt="Rummageo"></Image> found {Intl.NumberFormat("en-US", {}).format(enrichmentResults?.background?.enrich?.totalCount || 0)} statistically significant matches.</>}
       </h2>
       <form
         className="join flex flex-row place-content-end place-items-center"
@@ -311,7 +309,7 @@ export default function Enrich({
   const [modalGeneSet, setModalGeneSet] = React.useState<GeneSetModalT>()
   return (
     <>
-      <div className="flex flex-row gap-2 alert">
+      <div className="flex flex-row gap-2 alert bg-neutral-900 bg-opacity-10">
         <span className="prose">Input:</span>
         <label
           htmlFor="geneSetModal"

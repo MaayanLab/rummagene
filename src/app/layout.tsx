@@ -42,7 +42,7 @@ export default function RootLayout({
             <header>
               <div className="navbar block text-center">
                 <div className="navbar-center">
-                  <ul className="menu menu-horizontal gap-3 text-lg justify-center">
+                  <ul className="menu menu-horizontal gap-3 flex text-lg">
                     <Nav />
                   </ul>
                 </div>
@@ -58,7 +58,7 @@ export default function RootLayout({
                 {children}
               </React.Suspense>
             </main>
-            <footer className="flex-none footer p-5 mt-5 bg-neutral text-neutral-content flex place-content-evenly">
+            <footer className="flex-none footer p-5 mt-5 bg-neutral-900  bg-opacity-40 text-neutral-content flex place-content-evenly">
               <div className="text-center pt-5">
                 <ul>
                   <li><Link href="mailto:avi.maayan@mssm.edu" target="_blank">Contact Us</Link></li>

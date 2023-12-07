@@ -21,8 +21,12 @@ export default function HomeLayout({ children }: React.PropsWithChildren<{}>) {
           </div>
           <React.Suspense fallback={<div className="text-center p-5"><Image className={'rounded mx-auto'} src={'/images/loading.gif'} width={125} height={250} alt={'Loading...'}/> </div>}>
           <h1 className="text-2xl font-bold">
-            <span className="whitespace-nowrap"> Rummage through <Stats bold show_gene_sets /></span>
+            <span className="whitespace-nowrap"> Rummage through</span>
           </h1>
+          <h1 className="text-2xl font-bold">
+            <span className="whitespace-nowrap"><Stats bold show_human_gene_sets /></span>
+          </h1>
+          <h1 className="text-2xl font-bold"> <span className="whitespace-nowrap"> and <Stats bold show_mouse_gene_sets /></span></h1>
           <div>
             <span className="whitespace-nowrap">automatically generated from </span>
             <span className="whitespace-nowrap"> <Stats bold show_gses /></span>
@@ -30,7 +34,8 @@ export default function HomeLayout({ children }: React.PropsWithChildren<{}>) {
           </div>
           <div className="mt-5">
             <span className="whitespace-nowrap">We performed automatic identification of conditions from </span> GEO
-            <div><span className="whitespace-nowrap"> studies processed in <Link href="https://maayanlab.cloud/archs4/" target='_blank' style={{textDecoration: 'underline'}}>ARCHS4</Link> to identify and extract gene sets.</span></div>
+            <div><span className="whitespace-nowrap"> studies processed in <Link href="https://maayanlab.cloud/archs4/" target='_blank' style={{textDecoration: 'underline'}}>ARCHS4</Link> to compute differential expression</span></div>
+            <span>signatures and extract gene sets.</span>
           </div>
           </React.Suspense>
         </div>
