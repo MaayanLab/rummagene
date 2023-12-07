@@ -177,6 +177,31 @@ def _read_xml_table(tbl):
   )
   return df
 
+def match_parens(text):
+  ''' Because I hate mismatched parenthecies (: -- which can happen a lot given that
+  references usually exist in parens but we only read text up to the reference
+  '''
+  # missing trailing paren
+  if text.rfind('(') <= text.rfind('['):
+    if text.rfind('(') > text.rfind(')'): text = text + ')'
+    elif text.rfind('[') > text.rfind(']'): text = text + ']'
+  else:
+    if text.rfind('[') > text.rfind(']'): text = text + ']'
+    elif text.rfind('(') > text.rfind(')'): text = text + ')'
+  # missing leading paren
+  openParen = text.find('(')
+  if openParen == -1: openParen = len(text)
+  closeParen = text.find(')')
+  if closeParen >= 0 and closeParen < openParen:
+    text = text[:closeParen] + text[closeParen+1:]
+  #
+  openParen = text.find('[')
+  if openParen == -1: openParen = len(text)
+  closeParen = text.find(']')
+  if closeParen >= 0 and closeParen < openParen:
+    text = text[:closeParen] + text[closeParen+1:]
+  return text
+
 def _read_xml_mentions(root, ref: str):
   if not ref:
     return ''
@@ -195,11 +220,8 @@ def _read_xml_mentions(root, ref: str):
     xrefNodeText = _read_xml_text(xrefNode)
     # read up to the reference (encased in parens/brackets)
     indexOfRef = mention.index(xrefNodeText)
-    indexOfOpen = max(mention.rfind('(', 0, indexOfRef), mention.rfind('[', 0, indexOfRef))
-    if indexOfOpen == -1: indexOfOpen = indexOfRef
-    mention = mention[:indexOfOpen].rstrip()
-    # get at most 10 words before the reference
-    return ' '.join(re.split(r'\s+', mention)[-20:])
+    # get at most 20 words before the reference
+    return match_parens(' '.join(re.split(r'\s+', mention[:indexOfRef])[-15:]) + '**'+' '.join(re.split(r'\s+', xrefNodeText))+'**')
   except StopIteration:
     return ''
 
@@ -225,7 +247,7 @@ def _read_xml_tables(root, member_path: PurePosixPath):
       label = _read_xml_text(tblWrap.find('./label'))
       caption = _read_xml_text(tblWrap.find('./caption')).rstrip('.')
       mention = _read_xml_mentions(root, tblWrap.attrib.get('id')).rstrip('.')
-      description = '. '.join(filter(None, (mention, caption,)))
+      description = '  '.join(filter(None, (mention, caption,)))
       for column, gene_set in gene_sets:
         yield f"{member_path.parent.name}-{member_path.name}-{slugify(label)}-{slugify(column)}", description, gene_set
 
@@ -249,7 +271,7 @@ def _read_xml_supplement(tar: tarfile.TarFile, root: ET.Element):
       # given that we have genesets, assemble description and yield them
       caption = _read_xml_text(media.find('./caption')).rstrip('.')
       mention = _read_xml_mentions(root, supplementary_material.attrib.get('id')).rstrip('.')
-      description = '. '.join(filter(None, (mention, caption,)))
+      description = '  '.join(filter(None, (mention, caption,)))
       for term, gene_set in gene_sets:
         yield f"{member_name.parent.name}-{member_name.name}-{term}", description, gene_set
 
