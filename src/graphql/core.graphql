@@ -2,16 +2,20 @@ query Stats {
   userGeneSets {
     totalCount
   }
-  geneSets {
+  humanGeneSets: geneSets(condition: {species: "human"}) {
     totalCount
   }
-  pmcs {
+  mouseGeneSets: geneSets(condition: {species: "mouse"}) {
     totalCount
   }
-  pmcStats {
-    nPublicationsProcessed
+  totalGeneSets: geneSets {
+    totalCount
+  }
+  gses {
+    totalCount
   }
 }
+
 
 query FetchUserGeneSet($id: UUID!) {
   userGeneSet(id: $id) {
@@ -21,8 +25,8 @@ query FetchUserGeneSet($id: UUID!) {
 }
 
 # Perform enrichment analysis against a specific library
-query EnrichmentQuery($genes: [String]!, $filterTerm: String = "", $offset: Int = 0, $first: Int = 10) {
-  currentBackground {
+query EnrichmentQuery($genes: [String]!, $filterTerm: String = "", $offset: Int = 0, $first: Int = 10, $id: UUID = "ac4f3d1b-321c-4299-bf83-7104a4cc680a") {
+  background(id: $id) {
     enrich(genes: $genes, filterTerm: $filterTerm, offset: $offset, first: $first) {
       nodes {
         pvalue
@@ -127,6 +131,16 @@ query OverlapQuery($id: UUID!, $genes: [String]!) {
 query LatestRelease {
   releases(orderBy: CREATED_DESC, first: 1) {
     nodes {
+      created
+    }
+  }
+}
+
+query getBackgrounds {
+  backgrounds{
+    nodes {
+      species
+      id
       created
     }
   }
