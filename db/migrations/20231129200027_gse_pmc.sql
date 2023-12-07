@@ -20,17 +20,19 @@ create table app_public_v2.pmid_info (
   pmid varchar not null unique,
   pmcid varchar,
   title varchar,
-  yr int,
+  pub_date varchar,
   doi varchar
 );
 
-grant select on app_public_v2.gse_info to guest;
-grant all privileges on app_public_v2.gse_info to authenticated;
+grant select on app_public_v2.pmid_info to guest;
+grant all privileges on app_public_v2.pmid_info to authenticated;
+create index pmid_info_pmid_idx on app_public_v2.pmid_info (pmid);
 
 -- Create the materialized view gene_set_pmid
 create materialized view app_public_v2.gene_set_pmid as
 select
   gs.id,
+  gs.term,
   gse_info.id as gse_id,
   gse_info.gse,
   gse_info.pmid,
@@ -45,7 +47,6 @@ join app_public_v2.gse_info gse_info on regexp_replace(gs.term, '\mGSE([^-]+)\M.
 comment on materialized view app_public_v2.gene_set_pmid is E'@foreignKey (id) references app_public_v2.gene_set (id)';
 
 -- Create unique and regular indexes
-create unique index gene_set_pmid_id_pmid_idx on app_public_v2.gene_set_pmid (id, pmid);
 create index gene_set_pmid_id_idx on app_public_v2.gene_set_pmid (id);
 create index gene_set_pmid_pmid_idx on app_public_v2.gene_set_pmid (pmid);
 
@@ -64,10 +65,10 @@ grant select on app_public_v2.pmid to guest;
 grant all privileges on app_public_v2.pmid to authenticated;
 
 create or replace function app_public_v2.get_pb_info_by_ids(pmids varchar[])
-returns setof app_public_v2.gse_info as
+returns setof app_public_v2.gene_set_pmid as
 $$
   select *
-  from app_public_v2.gse_info
+  from app_public_v2.gene_set_pmid
   where pmid = ANY (pmids);
 $$ language sql immutable strict parallel safe;
 grant execute on function app_public_v2.get_pb_info_by_ids to guest, authenticated;

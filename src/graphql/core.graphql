@@ -25,7 +25,7 @@ query FetchUserGeneSet($id: UUID!) {
 }
 
 # Perform enrichment analysis against a specific library
-query EnrichmentQuery($genes: [String]!, $filterTerm: String = "", $offset: Int = 0, $first: Int = 10, $id: UUID) {
+query EnrichmentQuery($genes: [String]!, $filterTerm: String = "", $offset: Int = 0, $first: Int = 10, $id: UUID!) {
   background(id: $id) {
     id
     species
@@ -156,6 +156,23 @@ query QueryGsmMeta($gsms: [String]! = ["GSM4648170", "GSM4648184", "GSM4648189"]
       title
       characteristicsCh1
       sourceNameCh1
+    }
+  }
+}
+
+query QueryPbGeneSets($pmids: [String]! = ["35108274"]) {
+  getPbInfoByIds(pmids:$pmids) {
+    nodes {
+      id
+      pmid
+      gse
+      title
+      sampleGroups
+      geneSetById {
+        term
+        species
+        nGeneIds
+      }
     }
   }
 }
