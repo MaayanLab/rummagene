@@ -40,6 +40,7 @@ create table app_public_v2.gene_set (
 );
 create index on app_public_v2.gene_set using gin (gene_ids);
 create index on app_public_v2.gene_set using gin (term gin_trgm_ops);
+create index idx_gene_set_species ON app_public_v2.gene_set (species);
 grant select on table app_public_v2.gene_set to guest;
 grant all privileges on table app_public_v2.gene_set to authenticated;
 

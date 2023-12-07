@@ -39,7 +39,7 @@ select
   gse_info.platform,
   gse_info.published_date
 from app_public_v2.gene_set gs
-join app_public_v2.gse_info gse_info on regexp_replace(gs.term, '^(^GSE\d+)(.*)$', '\1') = gse_info.gse;
+join app_public_v2.gse_info gse_info on regexp_replace(gs.term, '\mGSE([^-]+)\M.*', 'GSE\1') = gse_info.gse;
 
 -- Add a comment for the foreign key
 comment on materialized view app_public_v2.gene_set_pmid is E'@foreignKey (id) references app_public_v2.gene_set (id)';
