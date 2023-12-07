@@ -1,10 +1,9 @@
-import { EnrichmentQueryDocument, EnrichmentQueryQuery, FetchUserGeneSetDocument, FetchUserGeneSetQuery, useGetBackgroundsQuery } from "@/graphql"
+import { EnrichmentQueryDocument, EnrichmentQueryQuery, FetchUserGeneSetDocument, FetchUserGeneSetQuery, GetBackgroundsDocument, GetBackgroundsQuery } from "@/graphql"
 import { getClient } from "@/lib/apollo/client"
 import determineSpecies from "@/utils/determineSpecies"
 import ensureArray from "@/utils/ensureArray"
 import partition from "@/utils/partition"
 import streamTsv from "@/utils/streamTsv"
-import { it } from "node:test"
 import React from "react"
 
 export const dynamic = 'force-dynamic'
@@ -17,16 +16,25 @@ export async function GET(request: Request) {
     variables: { id: dataset },
   })
 
-  const { data: backgrounds } = useGetBackgroundsQuery()
+  if (userGeneSetError) throw new Error(userGeneSetError.message)
+  const genes = ensureArray(userGeneSet.userGeneSet?.genes).filter((gene): gene is string => !!gene).map(gene => gene)
+
+  const { data: backgrounds, error: backgroundIdsError } = await getClient().query<GetBackgroundsQuery>({
+    query: GetBackgroundsDocument,
+    variables: {},
+  })
+
+  if (backgroundIdsError) throw new Error(backgroundIdsError.message)
+
   var backgroundIds: Record<string, string> = {};
   backgrounds?.backgrounds?.nodes?.forEach(background => {
     backgroundIds[background?.species ?? ''] = background?.id ?? ''
   })
-  if (userGeneSetError) throw new Error(userGeneSetError.message)
-  const genes = ensureArray(userGeneSet.userGeneSet?.genes).filter((gene): gene is string => !!gene).map(gene => gene)
 
-  const species = React.useMemo(() => determineSpecies(genes[0] || ''), [genes])
+  const species = determineSpecies(genes[0] || '')
+
   const backgroundId = backgroundIds[species] ?? null
+  console.log('backgroundId', backgroundId)
   const { data: enrichmentResults, error: enrichmentResultsError } = await getClient().query<EnrichmentQueryQuery>({
     query: EnrichmentQueryDocument,
     variables: {
@@ -34,10 +42,12 @@ export async function GET(request: Request) {
       filterTerm: term,
       offset: 0,
       first: null,
-      backgroundId: backgroundId,
+      id: backgroundId,
     },
   })
+
   if (enrichmentResultsError) throw new Error(enrichmentResultsError.message)
+  console.log('enrichmentResults', enrichmentResults)
   const nodes = enrichmentResults.background?.enrich?.nodes
   if (!nodes) throw new Error('No results')
 
