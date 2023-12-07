@@ -28,7 +28,13 @@
   
   p a {
     text-decoration: underline;
-    color: rgb(37, 171, 153);
+    color: rgb(8, 77, 67);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    p a {
+      color: rgb(58, 229, 204);
+    }
   }
   
   .hyperlink {
