@@ -22,7 +22,7 @@ export default function GeneSetModal({ geneset, term, showModal, setShowModal }:
                         onClick={() => setShowModal(false)}
                     >
                         <div className="relative w-auto my-6 mx-auto max-w-3xl">
-                            <div className="border-0 rounded-lg shadow-lg relative flex flex-col w-full bg-white outline-none focus:outline-none">
+                            <div className="border-0 rounded-lg shadow-lg relative flex flex-col w-full bg-white outline-none focus:outline-none dark:bg-neutral-900">
                                 <div className='p-3 border-b'>
                                     <p className="text-md text-center text-gray-900 dark:text-white">
                                         Gene Set  ({geneset ? geneset?.length : 'n'})

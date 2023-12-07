@@ -10,9 +10,20 @@ create table app_public_v2.gsm_meta (
 );
 
 create index idx_gsm_meta_gsm ON app_public_v2.gsm_meta (gsm);
+
 grant select on app_public_v2.gsm_meta to guest;
 grant all privileges on app_public_v2.gsm_meta to authenticated;
 
+create or replace function app_public_v2.get_gsm_meta(gsms varchar[])
+returns setof app_public_v2.gsm_meta as
+$$
+  select *
+  from app_public_v2.gsm_meta
+  where gsm = ANY (gsms);
+$$ language sql immutable strict parallel safe;
+
+grant execute on function app_public_v2.get_gsm_meta to guest, authenticated;
+
 -- migrate:down
 
-drop table app_public_v2.gsm_meta;
+drop table app_public_v2.gsm_meta cascade;

@@ -16,6 +16,7 @@ import useQsState from '@/utils/useQsState'
 import Stats from '../stats'
 import Image from 'next/image'
 import GeneSetModal from '@/components/geneSetModal'
+import SamplesModal from '@/components/samplesModal'
 import partition from '@/utils/partition'
 
 const pageSize = 8
@@ -35,7 +36,7 @@ type GeneSetModalT = {
   description: string,
 } | undefined
 
-function EnrichmentResults({ userGeneSet, setModalGeneSet }: { userGeneSet?: FetchUserGeneSetQuery, setModalGeneSet: React.Dispatch<React.SetStateAction<GeneSetModalT>> }) {
+function EnrichmentResults({ userGeneSet, setModalGeneSet, setModalSamples, setModalCondition }: { userGeneSet?: FetchUserGeneSetQuery, setModalGeneSet: React.Dispatch<React.SetStateAction<GeneSetModalT>>, setModalSamples: React.Dispatch<React.SetStateAction<string[] | undefined>>, setModalCondition: React.Dispatch<React.SetStateAction<string | undefined>> }) {
   const genes = React.useMemo(() =>
     ensureArray(userGeneSet?.userGeneSet?.genes).filter((gene): gene is string => !!gene),
     [userGeneSet]
@@ -136,6 +137,11 @@ function EnrichmentResults({ userGeneSet, setModalGeneSet }: { userGeneSet?: Fet
               if (platform?.includes(',')) {
                 platform = JSON.parse(platform.replace(/'/g, '"')).join(',')
               }
+              const cond1Title = enrichmentResult.geneSet?.geneSetPmidsById?.nodes[0]?.sampleGroups?.titles[cond1] ?? ''
+              const cond2Title = enrichmentResult.geneSet?.geneSetPmidsById?.nodes[0]?.sampleGroups?.titles[cond2] ?? ''
+              const cond1Samples = enrichmentResult.geneSet?.geneSetPmidsById?.nodes[0]?.sampleGroups?.samples[cond1] ?? ''
+              const cond2Samples = enrichmentResult.geneSet?.geneSetPmidsById?.nodes[0]?.sampleGroups?.samples[cond2] ?? ''
+
               return (
                 <tr key={j}>
                   <th>
@@ -180,10 +186,24 @@ function EnrichmentResults({ userGeneSet, setModalGeneSet }: { userGeneSet?: Fet
                   </th>
                   <td>{enrichmentResult?.geneSet?.geneSetPmidsById?.nodes[0]?.title ?? ''}</td>
                   <td>
-                    {enrichmentResult?.geneSet?.geneSetPmidsById?.nodes[0]?.sampleGroups?.titles[cond1] ?? ''}
+                  <label
+                      htmlFor="geneSetModal"
+                      className="prose underline cursor-pointer"
+                      onClick={evt => {
+                        setModalSamples(cond1Samples)
+                        setModalCondition(cond1Title)
+                      }}
+                    >{cond1Title}</label>
                   </td>
                   <td>
-                    {enrichmentResult?.geneSet?.geneSetPmidsById?.nodes[0]?.sampleGroups?.titles[cond2] ?? ''}
+                    <label
+                      htmlFor="geneSetModal"
+                      className="prose underline cursor-pointer"
+                      onClick={evt => {
+                        setModalSamples(cond2Samples)
+                        setModalCondition(cond2Title)
+                      }}
+                    >{cond2Title}</label>
                   </td>
                   <td>
                     {dir === 'up' ? 'Up' : dir === 'dn' ? 'Down' : 'Up/Down'}
@@ -294,6 +314,20 @@ function GeneSetModalWrapper(props: { modalGeneSet: GeneSetModalT, setModalGeneS
   )
 }
 
+function SamplesModalWrapper(props: { samples: string[], condition: string, setModalSamples: React.Dispatch<React.SetStateAction<string[] | undefined>> }) {
+  console.log(props.samples)
+  return (
+    <SamplesModal
+      samples={props.samples}
+      showModal={(props.samples.length != 0) && (props.condition !== '')}
+      condition={props.condition}
+      setShowModal={show => {
+        if (!show) props.setModalSamples([])
+      }}
+    />
+  )
+}
+
 export default function Enrich({
   searchParams
 }: {
@@ -307,6 +341,9 @@ export default function Enrich({
     variables: { id: dataset },
   })
   const [modalGeneSet, setModalGeneSet] = React.useState<GeneSetModalT>()
+  const [modalSamples, setModalSamples] = React.useState<string[]>()
+  const [modalCondition, setModalCondition] = React.useState<string>()
+
   return (
     <>
       <div className="flex flex-row gap-2 alert bg-neutral-900 bg-opacity-10">
@@ -323,8 +360,10 @@ export default function Enrich({
           }}
         >{userGeneSet?.userGeneSet?.description || 'Gene set'}{userGeneSet ? <> ({userGeneSet?.userGeneSet?.genes?.length ?? '?'} genes)</> : null}</label>
       </div>
-      <EnrichmentResults userGeneSet={userGeneSet} setModalGeneSet={setModalGeneSet} />
+      <EnrichmentResults userGeneSet={userGeneSet} setModalGeneSet={setModalGeneSet} setModalSamples={setModalSamples} setModalCondition={setModalCondition}/>
+      <SamplesModalWrapper samples={modalSamples ?? []} condition={modalCondition ?? ''} setModalSamples={setModalSamples} />
       <GeneSetModalWrapper modalGeneSet={modalGeneSet} setModalGeneSet={setModalGeneSet} />
+      
     </>
   )
 }

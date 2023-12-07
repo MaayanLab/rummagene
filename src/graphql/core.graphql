@@ -145,3 +145,15 @@ query getBackgrounds {
     }
   }
 }
+
+query QueryGsmMeta($gsms: [String]! = ["GSM4648170", "GSM4648184", "GSM4648189"]) {
+  getGsmMeta(gsms: $gsms){
+    nodes {
+      gse
+      gsm
+      title
+      characteristicsCh1
+      sourceNameCh1
+    }
+  }
+}
