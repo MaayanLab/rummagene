@@ -8,6 +8,21 @@ import Stats from './stats'
 import Image from 'next/image'
 import { RuntimeConfig } from '@/app/runtimeConfig'
 import Analytics from '@/app/analytics'
+import { Open_Sans, Roboto_Mono } from 'next/font/google'
+
+const openSans = Open_Sans({
+  subsets: ['latin'],
+  display: 'swap',
+  //👇 Add variable to our object
+  variable: '--font-opensans',
+})
+
+//👇 Configure the object for our second font
+const robotoMono = Roboto_Mono({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-roboto-mono',
+})
 
 export const metadata: Metadata = {
   title: 'Rummageo',
@@ -20,7 +35,7 @@ export default function RootLayout({
   children: React.ReactNode,
 }) {
   return (
-    <html lang="en" style={{ minWidth: '580px' }}>
+    <html lang="en" style={{ minWidth: '580px' }} className={`${openSans.variable} ${robotoMono.variable} font-sans`}>
       <ApolloWrapper>
         <RuntimeConfig>
           <body className="min-h-screen flex flex-col">
