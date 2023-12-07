@@ -8,7 +8,7 @@ export default function About() {
       <h2 className="title text-xl font-medium mb-3">About Rummagene</h2>
       <div className="flex">
         <div className="flex-col">
-        <Image className={'rounded float-right ml-5'} src={'/images/rummagene_logo.png'} width={250} height={250} alt={'Rummagene'}></Image>
+        <Image className={'rounded float-right ml-5'} src={'/images/rummageo_logo.png'} width={250} height={250} alt={'Rummagene'}></Image>
           <p className="text-justify">
           Many biomedical research papers are published every day with a portion of them containing supporting tables with
           data about genes, transcripts, variants, and proteins. For example, supporting tables may contain differentially
