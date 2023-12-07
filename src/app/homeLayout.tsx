@@ -1,6 +1,7 @@
 import Image from 'next/image'
 import React from 'react'
 import Stats from './stats'
+import Link from 'next/link'
 
 export default function HomeLayout({ children }: React.PropsWithChildren<{}>) {
   return (
@@ -24,12 +25,12 @@ export default function HomeLayout({ children }: React.PropsWithChildren<{}>) {
           </h1>
           <div>
             <span className="whitespace-nowrap">automatically generated from </span>
-            <span className="whitespace-nowrap"> <Stats bold show_pmcs /></span>
+            <span className="whitespace-nowrap"> <Stats bold show_gses /></span>
             <p> to find the most similar gene sets that match your query.</p>
           </div>
           <div className="mt-5">
-            <span className="whitespace-nowrap">We performed automatic identification of conditions from <Stats bold show_publications /> </span>
-            <div><span className="whitespace-nowrap"> studies processed in ARCHS4 to identify and extract gene sets.</span></div>
+            <span className="whitespace-nowrap">We performed automatic identification of conditions from </span> GEO
+            <div><span className="whitespace-nowrap"> studies processed in <Link href="https://maayanlab.cloud/archs4/" target='_blank' style={{textDecoration: 'underline'}}>ARCHS4</Link> to identify and extract gene sets.</span></div>
           </div>
           </React.Suspense>
         </div>

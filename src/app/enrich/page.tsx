@@ -5,8 +5,10 @@ import {
   useEnrichmentQueryQuery,
   useFetchUserGeneSetQuery,
   useOverlapQueryQuery,
-  useViewGeneSetQuery
+  useViewGeneSetQuery,
+  useGetBackgroundsQuery
 } from '@/graphql'
+import determineSpecies from '@/utils/determineSpecies'
 import ensureArray from "@/utils/ensureArray"
 import Loading from '@/components/loading'
 import Pagination from '@/components/pagination'
@@ -15,6 +17,7 @@ import Stats from '../stats'
 import Image from 'next/image'
 import GeneSetModal from '@/components/geneSetModal'
 import partition from '@/utils/partition'
+import { spec } from 'node:test/reporters'
 
 const pageSize = 8
 
@@ -35,23 +38,31 @@ type GeneSetModalT = {
 
 function EnrichmentResults({ userGeneSet, setModalGeneSet }: { userGeneSet?: FetchUserGeneSetQuery, setModalGeneSet: React.Dispatch<React.SetStateAction<GeneSetModalT>> }) {
   const genes = React.useMemo(() =>
-    ensureArray(userGeneSet?.userGeneSet?.genes).filter((gene): gene is string => !!gene).map(gene => gene.toUpperCase()),
+    ensureArray(userGeneSet?.userGeneSet?.genes).filter((gene): gene is string => !!gene),
     [userGeneSet]
   )
-  const [queryString, setQueryString] = useQsState({ page:  '1', q: '' })
+  const species = React.useMemo(() => determineSpecies(genes[0] || ''), [genes])
+  const { data: backgrounds } = useGetBackgroundsQuery()
+  var backgroundIds: Record<string, string> = {};
+  backgrounds?.backgrounds?.nodes?.forEach(background => {
+    backgroundIds[background?.species ?? ''] = background?.id ?? ''
+  })
+  console.log(species)
+  const [queryString, setQueryString] = useQsState({ page: '1', q: '' })
   const [rawTerm, setRawTerm] = React.useState('')
   const { page, term } = React.useMemo(() => ({ page: queryString.page ? +queryString.page : 1, term: queryString.q ?? '' }), [queryString])
   const { data: enrichmentResults } = useEnrichmentQueryQuery({
     skip: genes.length === 0,
-    variables: { genes, filterTerm: term, offset: (page-1)*pageSize, first: pageSize },
+    variables: { genes, filterTerm: term, offset: (page - 1) * pageSize, first: pageSize, id: backgroundIds[species] },
   })
-  React.useEffect(() => {setRawTerm(term)}, [term])
+  console.log(enrichmentResults)
+  React.useEffect(() => { setRawTerm(term) }, [term])
   return (
     <div className="flex flex-col gap-2 my-2">
       <h2 className="text-md font-bold">
-        {!enrichmentResults?.currentBackground?.enrich ?
+        {!enrichmentResults?.background?.enrich ?
           <>Rummaging through <Stats show_gene_sets />.</>
-          : <>After rummaging through <Stats show_gene_sets />. Rummageo <Image className="inline-block rounded" src="/images/rummageo_logo.png" width={50} height={100} alt="Rummageo"></Image> found {Intl.NumberFormat("en-US", {}).format(enrichmentResults?.currentBackground?.enrich?.totalCount || 0)} statistically significant matches.</>}
+          : <>After rummaging through <Stats show_gene_sets />. Rummageo <Image className="inline-block rounded" src="/images/rummageo_logo.png" width={50} height={100} alt="Rummageo"></Image> found {Intl.NumberFormat("en-US", {}).format(enrichmentResults?.background?.enrich?.totalCount || 0)} statistically significant matches.</>}
       </h2>
       <form
         className="join flex flex-row place-content-end place-items-center"
@@ -64,7 +75,7 @@ function EnrichmentResults({ userGeneSet, setModalGeneSet }: { userGeneSet?: Fet
           type="text"
           className="input input-bordered join-item"
           value={rawTerm}
-          onChange={evt => {setRawTerm(evt.currentTarget.value)}}
+          onChange={evt => { setRawTerm(evt.currentTarget.value) }}
         />
         <div className="tooltip" data-tip="Search results">
           <button
@@ -110,15 +121,14 @@ function EnrichmentResults({ userGeneSet, setModalGeneSet }: { userGeneSet?: Fet
             </tr>
           </thead>
           <tbody>
-            {!enrichmentResults?.currentBackground?.enrich ?
+            {!enrichmentResults?.background?.enrich ?
               <tr>
                 <td colSpan={7}><Loading /></td>
               </tr>
-            : null}
-            {enrichmentResults?.currentBackground?.enrich?.nodes?.map((enrichmentResult, j) => {
+              : null}
+            {enrichmentResults?.background?.enrich?.nodes?.map((enrichmentResult, j) => {
               if (!enrichmentResult?.geneSet) return null
-              const [gse, cond1, _ , cond2, __ , dir] = partition(enrichmentResult?.geneSet?.term)
-              console.log(gse, cond1, cond2, dir)
+              const [gse, cond1, _, cond2, __, dir] = partition(enrichmentResult?.geneSet?.term)
               const m = term
               var pmid = enrichmentResult?.geneSet?.geneSetPmidsById?.nodes[0]?.pmid ?? null
               if (pmid?.includes(',')) {
@@ -131,47 +141,44 @@ function EnrichmentResults({ userGeneSet, setModalGeneSet }: { userGeneSet?: Fet
               return (
                 <tr key={j}>
                   <th>
-                  {gse.includes(',') ? <>
-                    <a
-                      className="underline cursor-pointer"
-                      href={`https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=${gse.split(',')[0]}`}
-                      target="_blank"
-                      rel="noreferrer"
-                    >{gse.split(',')[0]}</a>
-                    <a
-                      className="underline cursor-pointer"
-                      href={`https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=${gse.split(',')[1]}`}
-                      target="_blank"
-                      rel="noreferrer"
-                    >{gse.split(',')[1]}</a></>
-                  : 
-                    <a
-                      className="underline cursor-pointer"
-                      href={`https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=${gse}`}
-                      target="_blank"
-                      rel="noreferrer"
-                    >{gse}</a>
-                  }</th>
+                    {gse.includes(',') ? <>
+                      {gse.split(',').map((g, i) => {
+                        return <><a
+                          key={i}
+                          className="underline cursor-pointer"
+                          href={`https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=${g}`}
+                          target="_blank"
+                          rel="noreferrer"
+                        >{g}</a>{ i != (gse.split(',').length - 1) ? <>,</>: <></>} </>
+                      })
+                    }</> :
+                      <a
+                        className="underline cursor-pointer"
+                        href={`https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=${gse}`}
+                        target="_blank"
+                        rel="noreferrer"
+                      >{gse}</a>
+                    }
+                  </th>
                   <th>
-                    {pmid ? pmid.includes(',') ? 
-                      <><a
-                      className="underline cursor-pointer"
-                      href={`https://pubmed.ncbi.nlm.nih.gov/${pmid.split(',')[0]}/`}
-                      target="_blank"
-                      rel="noreferrer"
-                    >{pmid.split(',')[0]}</a>, 
-                    <a
-                      className="underline cursor-pointer"
-                      href={`https://pubmed.ncbi.nlm.nih.gov/${pmid.split(',')[1]}/`}
-                      target="_blank"
-                      rel="noreferrer"
-                    >{pmid.split(',')[1]}</a></> :
-                    <a
-                      className="underline cursor-pointer"
-                      href={`https://pubmed.ncbi.nlm.nih.gov/${pmid}/`}
-                      target="_blank"
-                      rel="noreferrer"
-                    >{pmid}</a> : <>N/A</> }
+                    {pmid ? pmid.includes(',') ?
+                       <>
+                       {pmid.split(',').map((p, i) => {
+                         return <><a
+                           key={i}
+                           className="underline cursor-pointer"
+                           href={`https://pubmed.ncbi.nlm.nih.gov/${p}/`}
+                           target="_blank"
+                           rel="noreferrer"
+                         >{p}</a>{ pmid ? i != (pmid?.split(',')?.length - 1) ? <>,</>: <></> : <></>} </>
+                       })
+                       } </> :
+                      <a
+                        className="underline cursor-pointer"
+                        href={`https://pubmed.ncbi.nlm.nih.gov/${pmid}/`}
+                        target="_blank"
+                        rel="noreferrer"
+                      >{pmid}</a> : <>N/A</>}
                   </th>
                   <td>{enrichmentResult?.geneSet?.geneSetPmidsById?.nodes[0]?.title ?? ''}</td>
                   <td>
@@ -184,25 +191,24 @@ function EnrichmentResults({ userGeneSet, setModalGeneSet }: { userGeneSet?: Fet
                     {dir === 'up' ? 'Up' : dir === 'dn' ? 'Down' : 'Up/Down'}
                   </td>
                   <td>
-                  {platform ? platform.includes(',') ? 
-                      <><a
-                      className="underline cursor-pointer"
-                      href={`https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=${platform.split(',')[0]}/`}
-                      target="_blank"
-                      rel="noreferrer"
-                    >{platform.split(',')[0]}</a>, 
-                    <a
-                      className="underline cursor-pointer"
-                      href={`https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=${platform.split(',')[1]}/`}
-                      target="_blank"
-                      rel="noreferrer"
-                    >{platform.split(',')[1]}</a></> :
-                    <a
-                      className="underline cursor-pointer"
-                      href={`https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=${platform}/`}
-                      target="_blank"
-                      rel="noreferrer"
-                    >{platform}</a> : <>N/A</> }
+                    {platform ? platform.includes(',') ?
+                      <>
+                      {platform.split(',').map((p, i) => {
+                        return <><a
+                          key={i}
+                          className="underline cursor-pointer"
+                          href={`https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=${p}/`}
+                          target="_blank"
+                          rel="noreferrer"
+                        >{p}</a>{ i != (platform.split(',').length - 1) ? <>,</>: <></>} </>
+                      })
+                      } </> :
+                      <a
+                        className="underline cursor-pointer"
+                        href={`https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=${platform}/`}
+                        target="_blank"
+                        rel="noreferrer"
+                      >{platform}</a> : <>N/A</>}
                   </td>
                   <td>
                     {enrichmentResult?.geneSet?.geneSetPmidsById?.nodes[0]?.publishedDate ?? ''}
@@ -243,18 +249,18 @@ function EnrichmentResults({ userGeneSet, setModalGeneSet }: { userGeneSet?: Fet
           </tbody>
         </table>
       </div>
-      {enrichmentResults?.currentBackground?.enrich ?
+      {enrichmentResults?.background?.enrich ?
         <div className="w-full flex flex-col items-center">
           <Pagination
             page={page}
-            totalCount={enrichmentResults?.currentBackground?.enrich?.totalCount ? enrichmentResults?.currentBackground?.enrich.totalCount : undefined}
+            totalCount={enrichmentResults?.background?.enrich?.totalCount ? enrichmentResults?.background?.enrich.totalCount : undefined}
             pageSize={pageSize}
             onChange={page => {
               setQueryString({ page: `${page}`, q: term })
             }}
           />
         </div>
-      : null}
+        : null}
     </div>
   )
 }
@@ -268,7 +274,7 @@ function GeneSetModalWrapper(props: { modalGeneSet: GeneSetModalT, setModalGeneS
   })
   const { data: overlap } = useOverlapQueryQuery({
     skip: props.modalGeneSet?.type !== 'GeneSetOverlap',
-    variables: props.modalGeneSet?.type === 'GeneSetOverlap' ?  {
+    variables: props.modalGeneSet?.type === 'GeneSetOverlap' ? {
       id: props.modalGeneSet.id,
       genes: props.modalGeneSet?.genes,
     } : undefined,
@@ -279,9 +285,9 @@ function GeneSetModalWrapper(props: { modalGeneSet: GeneSetModalT, setModalGeneS
       term={props.modalGeneSet?.description}
       geneset={
         props.modalGeneSet?.type === 'GeneSet' ? geneSet?.geneSet?.genes.nodes.map(gene => gene.symbol)
-        : props.modalGeneSet?.type === 'GeneSetOverlap' ? overlap?.geneSet?.overlap.nodes.map(gene => gene.symbol)
-        : props.modalGeneSet?.type === 'UserGeneSet' ? props.modalGeneSet.genes
-        : undefined
+          : props.modalGeneSet?.type === 'GeneSetOverlap' ? overlap?.geneSet?.overlap.nodes.map(gene => gene.symbol)
+            : props.modalGeneSet?.type === 'UserGeneSet' ? props.modalGeneSet.genes
+              : undefined
       }
       setShowModal={show => {
         if (!show) props.setModalGeneSet(undefined)

@@ -100,5 +100,18 @@
     "UCP3",
     "AGR2",
     "P4HA2"
-  ]
+  ],
+  "mouse_genes": [
+    "Foxo1", "Gm34303", "Prm1", "Ces2b", "Rap1gapos", "Sepp1", "Mal", "C80763", "Lrrc51", "Figla",
+    "Tmem150c", "AA407175", "Npr1", "Heph", "Pik3ip1", "1700031L13Rik", "A230058F20Rik", "Emilin2", "Slitrk1",
+    "AU015791", "4931415C17Rik", "Gm30173", "Trpv1", "Mycs", "4930434B07Rik", "A930016O22Rik", "Srrt", "AU015696",
+    "Hephl1", "Relb", "Xndc1", "Ceacam9", "Mrap", "Defb7", "BC037039", "2310068J16Rik", "Sult1e1", "4930402F11Rik",
+    "Milr1", "Ten1", "Tcf20", "Chrm3", "Atp2a1", "Lipt1", "1010001I08Rik", "Trim75", "Crtc1", "A930002H02Rik",
+    "Cdh20", "Dmpk", "1700028I16Rik", "4931439C15Rik", "Unc5b", "Adamts2", "Igfals", "Efhd1", "Msln", "4930405G09Rik",
+    "Adam33", "Hsd17b1", "Inppl1", "Ifna11", "2010106E10Rik", "Aatk", "S100a4", "Smr2", "Lyz2", "Sgk2", "Insl6",
+    "4930429F11Rik", "Otof", "Mucl2", "Nfkbid", "Nab2", "Cers6", "C030044M21Rik", "Col13a1", "Slc7a9", "1700019B03Rik",
+    "2310034C09Rik", "Arfip2", "5830415G21Rik", "Gtf2ird1", "5033423O07Rik", "Pask", "Serpine1", "Bcl7b",
+    "4933408K01Rik", "Stk25", "Tdh", "5430427O19Rik", "Tnfrsf1a", "Pde1b", "Cryab", "Tpte", "Mir142", "Cpa6", "Hyls1",
+    "Slc25a20", "Ddc"
+]
 }

@@ -31,12 +31,18 @@ export default function InputForm() {
     <>
       <h1 className="text-xl">Input gene set</h1>
       <p className="prose">
-        Try a gene set <a
+        Try a human gene set <a
           className="font-bold cursor-pointer"
           onClick={() => {
             setRawGenes(example.genes.join('\n'))
           }}
-        >example</a>.
+        >example</a> or a mouse gene set <a
+          className="font-bold cursor-pointer"
+          onClick={() => {
+            setRawGenes(example.mouse_genes.join('\n'))
+          }}
+        >example</a> 
+        .
       </p>
       <form
         className="flex flex-col place-items-end"
