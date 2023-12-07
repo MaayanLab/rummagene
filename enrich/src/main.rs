@@ -138,11 +138,12 @@ async fn ensure_index(db: &mut Connection<Postgres>, state: &State<PersistentSta
         // after which we block the new empty bitmap for writing
         let mut bitmap = state.bitmaps.insert_write(background_id, Bitmap::new()).await;
 
-        let background_info = sqlx::query("select id, (select jsonb_object_agg(g.id, g.symbol) from jsonb_each(gene_ids) bg(gene_id, nil) inner join app_public_v2.gene g on bg.gene_id::uuid = g.id) as genes from app_public_v2.background b where id = $1::uuid;")
+        let background_info = sqlx::query("select id, species, (select jsonb_object_agg(g.id, g.symbol) from jsonb_each(gene_ids) bg(gene_id, nil) inner join app_public_v2.gene g on bg.gene_id::uuid = g.id) as genes from app_public_v2.background b where id = $1::uuid;")
             .bind(background_id.to_string())
             .fetch_one(&mut **db).await.map_err(|e| e.to_string())?;
 
         let background_genes: sqlx::types::Json<HashMap<String, String>> = background_info.try_get("genes").map_err(|e| e.to_string())?;
+        let species: String = background_info.try_get("species").map_err(|e| e.to_string())?;
         let mut background_genes = background_genes.iter().map(|(id, symbol)| Ok((Uuid::parse_str(id).map_err(|e| e.to_string())?, symbol.clone()))).collect::<Result<Vec<_>, String>>()?;
         background_genes.sort_unstable();
         bitmap.columns.reserve(background_genes.len());
@@ -153,7 +154,7 @@ async fn ensure_index(db: &mut Connection<Postgres>, state: &State<PersistentSta
         }
 
         // compute the index in memory
-        sqlx::query("select id, term, gene_ids from app_public_v2.gene_set;")
+        sqlx::query(format!("select id, term, gene_ids from app_public_v2.gene_set where species = '{}';", species).as_str())
             .fetch(&mut **db)
             .for_each(|row| {
                 let row = row.unwrap();
