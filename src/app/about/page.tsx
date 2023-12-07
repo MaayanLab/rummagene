@@ -16,9 +16,10 @@ export default function About() {
             We considered any GEO study aligned in ARCHS4 with at least 3 samples per condition with at least 6 samples total and less than 50 samples total. Samples were grouped using metadata provided in the GEO study, 
             specifically using K-means clustering on the embedding of concatenated sample <span style={{fontStyle: "italic"}}>title</span>, <span style={{fontStyle: "italic"}}>characteristic_ch1</span>, and <span style={{fontStyle: "italic"}}>source_ch1</span> fields 
             and assuming the number of conditions (clusters) was equal to the total samples divided by 4 though this can converge to a smaller amount of clusters based upon the similarity of the metadata string embeddings. 
-            To create condition titles, common words across all samples for each condition were retained. Limma voom was used to compute differential expression signatures for each condition against all other conditions in the study. Additionally for each study, we attempted to first identify any control conditions based upon meta data and discrete list of keywords. If one was identified it was used to compare to the other conditions first.
+            To create condition titles, common words across all samples for each condition were retained. Limma voom was used to compute differential expression signatures for each condition against all other conditions in the study. Additionally for each study, we attempted to first identify any control conditions based upon meta data and discrete list of keywords.
+             If one was identified it was used to compare to the other conditions first. Up and down gene sets were extracted from each signature for genes with an adjusted P value less than 0.05. If less than 5 genes met this threshold, the gene set was discarded. If more than 2000 genes met this threshold, 
+             the threshold was lowered incrementally (0.05, 0.01, 0.005, 0.001...) until less than 2000 genes were retained.
           </p>
-          
           <br></br>
           <p>
             This database is updated with new releases of <Link href="https://maayanlab.cloud/archs4/index.html" className="underline cursor-pointer" target="_blank">ARCHS4</Link>.
