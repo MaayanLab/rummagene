@@ -315,7 +315,6 @@ function GeneSetModalWrapper(props: { modalGeneSet: GeneSetModalT, setModalGeneS
 }
 
 function SamplesModalWrapper(props: { samples: string[], condition: string, setModalSamples: React.Dispatch<React.SetStateAction<string[] | undefined>> }) {
-  console.log(props.samples)
   return (
     <SamplesModal
       samples={props.samples}
