@@ -1,8 +1,11 @@
-import { EnrichmentQueryDocument, EnrichmentQueryQuery, FetchUserGeneSetDocument, FetchUserGeneSetQuery } from "@/graphql"
+import { EnrichmentQueryDocument, EnrichmentQueryQuery, FetchUserGeneSetDocument, FetchUserGeneSetQuery, useGetBackgroundsQuery } from "@/graphql"
 import { getClient } from "@/lib/apollo/client"
+import determineSpecies from "@/utils/determineSpecies"
 import ensureArray from "@/utils/ensureArray"
 import partition from "@/utils/partition"
 import streamTsv from "@/utils/streamTsv"
+import { it } from "node:test"
+import React from "react"
 
 export const dynamic = 'force-dynamic'
 export async function GET(request: Request) {
@@ -13,8 +16,17 @@ export async function GET(request: Request) {
     query: FetchUserGeneSetDocument,
     variables: { id: dataset },
   })
+
+  const { data: backgrounds } = useGetBackgroundsQuery()
+  var backgroundIds: Record<string, string> = {};
+  backgrounds?.backgrounds?.nodes?.forEach(background => {
+    backgroundIds[background?.species ?? ''] = background?.id ?? ''
+  })
   if (userGeneSetError) throw new Error(userGeneSetError.message)
-  const genes = ensureArray(userGeneSet.userGeneSet?.genes).filter((gene): gene is string => !!gene).map(gene => gene.toUpperCase())
+  const genes = ensureArray(userGeneSet.userGeneSet?.genes).filter((gene): gene is string => !!gene).map(gene => gene)
+
+  const species = React.useMemo(() => determineSpecies(genes[0] || ''), [genes])
+  const backgroundId = backgroundIds[species] ?? null
   const { data: enrichmentResults, error: enrichmentResultsError } = await getClient().query<EnrichmentQueryQuery>({
     query: EnrichmentQueryDocument,
     variables: {
@@ -22,29 +34,42 @@ export async function GET(request: Request) {
       filterTerm: term,
       offset: 0,
       first: null,
+      backgroundId: backgroundId,
     },
   })
   if (enrichmentResultsError) throw new Error(enrichmentResultsError.message)
-  const nodes = enrichmentResults.currentBackground?.enrich?.nodes
+  const nodes = enrichmentResults.background?.enrich?.nodes
   if (!nodes) throw new Error('No results')
 
   return new Response(
-    streamTsv(['pmcid', 'pmcidTitle', 'table', 'column', 'geneSetSize', 'nOverlap', 'oddsRatio', 'pvalue', 'adjPvalue'], nodes, item => {
+    streamTsv(['gse', 'pmid', 'condition1Title', 'condition2Title', 'condition1Samples', 'condition2Samples', 'direction', 'platform', 'date', 'geneSetSize', 'overlap', 'oddsRatio', 'pValue', 'adjPValue'], nodes, item => {
       if (!item?.geneSet) return
-      const [pmcid, _, term] = partition(item.geneSet.term, '-')
-      const m = term ? /^(.+?\.\w+)-+(.+)$/.exec(term) : null
-      const table = m ? m[1] : null
-      const column = m ? m[2] : term
+      const [gse, cond1, _, cond2, __, dir] = partition(item?.geneSet?.term)
+
+      var pmid = item?.geneSet?.geneSetPmidsById?.nodes[0]?.pmid ?? ''
+      if (pmid?.includes(',')) {
+        pmid = JSON.parse(pmid.replace(/'/g, '"')).join(',')
+      }
+      var platform = item?.geneSet?.geneSetPmidsById?.nodes[0]?.platform ?? ''
+      if (platform?.includes(',')) {
+        platform = JSON.parse(platform.replace(/'/g, '"')).join(',')
+      }
       return {
-        pmcid,
-        pmcidTitle: item.geneSet.geneSetPmcsById.nodes[0].pmcInfoByPmcid?.title,
-        table,
-        column,
-        geneSetSize: item.geneSet.nGeneIds,
-        nOverlap: item.nOverlap,
-        oddsRatio: item.oddsRatio,
-        pvalue: item.pvalue,
-        adjPvalue: item.adjPvalue,
+        gse: gse,
+        pmid: pmid,
+        title: item?.geneSet?.geneSetPmidsById?.nodes[0]?.title ?? '',
+        condition1Title: item?.geneSet?.geneSetPmidsById?.nodes[0]?.sampleGroups['titles'][cond1] ?? '',
+        condition2Title: item?.geneSet?.geneSetPmidsById?.nodes[0]?.sampleGroups['titles'][cond2] ?? '',
+        condition1Samples: item?.geneSet?.geneSetPmidsById?.nodes[0]?.sampleGroups['samples'][cond1] ?? '',
+        condition2Samples: item?.geneSet?.geneSetPmidsById?.nodes[0]?.sampleGroups['samples'][cond2] ?? '',
+        direction: dir,
+        platform: item?.geneSet?.geneSetPmidsById?.nodes[0]?.platform ?? '',
+        date: item?.geneSet?.geneSetPmidsById?.nodes[0]?.publishedDate ?? '',
+        geneSetSize: item?.geneSet?.nGeneIds ?? 0,
+        overlap: item?.nOverlap ?? 0,
+        oddsRatio: item?.oddsRatio ?? 0,
+        pValue: item?.pvalue ?? 0,
+        adjPValue: item?.adjPvalue ?? 0,
       }
     }),
     {
