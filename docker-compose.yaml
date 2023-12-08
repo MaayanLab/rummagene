@@ -1,8 +1,9 @@
 version: '3.9'
 services:
   rummageo-app:
+    platform: linux/amd64
     build: .
-    image: maayanlab/rummageo:0.0.1
+    image: maayanlab/rummageo:0.0.3
     environment:
       - DATABASE_URL=$DATABASE_URL
       - AUTHORIZATION_HEADER=$AUTHORIZATION_HEADER
@@ -12,15 +13,17 @@ services:
     ports:
       - 3000:3000
   rummageo-enrich:
+    platform: linux/amd64
     build: enrich
-    image: maayanlab/rummageo-enrich:0.0.1
+    image: maayanlab/rummageo-enrich:0.0.2
     environment:
       - 'ROCKET_DATABASES={postgres={url="postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@rummageo-postgres/${POSTGRES_DB}"}}'
     ports:
       - 8000:8000
   rummageo-postgres:
+    platform: linux/amd64
     build: db
-    image: maayanlab/rummageo-postgres:0.0.1
+    image: maayanlab/rummageo-postgres:0.0.2
     environment:
       - POSTGRES_DB
       - POSTGRES_USER
