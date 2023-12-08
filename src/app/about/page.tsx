@@ -12,7 +12,7 @@ export default function About() {
           <p className="text-justify">
             Rummageo is a tool for searching through automatically generated signatures from GEO. 
             We performed automatic identification of conditions from uniformly aligned GEO studies available from <Link href="https://maayanlab.cloud/archs4/" className="underline cursor-pointer" target="_blank">ARCHS4</Link> to 
-            compute differential expression signatures and extract gene sets. In total we extracted <Stats show_human_gene_sets bold/> and <Stats show_mouse_gene_sets bold/> from <Stats show_gses bold/> GEO studies. 
+            compute differential expression signatures and extract gene sets. In total we extracted <Stats show_human_gene_sets bold/> and <Stats show_mouse_gene_sets bold/> from <Stats show_gses bold/>. 
             We considered any GEO study aligned in ARCHS4 with at least 3 samples per condition with at least 6 samples total and less than 50 samples total. Samples were grouped using metadata provided in the GEO study, 
             specifically using K-means clustering on the embedding of concatenated sample <span style={{fontStyle: "italic"}}>title</span>, <span style={{fontStyle: "italic"}}>characteristic_ch1</span>, and <span style={{fontStyle: "italic"}}>source_ch1</span> fields 
             and assuming the number of conditions (clusters) was equal to the total samples divided by 4 though this can converge to a smaller amount of clusters based upon the similarity of the metadata string embeddings. 

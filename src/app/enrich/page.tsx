@@ -215,7 +215,7 @@ function EnrichmentResults({ userGeneSet, setModalGeneSet, setModalSamples, setM
                         return <><a
                           key={i}
                           className="underline cursor-pointer"
-                          href={`https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=${p}/`}
+                          href={`https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=${p}`}
                           target="_blank"
                           rel="noreferrer"
                         >{p}</a>{ i != (platform.split(',').length - 1) ? <>,</>: <></>} </>
@@ -223,7 +223,7 @@ function EnrichmentResults({ userGeneSet, setModalGeneSet, setModalSamples, setM
                       } </> :
                       <a
                         className="underline cursor-pointer"
-                        href={`https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=${platform}/`}
+                        href={`https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=${platform}`}
                         target="_blank"
                         rel="noreferrer"
                       >{platform}</a> : <>N/A</>}
