@@ -22,7 +22,7 @@ export default function SamplesModal({ samples, condition, showModal, setShowMod
                         <div className="border-0 rounded-lg shadow-lg relative flex flex-col w-full bg-white outline-none focus:outline-none  dark:bg-neutral-900">
                             <div className='p-3 border-b'>
                                 <p className="text-md text-center text-gray-900 dark:text-white">
-                                    <div>{condition}</div>
+                                    {condition}
                                 </p>
                             </div>
                             <div className="p-2 h-56 overflow-y-scroll text-center" style={noWrap}>

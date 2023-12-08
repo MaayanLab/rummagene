@@ -81,7 +81,7 @@ export default function TermTable({ terms }: {
               className="btn join-item font-bold text-2xl pb-1"
               onClick={evt => {
                 if (!dataFiltered) return
-                const blob = blobTsv(['gse', 'pmid', 'condition1Title', 'condition2Title', 'condition1Samples', 'condition2Samples', 'direction', 'platform', 'date', 'geneSetSize', 'overlap', 'oddsRatio', 'pValue', 'adjPValue'], dataFiltered, item => {
+                const blob = blobTsv(['gse', 'pmid', 'condition1Title', 'condition2Title', 'condition1Samples', 'condition2Samples', 'direction', 'platform', 'date', 'geneSetSize'], dataFiltered, item => {
                   if (!item?.term) return
                   const [gse, cond1, _, cond2, __, dir] = partition(item?.term)
             
@@ -124,7 +124,7 @@ export default function TermTable({ terms }: {
               <th>Direction</th>
               <th>Platform</th>
               <th>Date</th>
-              <th>View</th>
+              <th>Gene Set</th>
             </tr>
           </thead>
           <tbody>

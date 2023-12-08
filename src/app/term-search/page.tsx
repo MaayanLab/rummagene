@@ -20,7 +20,7 @@ function TermSearchResults({ terms }: { terms: string }) {
       <h2 className="text-md font-bold">
         
         <p>Rummaging through <Stats show_total_gene_sets /> with your search term.</p>
-        <Image className={'rounded mx-auto'} src={'/images/loading.gif'} width={125} height={250} alt={'Loading...'} />
+        <Image className={'rounded mx-auto'} src={'/images/loading.gif'} width={250} height={250} alt={'Loading...'} />
         </h2>
         
       </div>

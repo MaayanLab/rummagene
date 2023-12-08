@@ -19,7 +19,7 @@ export default function HomeLayout({ children }: React.PropsWithChildren<{}>) {
           <div className='inline-flex'>
             <Image className={'rounded'} src={'/images/rummageo_logo.png'} width={225} height={225} alt={'Rummageo'}></Image>
           </div>
-          <React.Suspense fallback={<div className="text-center p-5"><Image className={'rounded mx-auto'} src={'/images/loading.gif'} width={125} height={250} alt={'Loading...'}/> </div>}>
+          <React.Suspense fallback={<div className="text-center p-5"><Image className={'rounded mx-auto'} src={'/images/loading.gif'} width={250} height={250} alt={'Loading...'}/> </div>}>
           <h1 className="text-2xl font-bold">
             <span className="whitespace-nowrap"> Rummage through</span>
           </h1>
