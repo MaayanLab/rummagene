@@ -137,8 +137,25 @@ export default function PmidTable({ terms, data, gene_set_ids }: {
                     const sample_groups = gene_set_ids?.get(term)?.at(2)
                     const [gse, cond1, _, cond2, species, dir] = partition(term)
                     return (
-                      <tr key={term} id={term} className='hidden bg-black bg-opacity-30'>
-                        <td colSpan={1}>{gse}</td>
+                      <tr key={term} id={term} className='hidden bg-white dark:bg-black bg-opacity-30'>
+                        <td colSpan={1}>{gse.includes(',') ? <>
+                      {gse.split(',').map((g, i) => {
+                        return <><a
+                          key={i}
+                          className="underline cursor-pointer"
+                          href={`https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=${g}`}
+                          target="_blank"
+                          rel="noreferrer"
+                        >{g}</a>{ i != (gse.split(',').length - 1) ? <>,</>: <></>} </>
+                      })
+                    }</> :
+                      <a
+                        className="underline cursor-pointer"
+                        href={`https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=${gse}`}
+                        target="_blank"
+                        rel="noreferrer"
+                      >{gse}</a>
+                    }</td>
                         <td colSpan={1}>
                         <label
                       htmlFor="geneSetModal"
