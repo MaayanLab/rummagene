@@ -318,14 +318,14 @@ def import_pb_info(plpy):
   if os.path.exists('./ETL/out/pb_info_to_ingest.json'):
     with open('./ETL/out/pb_info_to_ingest.json') as f:
       pb_info = json.load(f)
-    to_ingest = list(set(to_ingest).difference(list(pb_info.keys())))
+    to_pull = list(set(to_ingest).difference(list(pb_info.keys())))
   else:
     pb_info = {}
 
-  for i in tqdm(range(0, len(to_ingest), 250), 'Pulling titles...'):
+  for i in tqdm(range(0, len(to_pull), 250), 'Pulling titles...'):
     for j in range(10):
       try:
-        ids_string = ",".join(to_ingest[i:i+250])
+        ids_string = ",".join(to_pull[i:i+250])
         res = requests.get(f'https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi?db=pubmed&retmode=json&id={ids_string}')
         ids_info = res.json()
       except KeyboardInterrupt:
@@ -373,11 +373,11 @@ def import_pb_info(plpy):
         pmid=pmid,
         pmcid=pb_info[pmid]['pmcid'],
         title=pb_info[pmid]['title'],
-        pub_date=pb_info[pmid]['title'],
+        pub_date=pb_info[pmid]['date'],
         doi=pb_info[pmid]['doi'],
       )
-      for pmid in pb_info
-      #if pmid in pb_info
+      for pmid in to_ingest
+      if pmid in pb_info
     ),
     total=len(to_ingest),
     desc='Inserting new PubMed entries...'),
