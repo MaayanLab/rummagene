@@ -14,42 +14,42 @@ export default function Download() {
       <h2 className="title text-xl font-medium mb-3">Downloads</h2>
       <br />
       <p>
-        This database is updated weekly to extract gene sets automatically from newly published open access PMC articles.
+        Gene set libraries are available for download in GMT format. Accompanying metadata is available in JSON format which contains gene set condition titles and GSM ids.
       </p>
       <div className="grid lg:grid-cols-2 gap-4 my-4">
-        <a className="stats shadow" href="https://s3.dev.maayanlab.cloud/rummagene/table-mining.gmt.gz" download="table-mining.gmt.gz">
+        <a className="stats shadow" href="https://minio.dev.maayanlab.cloud/rummageo/human_12-04-2023.gmt.gz" download="human-geo-auto.gmt.gz">
           <div className="stat gap-2">
-            <div className="stat-title">table-mining.gmt.gz</div>
-            <div className="stat-value">729,968 columns</div>
+            <div className="stat-title">human-geo-auto.gmt.gz</div>
+            <div className="stat-value">135,264 gene sets</div>
             <div className="stat-desc whitespace-normal">
-            <span className="whitespace-nowrap">2GB compressed</span>, <span className="whitespace-nowrap">5GB uncompressed</span>, <span className="whitespace-nowrap">Last Updated Mon Aug 7 2023</span>
+            <span className="whitespace-nowrap">386MB compressed</span>, <span className="whitespace-nowrap">874MB uncompressed</span>, <span className="whitespace-nowrap">Last Updated Fri Dec 8 2023</span>
             </div>
           </div>
         </a>
-        <a className="stats shadow" href="https://s3.dev.maayanlab.cloud/rummagene/table-mining-clean.gmt.gz" download="table-mining-clean.gmt.gz">
+        <a className="stats shadow" href="https://minio.dev.maayanlab.cloud/rummageo/gse_processed_meta_human.json" download="geo_processed_meta_human.json">
           <div className="stat gap-2">
-            <div className="stat-title">table-mining-clean.gmt.gz</div>
-            <div className="stat-value">642,389 gene sets</div>
+            <div className="stat-title">geo_processed_meta_human.json</div>
+            <div className="stat-value">human metadata</div>
             <div className="stat-desc whitespace-normal">
-              <span className="whitespace-nowrap">231MB compressed</span>, <span className="whitespace-nowrap">624MB uncompressed</span>, <span className="whitespace-nowrap">Last Updated Mon Aug 7 2023</span>
+              <span className="whitespace-nowrap">11.7MB uncompressed</span>, <span className="whitespace-nowrap">Last Updated Fri Dec 8 2023</span>
             </div>
           </div>
         </a>
-        <a className="stats shadow" href="https://s3.dev.maayanlab.cloud/rummagene/umap.tsv.gz" download="umap.tsv.gz">
+        <a className="stats shadow" href="https://minio.dev.maayanlab.cloud/rummageo/mouse_12-04-2023.gmt.gz" download="mouse-geo-auto.gmt.gz">
           <div className="stat gap-2">
-            <div className="stat-title">umap.tsv.gz</div>
-            <div className="stat-value">642,389 points</div>
+            <div className="stat-title">mouse-geo-auto.gmt.gz</div>
+            <div className="stat-value">158,062 gene sets</div>
             <div className="stat-desc whitespace-normal">
-              <span className="whitespace-nowrap">12.4MB compressed</span>, <span className="whitespace-nowrap">51.3MB uncompressed</span>, <span className="whitespace-nowrap">Last Updated Mon Oct 2 2023</span>
+              <span className="whitespace-nowrap">418MB compressed</span>, <span className="whitespace-nowrap">878MB uncompressed</span>, <span className="whitespace-nowrap">Last Updated Fri Dec 8 2023</span>
             </div>
           </div>
         </a>
-        <a className="stats shadow" href="/download.gmt" download="download.gmt">
+        <a className="stats shadow" href="https://minio.dev.maayanlab.cloud/rummageo/gse_processed_meta_mouse.json" download="gse_processed_meta_mouse.json">
           <div className="stat gap-2">
-            <div className="stat-title">latest.gmt</div>
-            <div className="stat-value"><Stats show_gene_sets /></div>
+            <div className="stat-title">gse_processed_meta_mouse.json</div>
+            <div className="stat-value">mouse metadata</div>
             <div className="stat-desc whitespace-normal">
-              <span className="whitespace-nowrap">Approx 700MB</span>, <span className="whitespace-nowrap">Last Updated {latest_release_date}</span>
+              <span className="whitespace-nowrap">13.6MB</span>, <span className="whitespace-nowrap">Last Updated Fri Dec 8 2023</span>
             </div>
           </div>
         </a>
