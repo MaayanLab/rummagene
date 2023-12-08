@@ -1,8 +1,8 @@
 # Rummagene
 
-<https://rummagene.com/>
+<https://rummageo.com/>
 
-This is a webserver for gene set enrichment analysis on a very large gene set -- one constructed by extracting gene sets from PMC OA. The [bot](https://github.com/MaayanLab/rummagene/tree/main/bot) does the extraction weekly.
+This is a webserver for gene set enrichment analysis on a very large gene set -- one constructed by extracting gene sets from uniformly aligned GEO samples from ARCHS4.
 
 ## Development
 Rather than splitting up the meta and data APIs, all functionality is incorporated into a postgres database.
@@ -16,16 +16,16 @@ cp .env.example .env
 # review & edit .env
 
 # start db
-docker-compose up -d postgres
+docker-compose up -d rummageo-postgres
 
 # create db/ensure it's fully migrated
 dbmate up
 
 # start companion API
-docker-compose up -d enrich
+docker-compose up -d rummageo-enrich
 
 # start app (production)
-docker-compose up -d app
+docker-compose up -d rummageo-app
 # start app (development)
 npm run dev
 ```
@@ -33,6 +33,8 @@ npm run dev
 ### Provisioning
 ```bash
 python ./bot/helper.py ingest -i your-gmt.gmt
+python ./bot/helper.py ingest-gse-info
+python ./bot/helper.py ingest-pb-info
 ```
 
 ### Writing Queries
