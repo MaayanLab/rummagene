@@ -98,17 +98,6 @@ mutation AddUserGeneSet($genes: [String], $description: String = "") {
 }
 
 
-query GetPmcInfoByIds($pmcids: [String]!){
-  getPmcInfoByIds(pmcids: $pmcids) {
-    nodes {
-      pmcid
-      title
-      yr
-      doi
-    }
-  }
-}
-
 query TermsPmcs($pmcids: [String]!) {
   termsPmcsCount(pmcids: $pmcids) {
     nodes {
@@ -183,6 +172,18 @@ query QueryPbGeneSets($pmids: [String]!) {
         species
         nGeneIds
       }
+    }
+    totalCount
+  }
+}
+
+query GetPmidInfo($pmids: [String]! = ["33378647"]) {
+  getPbMetaByIds(pmids: $pmids) {
+    nodes {
+      pmid
+      pubDate
+      title
+      doi
     }
     totalCount
   }

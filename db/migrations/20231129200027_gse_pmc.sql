@@ -31,17 +31,19 @@ create index pmid_info_pmid_idx on app_public_v2.pmid_info (pmid);
 -- Create the materialized view gene_set_pmid
 create materialized view app_public_v2.gene_set_pmid as
 select
-  gs.id,
-  gs.term,
-  gse_info.id as gse_id,
-  gse_info.gse,
-  gse_info.pmid,
-  gse_info.title,
-  gse_info.sample_groups,
-  gse_info.platform,
-  gse_info.published_date
-from app_public_v2.gene_set gs
-join app_public_v2.gse_info gse_info on regexp_replace(gs.term, '\mGSE([^-]+)\M.*', 'GSE\1') = gse_info.gse;
+    gs.id,
+    gs.term,
+    gse_info.id as gse_id,
+    gse_info.gse,
+    gse_info.pmid,
+    gse_info.title,
+    gse_info.sample_groups,
+    gse_info.platform,
+    gse_info.published_date
+from
+    app_public_v2.gene_set gs
+join
+    app_public_v2.gse_info gse_info ON regexp_replace(gs.term, '\mGSE([^-]+)\M.*', 'GSE\1') = gse_info.gse;
 
 -- Add a comment for the foreign key
 comment on materialized view app_public_v2.gene_set_pmid is E'@foreignKey (id) references app_public_v2.gene_set (id)';
@@ -64,15 +66,24 @@ comment on view app_public_v2.pmid is E'@foreignKey (pmid) references app_public
 grant select on app_public_v2.pmid to guest;
 grant all privileges on app_public_v2.pmid to authenticated;
 
-create or replace function app_public_v2.get_pb_info_by_ids(pmids varchar[])
+create function app_public_v2.get_pb_info_by_ids(pmids varchar[])
 returns setof app_public_v2.gene_set_pmid as
 $$
   select *
   from app_public_v2.gene_set_pmid
-  where pmid = ANY (pmids);
+  where pmid = ANY(pmids)
 $$ language sql immutable strict parallel safe;
 grant execute on function app_public_v2.get_pb_info_by_ids to guest, authenticated;
 
+
+create function app_public_v2.get_pb_meta_by_ids(pmids varchar[])
+returns setof app_public_v2.pmid_info as
+$$
+  select *
+  from app_public_v2.pmid_info
+  where pmid = ANY(pmids)
+$$ language sql immutable strict parallel safe;
+grant execute on function app_public_v2.get_pb_meta_by_ids to guest, authenticated;
 
 -- migrate:down
 
@@ -80,4 +91,5 @@ drop table app_public_v2.gse_info;
 drop table app_public_v2.pmid_info;
 drop materialized view app_public_v2.gene_set_pmid;
 drop function app_public_v2.get_pb_info_by_ids(pmids varchar[]);
+drop function  app_public_v2.get_pb_meta_by_ids(pmids varchar[]);
 
