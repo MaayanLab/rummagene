@@ -13,7 +13,7 @@ services:
       - 3000:3000
   rummageo-enrich:
     build: enrich
-    image: maayanlab/rummageo-enrich:0.0.2
+    image: maayanlab/rummageo-enrich:0.0.1
     environment:
       - 'ROCKET_DATABASES={postgres={url="postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@rummageo-postgres/${POSTGRES_DB}"}}'
     ports:
