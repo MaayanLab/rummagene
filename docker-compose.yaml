@@ -4,7 +4,7 @@ services:
     build: .
     image: maayanlab/rummageo:0.0.1
     environment:
-      - DATABASE_URL=postgres://$POSTGRES_USER:$POSTGRES_PASSWORD@rummagene-postgres/$POSTGRES_DB
+      - DATABASE_URL=postgres://$POSTGRES_USER:$POSTGRES_PASSWORD@rummageo-postgres/$POSTGRES_DB
       - AUTHORIZATION_HEADER=$AUTHORIZATION_HEADER
       - NODE_ENV=production
       - ENRICH_URL=http://localhost:8000
