@@ -28,7 +28,7 @@ export default function GeneSetModal({ geneset, term, showModal, setShowModal }:
                                         Gene Set  ({geneset ? geneset?.length : 'n'})
                                     </p>
                                 </div>
-                                <div className={classNames("p-2 py-6 h-56 overflow-y-scroll text-slate-500 text-sm leading-relaxed", {'text-center': !geneset_with_info})} style={noWrap}>
+                                <div className={classNames("p-2 py-6 h-56 overflow-y-scroll text-slate-500 text-sm leading-relaxed")} style={noWrap}>
                                     {geneset ?
                                         <div className="overflow-x-auto">
                                             <table className="table table-xs table-pin-rows table-pin-cols">
