@@ -79,28 +79,30 @@ def ensure_gene_info_complete():
 
 def import_gene_info(plpy):
   import pandas as pd
-  df = pd.read_csv(ensure_gene_info_complete(), sep='\t', index_col=0)
-  
-  genes_without_info = {
-    row['symbol']: row
+  df = pd.read_csv(ensure_gene_info_complete(), sep='\t')
+  symbols = set(df['Symbol'].unique())
+  genes_without_info = [
+    row['symbol']
     for row in plpy.cursor('''
-      select id, symbol, description
-      from app_public_v2.gene_set
+      select symbol
+      from app_public_v2.gene
       where description is null or summary is null
     ''', tuple())
-  }
-  df = df.loc[list(genes_without_info), ['description', 'summary']]
+    if row['symbol'] in symbols
+  ]
+  df = df.drop_duplicates(subset='Symbol').set_index('Symbol').loc[genes_without_info, ['GeneID', 'description', 'summary']]
 
   if df.shape[0] > 0:
     copy_from_records(
-      plpy.conn, 'app_public_v2.gene_info', ('symbol', 'description', 'summary'),
+      plpy.conn, 'app_public_v2.gene', ('symbol', 'ncbi_gene_id', 'description', 'summary'),
       tqdm((
         dict(
-          symbol=row['Symbol'],
+          symbol=symbol,
+          ncbi_gene_id=row['GeneID'],
           description=row['description'],
           summary=row['summary'],
         )
-        for _, row in df.iterrows()
+        for symbol, row in df.iterrows()
       ),
       total=df.shape[0],
       desc='Inserting gene info'),
