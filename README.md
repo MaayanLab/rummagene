@@ -34,6 +34,7 @@ npm run dev
 ```bash
 PYTHONPATH=bot python -m helper ingest -i your-gmt.gmt
 PYTHONPATH=bot python -m helper ingest-paper-info
+PYTHONPATH=bot python -m helper ingest-gene-info
 ```
 
 ### Writing Queries

@@ -25,6 +25,9 @@ $PYTHON -m helper ingest -i $WORK_DIR/output-clean.gmt || exit 1
 echo "fetching & ingesting latest PMC metadata..."
 $PYTHON -m helper ingest-paper-info || exit 1
 
+echo "fetching & ingesting gene description & summary..."
+$PYTHON -m helper ingest-gene-info || exit 1
+
 echo "registering a new release..."
 $PYTHON -m helper create-release "$(wc -l $WORK_DIR/done.new.txt | awk '{ print $1 }')" || exit 1
 
