@@ -27,7 +27,7 @@ def copy_from_tsv(
           COPY {table+'_tmp'} ({",".join(f'"{c.decode()}"' for c in columns)})
           FROM STDIN WITH CSV DELIMITER E'\\t';
           INSERT INTO {table} ({",".join(f'"{c.decode()}"' for c in columns)})
-          SELECT *
+          SELECT {",".join(f'"{c.decode()}"' for c in columns)}
           FROM {table+'_tmp'}
           ON CONFLICT ({",".join(f'"{c}"' for c in on_conflict_update)})
           DO UPDATE SET {", ".join(f'"{c}" = EXCLUDED."{c}"' for c in map(bytes.decode, columns) if c not in on_conflict_update)};
