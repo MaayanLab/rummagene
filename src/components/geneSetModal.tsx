@@ -9,10 +9,10 @@ const noWrap: CSSProperties = {
     whiteSpace: 'pre-line',
 }
 
-export default function GeneSetModal({ geneset, term, showModal, setShowModal }: { geneset?: (string | null)[] | undefined, term: string | null | undefined, showModal?: boolean, setShowModal: (show: boolean) => void }) {
+export default function GeneSetModal({ geneset, term, showModal, setShowModal }: { geneset?: ({ symbol: string, ncbi_gene_id?: number | null, description?: string | null, summary?: string | null } | null)[] | undefined, term: string | null | undefined, showModal?: boolean, setShowModal: (show: boolean) => void }) {
     const router = useRouter()
     const [addUserGeneSetMutation, { loading, error }] = useAddUserGeneSetMutation()
-    const genes = React.useMemo(() => geneset?.filter(gene => gene != null) as string[], [geneset])
+    const genes = React.useMemo(() => geneset?.filter((gene): gene is Exclude<typeof gene, null> => gene != null).map(({ symbol }) => symbol), [geneset])
     return (
         <>
             {showModal ? (
@@ -28,11 +28,28 @@ export default function GeneSetModal({ geneset, term, showModal, setShowModal }:
                                         Gene Set  ({geneset ? geneset?.length : 'n'})
                                     </p>
                                 </div>
-                                <div className="p-2 h-56 overflow-y-scroll text-center" style={noWrap}>
-                                    <p className="my-4 text-slate-500 text-sm leading-relaxed">
-                                        {geneset ? geneset?.join('\n') : <span className='loading loading-ring loading-lg'></span>}
-
-                                    </p>
+                                <div className={classNames("p-2 py-6 h-56 overflow-y-scroll text-slate-500 text-sm leading-relaxed", {'text-center': !geneset_with_info})} style={noWrap}>
+                                    {geneset ?
+                                        <div className="overflow-x-auto">
+                                            <table className="table table-xs table-pin-rows table-pin-cols">
+                                                <thead>
+                                                    <th>Symbol</th>
+                                                    <th>Description</th>
+                                                    <th>Summary</th>
+                                                </thead>
+                                                <tbody>
+                                                    {geneset.filter((gene): gene is Exclude<typeof gene, null> => gene != null).map(gene =>
+                                                        <tr key={gene.symbol}>
+                                                            <th>{gene.symbol}</th>
+                                                            <td>{gene.description}</td>
+                                                            <td>{gene.summary}</td>
+                                                        </tr>
+                                                    )}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    : <span className='loading loading-ring loading-lg'></span>
+                                    }
                                 </div>
 
                                 <div className="flex items-center justify-end p-6 border-t border-solid border-slate-200 rounded-b">
@@ -47,7 +64,7 @@ export default function GeneSetModal({ geneset, term, showModal, setShowModal }:
                                     >
                                         Copy to Clipboard
                                     </button>
-                                    <EnrichrButton genes={geneset} description={term}></EnrichrButton>
+                                    <EnrichrButton genes={genes} description={term}></EnrichrButton>
                                     <button
                                         className="btn btn-sm btn-outline text-xs p-2 m-2"
                                         type="button"

@@ -3,6 +3,7 @@ import React from 'react'
 import {
   FetchUserGeneSetQuery,
   useEnrichmentQueryQuery,
+  useFetchGeneInfoQuery,
   useFetchUserGeneSetQuery,
   useOverlapQueryQuery,
   useViewGeneSetQuery
@@ -206,14 +207,22 @@ function GeneSetModalWrapper(props: { modalGeneSet: GeneSetModalT, setModalGeneS
       genes: props.modalGeneSet?.genes,
     } : undefined,
   })
+  const { data: userGeneSet } = useFetchGeneInfoQuery({
+    skip: props.modalGeneSet?.type !== 'UserGeneSet',
+    variables: props.modalGeneSet?.type === 'UserGeneSet' ? {
+      genes: props.modalGeneSet.genes,
+    } : undefined,
+  })
   return (
     <GeneSetModal
       showModal={props.modalGeneSet !== undefined}
       term={props.modalGeneSet?.description}
       geneset={
-        props.modalGeneSet?.type === 'GeneSet' ? geneSet?.geneSet?.genes.nodes.map(gene => gene.symbol)
-        : props.modalGeneSet?.type === 'GeneSetOverlap' ? overlap?.geneSet?.overlap.nodes.map(gene => gene.symbol)
-        : props.modalGeneSet?.type === 'UserGeneSet' ? props.modalGeneSet.genes
+        props.modalGeneSet?.type === 'GeneSet' ? geneSet?.geneSet?.genes.nodes
+        : props.modalGeneSet?.type === 'GeneSetOverlap' ? overlap?.geneSet?.overlap.nodes
+        : props.modalGeneSet?.type === 'UserGeneSet' ?
+          userGeneSet?.geneMap?.nodes ? userGeneSet.geneMap.nodes.map(({ geneInfo }) => geneInfo)
+          : props.modalGeneSet.genes.map(symbol => ({ symbol }))
         : undefined
       }
       setShowModal={show => {

@@ -106,6 +106,9 @@ query ViewGeneSet($id: UUID!) {
     genes {
       nodes {
         symbol
+        ncbiGeneId
+        description
+        summary
       }
     }
   }
@@ -116,6 +119,22 @@ query OverlapQuery($id: UUID!, $genes: [String]!) {
     overlap(genes: $genes) {
       nodes {
         symbol
+        ncbiGeneId
+        description
+        summary
+      }
+    }
+  }
+}
+
+query FetchGeneInfo($genes: [String]!) {
+  geneMap(genes: $genes) {
+    nodes {
+      geneInfo {
+        symbol
+        ncbiGeneId
+        description
+        summary
       }
     }
   }
