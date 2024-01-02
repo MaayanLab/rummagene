@@ -126,7 +126,7 @@ def import_gene_set_library(
     tqdm((
       dict(
         term=gene_set['term'],
-        gene_ids=json.dumps({gene_map[gene]: None for gene in gene_set['genes']}),
+        gene_ids=json.dumps({gene_map[gene]: position for position, gene in enumerate(gene_set['genes'])}),
         n_gene_ids=len(gene_set['genes']),
       )
       for gene_set in new_gene_sets
