@@ -110,7 +110,7 @@ def prepare_docx(fr):
 def read_doc_as_docx(fr):
   ''' For doc support, convert .doc to .docx in a temporary directory and call read_docx_tables
   '''
-  with tempfile.TemporaryDirectory() as tmpdir:
+  with tempfile.TemporaryDirectory(prefix='rummagene-') as tmpdir:
     tmpdir = Path(tmpdir)
     with (tmpdir / 'table.doc').open('wb') as fw:
       shutil.copyfileobj(fr, fw)
@@ -387,7 +387,7 @@ def filter_oa_file_list_by(oa_file_list, pmc_ids):
 def fetch_extract_gmt_from_oa_package(oa_package):
   ''' Given the oa_package name from the oa_file_list, we'll download it temporarily and then extract a gmt out of it
   '''
-  with tempfile.NamedTemporaryFile(suffix=''.join(PurePosixPath(oa_package).suffixes)) as tmp:
+  with tempfile.NamedTemporaryFile(prefix='rummagene-', suffix=''.join(PurePosixPath(oa_package).suffixes)) as tmp:
     with urllib.request.urlopen(f"https://ftp.ncbi.nlm.nih.gov/pub/pmc/{oa_package}") as fr:
       shutil.copyfileobj(fr, tmp)
     tmp.flush()
