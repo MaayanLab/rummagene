@@ -55,11 +55,16 @@ def run_with_timeout(fn, *args, timeout: int = 60):
   finally:
     proc.join(1)
     if proc.exitcode is None:
-      proc.terminate()
+      import signal
+      try: os.kill(proc.pid, signal.SIGINT)
+      except ProcessLookupError: pass
       proc.join(1)
       if proc.exitcode is None:
-        proc.kill()
+        proc.terminate()
         proc.join(1)
+        if proc.exitcode is None:
+          proc.kill()
+          proc.join(1)
 
 ext_handlers = {}
 def register_ext_handler(*exts):
