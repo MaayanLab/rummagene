@@ -20,12 +20,8 @@ import tqdm
 import numpy as np
 import pandas as pd
 
-from docx import Document
-from maayanlab_bioinformatics.harmonization.ncbi_genes import ncbi_genes_lookup
-
-# import tabula
-# java = shutil.which('java')
-# assert java, 'Missing java, necessary for tabula-py'
+java = shutil.which('java')
+assert java, 'Missing java, necessary for tabula-py'
 
 soffice = shutil.which('soffice', path=':'.join(filter(None, [os.environ.get('PATH'), '/Applications/LibreOffice.app/Contents/MacOS/'])))
 assert soffice, 'Missing `soffice` binary for converting doc to docx'
@@ -90,6 +86,7 @@ def read_docx_tables(f):
   ''' This reads tables out of a docx file
   '''
   with contextlib.redirect_stderr(_DevNull()):
+    from docx import Document
     doc = Document(f)
   for i, tab in enumerate(doc.tables):
     yield str(i), _read_docx_tab(tab)
@@ -317,7 +314,9 @@ def gene_lookup(value):
   if re.match(r'\d+(\.\d+)?', value): return None
   global lookup
   if lookup is None:
-    lookup = ncbi_genes_lookup(filters=lambda ncbi: ncbi)
+    import json
+    with open('lookup.json', 'r') as fr:
+      lookup = json.load(fr).get
   return lookup(value)
 
 def extract_gene_set_columns(df):
@@ -409,6 +408,28 @@ def main(data_dir = Path(), oa_file_list = None, progress = 'done.txt', progress
   new_done_file = data_dir / progress_output
   output_file = data_dir / output
 
+  # prepare gene symbol lookup, since this preparation is somewhat slow
+  #  doing this before hand speeds up the sub-tasks (which run in new processes) substantially
+  gene_lookup_file = Path('lookup.json')
+  if not gene_lookup_file.exists():
+    import json
+    from maayanlab_bioinformatics.harmonization.ncbi_genes import ncbi_genes_fetch
+    ncbi_genes = ncbi_genes_fetch(organism='Mammalia/Homo_sapiens')
+    synonyms, symbols = zip(*{
+      (synonym, gene_info['Symbol'])
+      for _, gene_info in ncbi_genes.iterrows()
+      for synonym in gene_info['All_synonyms']
+    })
+    ncbi_lookup = pd.Series(symbols, index=synonyms)
+    index_values = ncbi_lookup.index.value_counts()
+    ambiguous = index_values[index_values > 1].index
+    ncbi_lookup_disambiguated = ncbi_lookup[(
+      (ncbi_lookup.index == ncbi_lookup) | (~ncbi_lookup.index.isin(ambiguous))
+    )]
+    lookup_dict = ncbi_lookup_disambiguated.to_dict()
+    with gene_lookup_file.open('w') as fw:
+      json.dump(lookup_dict, fw)
+
   # find out what we've already processed
   if done_file.exists():
     with done_file.open('r') as fr:
@@ -431,7 +452,10 @@ def main(data_dir = Path(), oa_file_list = None, progress = 'done.txt', progress
         for record, err, res in tqdm.tqdm(
           pool.imap_unordered(
             task,
-            (row for _, row in oa_file_list.iterrows())
+            (
+              { 'File': row['File'] }
+              for _, row in oa_file_list.iterrows()
+            )
           ),
           initial=oa_file_list_size - oa_file_list.shape[0],
           total=oa_file_list_size
