@@ -286,21 +286,20 @@ def extract_tables_from_xml(tar: tarfile.TarFile, member_path: PurePosixPath, f)
   yield from _read_xml_tables(root, member_path)
   yield from _read_xml_supplement(tar, root)
 
-# it's unclear whether this really gives us any new information, and it is extremely expensive to compute
-#  so for now I'm leaving it out.
-# @register_ext_handler('.pdf')
-# def read_pdf_tables(f):
-#   ''' pdf tables read by tabula library
-#   '''
-#   results = tabula.read_pdf(f, pages='all', multiple_tables=True, silent=True)
-#   if type(results) == list:
-#     for i, df in enumerate(results):
-#       yield f"{i}", df
-#   elif type(results) == dict:
-#     for key, df in results.items():
-#       yield key, df
-#   else:
-#     raise NotImplementedError()
+@register_ext_handler('.pdf')
+def read_pdf_tables(f):
+  ''' pdf tables read by tabula library
+  '''
+  import tabula
+  results = tabula.read_pdf(f, pages='all', multiple_tables=True, silent=True)
+  if type(results) == list:
+    for i, df in enumerate(results):
+      yield f"{i}", df
+  elif type(results) == dict:
+    for key, df in results.items():
+      yield key, df
+  else:
+    raise NotImplementedError()
 
 def extract_gmt_from_oa_package(oa_package):
   ''' Given a oa_package (open access bundle with paper & figures) extract all applicable gene sets
