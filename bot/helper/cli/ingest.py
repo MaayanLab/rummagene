@@ -34,6 +34,7 @@ def import_gene_set_library(
         term=prefix+term+postfix,
         description=description,
         genes=genes,
+        hash=uuid.uuid5(uuid.UUID('00000000-0000-0000-0000-000000000000'), '\t'.join(sorted(set(genes)))),
       ))
       background_genes.update(genes)
       n_geneset_genes += len(genes)
@@ -72,11 +73,12 @@ def import_gene_set_library(
   }
 
   copy_from_records(
-    plpy.conn, 'app_public_v2.gene_set', ('term', 'description', 'gene_ids', 'n_gene_ids'),
+    plpy.conn, 'app_public_v2.gene_set', ('term', 'description', 'hash', 'gene_ids', 'n_gene_ids'),
     tqdm((
       dict(
         term=gene_set['term'],
         description=gene_set['description'],
+        hash=gene_set['hash'],
         gene_ids=json.dumps({gene_map[gene]: None for gene in gene_set['genes']}),
         n_gene_ids=len(gene_set['genes']),
       )
