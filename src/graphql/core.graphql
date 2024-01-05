@@ -32,6 +32,7 @@ query EnrichmentQuery($genes: [String]!, $filterTerm: String = "", $offset: Int 
         geneSet {
           id
           term
+          description
           nGeneIds
           geneSetPmcsById(first: 1) {
             nodes {
