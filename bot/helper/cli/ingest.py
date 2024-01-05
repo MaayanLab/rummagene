@@ -22,7 +22,7 @@ def import_gene_set_library(
     for line in tqdm(fr, desc='Loading gmt...'):
       line_split = line.strip().split('\t')
       if len(line_split) < 3: continue
-      term, _description, *raw_genes = line_split
+      term, description, *raw_genes = line_split
       genes = [
         cleaned_gene
         for raw_gene in map(str.strip, raw_genes)
@@ -32,6 +32,7 @@ def import_gene_set_library(
       ]
       new_gene_sets.append(dict(
         term=prefix+term+postfix,
+        description=description,
         genes=genes,
       ))
       background_genes.update(genes)
@@ -71,10 +72,11 @@ def import_gene_set_library(
   }
 
   copy_from_records(
-    plpy.conn, 'app_public_v2.gene_set', ('term', 'gene_ids', 'n_gene_ids'),
+    plpy.conn, 'app_public_v2.gene_set', ('term', 'description', 'gene_ids', 'n_gene_ids'),
     tqdm((
       dict(
         term=gene_set['term'],
+        description=gene_set['description'],
         gene_ids=json.dumps({gene_map[gene]: None for gene in gene_set['genes']}),
         n_gene_ids=len(gene_set['genes']),
       )
