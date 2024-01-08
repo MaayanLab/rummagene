@@ -16,6 +16,7 @@ import Stats from '../stats'
 import Image from 'next/image'
 import GeneSetModal from '@/components/geneSetModal'
 import partition from '@/utils/partition'
+import classNames from 'classnames'
 
 const pageSize = 10
 
@@ -122,9 +123,10 @@ function EnrichmentResults({ userGeneSet, setModalGeneSet }: { userGeneSet?: Fet
               const m = term ? /^(.+?\.\w+)-+(.+)$/.exec(term) : null
               const table = m ? m[1] : null
               const column = m ? m[2] : term
+              const doubleRow = !!enrichmentResult?.geneSet?.description
               return (
                 <>
-                  <tr key={j}>
+                  <tr key={j} className={classNames({ 'border-b-0': doubleRow })}>
                     <th>
                       <a
                         className="underline cursor-pointer"
@@ -146,7 +148,7 @@ function EnrichmentResults({ userGeneSet, setModalGeneSet }: { userGeneSet?: Fet
                       : null}
                     </td>
                     <td>{column}</td>
-                    <td rowSpan={2} className="whitespace-nowrap text-underline cursor-pointer">
+                    <td rowSpan={doubleRow ? 2 : 1} className="whitespace-nowrap text-underline cursor-pointer">
                       <label
                         htmlFor="geneSetModal"
                         className="prose underline cursor-pointer"
@@ -159,7 +161,7 @@ function EnrichmentResults({ userGeneSet, setModalGeneSet }: { userGeneSet?: Fet
                         }}
                       >{enrichmentResult?.geneSet?.nGeneIds}</label>
                     </td>
-                    <td rowSpan={2} className="whitespace-nowrap text-underline cursor-pointer">
+                    <td rowSpan={doubleRow ? 2 : 1} className="whitespace-nowrap text-underline cursor-pointer">
                       <label
                         htmlFor="geneSetModal"
                         className="prose underline cursor-pointer"
@@ -173,14 +175,16 @@ function EnrichmentResults({ userGeneSet, setModalGeneSet }: { userGeneSet?: Fet
                         }}
                       >{enrichmentResult?.nOverlap}</label>
                     </td>
-                    <td rowSpan={2} className="whitespace-nowrap">{enrichmentResult?.oddsRatio?.toPrecision(3)}</td>
-                    <td rowSpan={2} className="whitespace-nowrap">{enrichmentResult?.pvalue?.toPrecision(3)}</td>
-                    <td rowSpan={2} className="whitespace-nowrap">{enrichmentResult?.adjPvalue?.toPrecision(3)}</td>
+                    <td rowSpan={doubleRow ? 2 : 1} className="whitespace-nowrap">{enrichmentResult?.oddsRatio?.toPrecision(3)}</td>
+                    <td rowSpan={doubleRow ? 2 : 1} className="whitespace-nowrap">{enrichmentResult?.pvalue?.toPrecision(3)}</td>
+                    <td rowSpan={doubleRow ? 2 : 1} className="whitespace-nowrap">{enrichmentResult?.adjPvalue?.toPrecision(3)}</td>
                   </tr>
-                  <tr key={`${j}-2`}>
-                    <td>&nbsp;</td>
-                    <td colSpan={3} className="prose text-justify"><strong className="text-gray-500">Description</strong> {description_markdown(enrichmentResult?.geneSet?.description)}</td>
-                  </tr>
+                  {doubleRow && enrichmentResult?.geneSet?.description ?
+                    <tr key={`${j}-2`}>
+                      <td className="font-bold text-gray-500">Description</td>
+                      <td colSpan={3} className="prose text-justify">{description_markdown(enrichmentResult?.geneSet?.description)}</td>
+                    </tr>
+                    : null}
                 </>
               )
             })}
