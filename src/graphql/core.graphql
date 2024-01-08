@@ -29,19 +29,22 @@ query EnrichmentQuery($genes: [String]!, $filterTerm: String = "", $offset: Int 
         adjPvalue
         oddsRatio
         nOverlap
-        geneSet {
-          id
-          term
-          description
-          nGeneIds
-          geneSetPmcsById(first: 1) {
-            nodes {
-              pmcInfoByPmcid {
-                pmcid
-                title
+        geneSets {
+          nodes {
+            id
+            term
+            description
+            nGeneIds
+            geneSetPmcsById(first: 1) {
+              nodes {
+                pmcInfoByPmcid {
+                  pmcid
+                  title
+                }
               }
             }
           }
+          totalCount
         }
       }
       totalCount

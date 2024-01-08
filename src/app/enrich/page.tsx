@@ -100,10 +100,10 @@ function EnrichmentResults({ userGeneSet, setModalGeneSet }: { userGeneSet?: Fet
         <table className="table table-xs">
           <thead>
             <tr>
-              <th>Paper</th>
+              <th>Paper(s)</th>
               <th>Title</th>
-              <th>Supporting Table</th>
-              <th>Column</th>
+              <th>Table(s)</th>
+              <th>Column(s)</th>
               <th>Gene Set Size</th>
               <th>Overlap</th>
               <th>Odds</th>
@@ -117,27 +117,53 @@ function EnrichmentResults({ userGeneSet, setModalGeneSet }: { userGeneSet?: Fet
                 <td colSpan={7}><Loading /></td>
               </tr>
             : null}
-            {enrichmentResults?.currentBackground?.enrich?.nodes?.map((enrichmentResult, j) => {
-              if (!enrichmentResult?.geneSet) return null
-              const [pmcid, _, term] = partition(enrichmentResult?.geneSet?.term, '-')
-              const m = term ? /^(.+?\.\w+)-+(.+)$/.exec(term) : null
-              const table = m ? m[1] : null
-              const column = m ? m[2] : term
-              const doubleRow = !!enrichmentResult?.geneSet?.description
-              return (
-                <>
-                  <tr key={j} className={classNames({ 'border-b-0': doubleRow })}>
-                    <th>
-                      <a
-                        className="underline cursor-pointer"
-                        href={`https://www.ncbi.nlm.nih.gov/pmc/articles/${pmcid}/`}
-                        target="_blank"
-                        rel="noreferrer"
-                      >{pmcid}</a>
-                    </th>
-                    <td>{enrichmentResult?.geneSet?.geneSetPmcsById?.nodes[0].pmcInfoByPmcid?.title ?? ''}</td>
-                    <td>
-                      {table ?
+            {enrichmentResults?.currentBackground?.enrich?.nodes?.flatMap((enrichmentResult, genesetIndex) => {
+              if (!enrichmentResult?.geneSets) return null
+              const papers = {} as Record<string, {
+                tables: Record<string, string[]>,
+                nTableColumns: number,
+                geneSet: typeof enrichmentResult['geneSets']['nodes'][0],
+                pmcInfoByPmcid: typeof enrichmentResult['geneSets']['nodes'][0]['geneSetPmcsById']['nodes'][0]['pmcInfoByPmcid'],
+              }>
+              let nPapers = 0
+              let nPaperTables = 0
+              let nPaperTableColumns = 0
+              for (const node of enrichmentResult?.geneSets.nodes) {
+                const [paper, _, term] = partition(node.term, '-')
+                const m = term ? /^(.+?\.\w+)-+(.+)$/.exec(term) : null
+                const table = m ? m[1] : ''
+                const column = m ? m[2] : term ?? ''
+                if (!(paper in papers)) {
+                  papers[paper] = {
+                    tables: {},
+                    nTableColumns: 0,
+                    geneSet: node,
+                    pmcInfoByPmcid: node.geneSetPmcsById.nodes[0].pmcInfoByPmcid,
+                  }
+                  nPapers += 1
+                }
+                if(!(table in papers[paper].tables)) {
+                  papers[paper].tables[table] = []
+                  nPaperTables += 1
+                }
+                papers[paper].tables[table].push(column)
+                papers[paper].nTableColumns += 1
+                nPaperTableColumns += 1
+              }
+              return Object.entries(papers).flatMap(([pmcid, { tables, nTableColumns, geneSet, pmcInfoByPmcid }], paperIndex) =>
+                Object.entries(tables).flatMap(([table, columns], tableIndex) =>
+                  columns.flatMap((column, columnIndex) =>
+                    <tr key={`${genesetIndex}-${paperIndex}-${tableIndex}-${columnIndex}`} className={classNames({ 'border-b-0': paperIndex !== nPapers-1 || tableIndex !== Object.keys(tables).length-1 || columnIndex !== columns.length-1 })}>
+                      {tableIndex === 0 && columnIndex === 0 ? <th rowSpan={nTableColumns}>
+                        <a
+                          className="underline cursor-pointer"
+                          href={`https://www.ncbi.nlm.nih.gov/pmc/articles/${pmcid}/`}
+                          target="_blank"
+                          rel="noreferrer"
+                        >{pmcid}</a>
+                      </th> : null}
+                      {tableIndex === 0 && columnIndex === 0 ? <td rowSpan={nTableColumns}>{pmcInfoByPmcid?.title ?? ''}</td> : null}
+                      {columnIndex === 0 ? <td rowSpan={columns.length}>
                         <a
                           className="underline cursor-pointer"
                           href={`https://www.ncbi.nlm.nih.gov/pmc/articles/${pmcid}/bin/${table}`}
@@ -145,47 +171,43 @@ function EnrichmentResults({ userGeneSet, setModalGeneSet }: { userGeneSet?: Fet
                         >
                           {table}
                         </a>
-                      : null}
-                    </td>
-                    <td>{column}</td>
-                    <td rowSpan={doubleRow ? 2 : 1} className="whitespace-nowrap text-underline cursor-pointer">
-                      <label
-                        htmlFor="geneSetModal"
-                        className="prose underline cursor-pointer"
-                        onClick={evt => {
-                          setModalGeneSet({
-                            type: 'GeneSet',
-                            id: enrichmentResult?.geneSet?.id,
-                            description: enrichmentResult?.geneSet?.term ?? '',
-                          })
-                        }}
-                      >{enrichmentResult?.geneSet?.nGeneIds}</label>
-                    </td>
-                    <td rowSpan={doubleRow ? 2 : 1} className="whitespace-nowrap text-underline cursor-pointer">
-                      <label
-                        htmlFor="geneSetModal"
-                        className="prose underline cursor-pointer"
-                        onClick={evt => {
-                          setModalGeneSet({
-                            type: 'GeneSetOverlap',
-                            id: enrichmentResult?.geneSet?.id,
-                            description: enrichmentResult?.geneSet?.term ?? '',
-                            genes,
-                          })
-                        }}
-                      >{enrichmentResult?.nOverlap}</label>
-                    </td>
-                    <td rowSpan={doubleRow ? 2 : 1} className="whitespace-nowrap">{enrichmentResult?.oddsRatio?.toPrecision(3)}</td>
-                    <td rowSpan={doubleRow ? 2 : 1} className="whitespace-nowrap">{enrichmentResult?.pvalue?.toPrecision(3)}</td>
-                    <td rowSpan={doubleRow ? 2 : 1} className="whitespace-nowrap">{enrichmentResult?.adjPvalue?.toPrecision(3)}</td>
-                  </tr>
-                  {doubleRow && enrichmentResult?.geneSet?.description ?
-                    <tr key={`${j}-2`}>
-                      <td className="font-bold text-gray-500">Description</td>
-                      <td colSpan={3} className="prose text-justify">{description_markdown(enrichmentResult?.geneSet?.description)}</td>
+                      </td> : null}
+                      <td rowSpan={1}>{column}</td>
+                      {paperIndex === 0 && tableIndex === 0 && columnIndex === 0 ? <>
+                        <td rowSpan={nPaperTableColumns} className="whitespace-nowrap text-underline cursor-pointer">
+                          <label
+                            htmlFor="geneSetModal"
+                            className="prose underline cursor-pointer"
+                            onClick={evt => {
+                              setModalGeneSet({
+                                type: 'GeneSet',
+                                id: geneSet.id,
+                                description: geneSet.term ?? '',
+                              })
+                            }}
+                          >{geneSet.nGeneIds}</label>
+                        </td>
+                        <td rowSpan={nPaperTableColumns} className="whitespace-nowrap text-underline cursor-pointer">
+                          <label
+                            htmlFor="geneSetModal"
+                            className="prose underline cursor-pointer"
+                            onClick={evt => {
+                              setModalGeneSet({
+                                type: 'GeneSetOverlap',
+                                id: geneSet.id,
+                                description: geneSet.term ?? '',
+                                genes,
+                              })
+                            }}
+                          >{enrichmentResult?.nOverlap}</label>
+                        </td>
+                        <td rowSpan={nPaperTableColumns} className="whitespace-nowrap">{enrichmentResult?.oddsRatio?.toPrecision(3)}</td>
+                        <td rowSpan={nPaperTableColumns} className="whitespace-nowrap">{enrichmentResult?.pvalue?.toPrecision(3)}</td>
+                        <td rowSpan={nPaperTableColumns} className="whitespace-nowrap">{enrichmentResult?.adjPvalue?.toPrecision(3)}</td>
+                      </> : null}
                     </tr>
-                    : null}
-                </>
+                  )
+                )
               )
             })}
           </tbody>

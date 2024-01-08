@@ -107,7 +107,7 @@ CREATE TYPE app_public.gene_set_library_enrich_result AS (
 --
 
 CREATE TYPE app_public_v2.enrich_result AS (
-	gene_set_id uuid,
+	gene_set_hash uuid,
 	n_overlap integer,
 	odds_ratio double precision,
 	pvalue double precision,
@@ -119,7 +119,7 @@ CREATE TYPE app_public_v2.enrich_result AS (
 -- Name: TYPE enrich_result; Type: COMMENT; Schema: app_public_v2; Owner: -
 --
 
-COMMENT ON TYPE app_public_v2.enrich_result IS '@foreign key (gene_set_id) references app_public_v2.gene_set (id)';
+COMMENT ON TYPE app_public_v2.enrich_result IS '@foreign key (gene_set_hash) references app_public_v2.gene_set (hash)';
 
 
 --
@@ -726,15 +726,15 @@ CREATE TABLE app_public_v2.gene_set (
 
 
 --
--- Name: enrich_result_gene_set(app_public_v2.enrich_result); Type: FUNCTION; Schema: app_public_v2; Owner: -
+-- Name: enrich_result_gene_sets(app_public_v2.enrich_result); Type: FUNCTION; Schema: app_public_v2; Owner: -
 --
 
-CREATE FUNCTION app_public_v2.enrich_result_gene_set(enrich_result app_public_v2.enrich_result) RETURNS app_public_v2.gene_set
-    LANGUAGE sql IMMUTABLE STRICT PARALLEL SAFE
+CREATE FUNCTION app_public_v2.enrich_result_gene_sets(enrich_result app_public_v2.enrich_result) RETURNS SETOF app_public_v2.gene_set
+    LANGUAGE sql IMMUTABLE STRICT
     AS $$
   select gs.*
   from app_public_v2.gene_set gs
-  where gs.id = enrich_result.gene_set_id;
+  where gs.hash = enrich_result.gene_set_hash;
 $$;
 
 
@@ -1648,4 +1648,5 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20231212222546'),
     ('20240102204243'),
     ('20240105152755'),
-    ('20240105161415');
+    ('20240105161415'),
+    ('20240108174441');
