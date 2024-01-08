@@ -123,6 +123,16 @@ COMMENT ON TYPE app_public_v2.enrich_result IS '@foreign key (gene_set_id) refer
 
 
 --
+-- Name: gene_mapping; Type: TYPE; Schema: app_public_v2; Owner: -
+--
+
+CREATE TYPE app_public_v2.gene_mapping AS (
+	gene_id uuid,
+	gene character varying
+);
+
+
+--
 -- Name: paginated_enrich_result; Type: TYPE; Schema: app_public_v2; Owner: -
 --
 
@@ -709,7 +719,9 @@ CREATE TABLE app_public_v2.gene_set (
     term character varying NOT NULL,
     gene_ids jsonb NOT NULL,
     n_gene_ids integer NOT NULL,
-    created timestamp without time zone DEFAULT now() NOT NULL
+    created timestamp without time zone DEFAULT now() NOT NULL,
+    description character varying,
+    hash uuid
 );
 
 
@@ -730,12 +742,39 @@ $$;
 -- Name: gene_map(character varying[]); Type: FUNCTION; Schema: app_public_v2; Owner: -
 --
 
-CREATE FUNCTION app_public_v2.gene_map(genes character varying[]) RETURNS TABLE(gene_id uuid, gene character varying)
+CREATE FUNCTION app_public_v2.gene_map(genes character varying[]) RETURNS SETOF app_public_v2.gene_mapping
     LANGUAGE sql IMMUTABLE STRICT PARALLEL SAFE
     AS $$
   select g.id as gene_id, ug.gene as gene
   from unnest(gene_map.genes) ug(gene)
   inner join app_public_v2.gene g on g.symbol = ug.gene or g.synonyms ? ug.gene;
+$$;
+
+
+--
+-- Name: gene; Type: TABLE; Schema: app_public_v2; Owner: -
+--
+
+CREATE TABLE app_public_v2.gene (
+    id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
+    symbol character varying NOT NULL,
+    synonyms jsonb DEFAULT '{}'::jsonb,
+    ncbi_gene_id integer,
+    description character varying,
+    summary text
+);
+
+
+--
+-- Name: gene_mapping_gene_info(app_public_v2.gene_mapping); Type: FUNCTION; Schema: app_public_v2; Owner: -
+--
+
+CREATE FUNCTION app_public_v2.gene_mapping_gene_info(gene_mapping app_public_v2.gene_mapping) RETURNS app_public_v2.gene
+    LANGUAGE sql IMMUTABLE STRICT PARALLEL SAFE
+    AS $$
+  select *
+  from app_public_v2.gene g
+  where g.id = gene_mapping.gene_id
 $$;
 
 
@@ -754,17 +793,6 @@ $$;
 
 
 --
--- Name: gene; Type: TABLE; Schema: app_public_v2; Owner: -
---
-
-CREATE TABLE app_public_v2.gene (
-    id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
-    symbol character varying NOT NULL,
-    synonyms jsonb DEFAULT '{}'::jsonb
-);
-
-
---
 -- Name: gene_set_genes(app_public_v2.gene_set); Type: FUNCTION; Schema: app_public_v2; Owner: -
 --
 
@@ -772,8 +800,9 @@ CREATE FUNCTION app_public_v2.gene_set_genes(gene_set app_public_v2.gene_set) RE
     LANGUAGE sql IMMUTABLE STRICT PARALLEL SAFE
     AS $$
   select g.*
-  from app_public_v2.gene g
-  where gene_set_genes.gene_set.gene_ids ? g.id::text;
+  from jsonb_each(gene_set_genes.gene_set.gene_ids) gsg(gene_id, position)
+  inner join app_public_v2.gene g on gsg.gene_id = g.id::text
+  order by gsg.position asc;
 $$;
 
 
@@ -1496,6 +1525,13 @@ CREATE INDEX gene_set_gene_ids_idx ON app_public_v2.gene_set USING gin (gene_ids
 
 
 --
+-- Name: gene_set_hash_idx; Type: INDEX; Schema: app_public_v2; Owner: -
+--
+
+CREATE INDEX gene_set_hash_idx ON app_public_v2.gene_set USING btree (hash);
+
+
+--
 -- Name: gene_set_pmc_id_idx; Type: INDEX; Schema: app_public_v2; Owner: -
 --
 
@@ -1607,4 +1643,9 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20230920201419'),
     ('20230925141013'),
     ('20230925165804'),
-    ('20230925181844');
+    ('20230925181844'),
+    ('20231212201532'),
+    ('20231212222546'),
+    ('20240102204243'),
+    ('20240105152755'),
+    ('20240105161415');
