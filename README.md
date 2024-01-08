@@ -32,7 +32,9 @@ npm run dev
 
 ### Provisioning
 ```bash
-python ./bot/helper.py ingest -i your-gmt.gmt
+PYTHONPATH=bot python -m helper ingest -i your-gmt.gmt
+PYTHONPATH=bot python -m helper ingest-paper-info
+PYTHONPATH=bot python -m helper ingest-gene-info
 ```
 
 ### Writing Queries

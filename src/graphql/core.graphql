@@ -32,6 +32,7 @@ query EnrichmentQuery($genes: [String]!, $filterTerm: String = "", $offset: Int 
         geneSet {
           id
           term
+          description
           nGeneIds
           geneSetPmcsById(first: 1) {
             nodes {
@@ -106,6 +107,9 @@ query ViewGeneSet($id: UUID!) {
     genes {
       nodes {
         symbol
+        ncbiGeneId
+        description
+        summary
       }
     }
   }
@@ -116,6 +120,22 @@ query OverlapQuery($id: UUID!, $genes: [String]!) {
     overlap(genes: $genes) {
       nodes {
         symbol
+        ncbiGeneId
+        description
+        summary
+      }
+    }
+  }
+}
+
+query FetchGeneInfo($genes: [String]!) {
+  geneMap(genes: $genes) {
+    nodes {
+      geneInfo {
+        symbol
+        ncbiGeneId
+        description
+        summary
       }
     }
   }

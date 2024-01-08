@@ -38,7 +38,7 @@ export default function PmcTable({ terms, data, gene_set_ids }: { terms?: Map<st
 
   return (
     <>
-      <GeneSetModal geneset={genesQuery?.data?.geneSet?.genes.nodes.map(({ symbol }) => symbol)} term={currTerm} showModal={showModal} setShowModal={setShowModal}></GeneSetModal>
+      <GeneSetModal geneset={genesQuery?.data?.geneSet?.genes.nodes} term={currTerm} showModal={showModal} setShowModal={setShowModal}></GeneSetModal>
       <div className='border m-5 mt-1'>
         <div className='join flex flex-row place-content-end items-center pt-3 pr-3'>
           <span className="label-text text-base">Search:&nbsp;</span>

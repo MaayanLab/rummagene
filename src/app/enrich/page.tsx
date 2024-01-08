@@ -3,6 +3,7 @@ import React from 'react'
 import {
   FetchUserGeneSetQuery,
   useEnrichmentQueryQuery,
+  useFetchGeneInfoQuery,
   useFetchUserGeneSetQuery,
   useOverlapQueryQuery,
   useViewGeneSetQuery
@@ -32,6 +33,10 @@ type GeneSetModalT = {
   id: string,
   description: string,
 } | undefined
+
+function description_markdown(text: string) {
+  return text
+}
 
 function EnrichmentResults({ userGeneSet, setModalGeneSet }: { userGeneSet?: FetchUserGeneSetQuery, setModalGeneSet: React.Dispatch<React.SetStateAction<GeneSetModalT>> }) {
   const genes = React.useMemo(() =>
@@ -118,59 +123,65 @@ function EnrichmentResults({ userGeneSet, setModalGeneSet }: { userGeneSet?: Fet
               const table = m ? m[1] : null
               const column = m ? m[2] : term
               return (
-                <tr key={j}>
-                  <th>
-                    <a
-                      className="underline cursor-pointer"
-                      href={`https://www.ncbi.nlm.nih.gov/pmc/articles/${pmcid}/`}
-                      target="_blank"
-                      rel="noreferrer"
-                    >{pmcid}</a>
-                  </th>
-                  <td>{enrichmentResult?.geneSet?.geneSetPmcsById?.nodes[0].pmcInfoByPmcid?.title ?? ''}</td>
-                  <td>
-                    {table ?
+                <>
+                  <tr key={j}>
+                    <th>
                       <a
                         className="underline cursor-pointer"
-                        href={`https://www.ncbi.nlm.nih.gov/pmc/articles/${pmcid}/bin/${table}`}
+                        href={`https://www.ncbi.nlm.nih.gov/pmc/articles/${pmcid}/`}
                         target="_blank"
-                      >
-                        {table}
-                      </a>
-                    : null}
-                  </td>
-                  <td>{column}</td>
-                  <td className="whitespace-nowrap text-underline cursor-pointer">
-                    <label
-                      htmlFor="geneSetModal"
-                      className="prose underline cursor-pointer"
-                      onClick={evt => {
-                        setModalGeneSet({
-                          type: 'GeneSet',
-                          id: enrichmentResult?.geneSet?.id,
-                          description: enrichmentResult?.geneSet?.term ?? '',
-                        })
-                      }}
-                    >{enrichmentResult?.geneSet?.nGeneIds}</label>
-                  </td>
-                  <td className="whitespace-nowrap text-underline cursor-pointer">
-                    <label
-                      htmlFor="geneSetModal"
-                      className="prose underline cursor-pointer"
-                      onClick={evt => {
-                        setModalGeneSet({
-                          type: 'GeneSetOverlap',
-                          id: enrichmentResult?.geneSet?.id,
-                          description: enrichmentResult?.geneSet?.term ?? '',
-                          genes,
-                        })
-                      }}
-                    >{enrichmentResult?.nOverlap}</label>
-                  </td>
-                  <td className="whitespace-nowrap">{enrichmentResult?.oddsRatio?.toPrecision(3)}</td>
-                  <td className="whitespace-nowrap">{enrichmentResult?.pvalue?.toPrecision(3)}</td>
-                  <td className="whitespace-nowrap">{enrichmentResult?.adjPvalue?.toPrecision(3)}</td>
-                </tr>
+                        rel="noreferrer"
+                      >{pmcid}</a>
+                    </th>
+                    <td>{enrichmentResult?.geneSet?.geneSetPmcsById?.nodes[0].pmcInfoByPmcid?.title ?? ''}</td>
+                    <td>
+                      {table ?
+                        <a
+                          className="underline cursor-pointer"
+                          href={`https://www.ncbi.nlm.nih.gov/pmc/articles/${pmcid}/bin/${table}`}
+                          target="_blank"
+                        >
+                          {table}
+                        </a>
+                      : null}
+                    </td>
+                    <td>{column}</td>
+                    <td rowSpan={2} className="whitespace-nowrap text-underline cursor-pointer">
+                      <label
+                        htmlFor="geneSetModal"
+                        className="prose underline cursor-pointer"
+                        onClick={evt => {
+                          setModalGeneSet({
+                            type: 'GeneSet',
+                            id: enrichmentResult?.geneSet?.id,
+                            description: enrichmentResult?.geneSet?.term ?? '',
+                          })
+                        }}
+                      >{enrichmentResult?.geneSet?.nGeneIds}</label>
+                    </td>
+                    <td rowSpan={2} className="whitespace-nowrap text-underline cursor-pointer">
+                      <label
+                        htmlFor="geneSetModal"
+                        className="prose underline cursor-pointer"
+                        onClick={evt => {
+                          setModalGeneSet({
+                            type: 'GeneSetOverlap',
+                            id: enrichmentResult?.geneSet?.id,
+                            description: enrichmentResult?.geneSet?.term ?? '',
+                            genes,
+                          })
+                        }}
+                      >{enrichmentResult?.nOverlap}</label>
+                    </td>
+                    <td rowSpan={2} className="whitespace-nowrap">{enrichmentResult?.oddsRatio?.toPrecision(3)}</td>
+                    <td rowSpan={2} className="whitespace-nowrap">{enrichmentResult?.pvalue?.toPrecision(3)}</td>
+                    <td rowSpan={2} className="whitespace-nowrap">{enrichmentResult?.adjPvalue?.toPrecision(3)}</td>
+                  </tr>
+                  <tr key={`${j}-2`}>
+                    <td>&nbsp;</td>
+                    <td colSpan={3} className="prose text-justify"><strong className="text-gray-500">Description</strong> {description_markdown(enrichmentResult?.geneSet?.description)}</td>
+                  </tr>
+                </>
               )
             })}
           </tbody>
@@ -206,14 +217,22 @@ function GeneSetModalWrapper(props: { modalGeneSet: GeneSetModalT, setModalGeneS
       genes: props.modalGeneSet?.genes,
     } : undefined,
   })
+  const { data: userGeneSet } = useFetchGeneInfoQuery({
+    skip: props.modalGeneSet?.type !== 'UserGeneSet',
+    variables: props.modalGeneSet?.type === 'UserGeneSet' ? {
+      genes: props.modalGeneSet.genes,
+    } : undefined,
+  })
   return (
     <GeneSetModal
       showModal={props.modalGeneSet !== undefined}
       term={props.modalGeneSet?.description}
       geneset={
-        props.modalGeneSet?.type === 'GeneSet' ? geneSet?.geneSet?.genes.nodes.map(gene => gene.symbol)
-        : props.modalGeneSet?.type === 'GeneSetOverlap' ? overlap?.geneSet?.overlap.nodes.map(gene => gene.symbol)
-        : props.modalGeneSet?.type === 'UserGeneSet' ? props.modalGeneSet.genes
+        props.modalGeneSet?.type === 'GeneSet' ? geneSet?.geneSet?.genes.nodes
+        : props.modalGeneSet?.type === 'GeneSetOverlap' ? overlap?.geneSet?.overlap.nodes
+        : props.modalGeneSet?.type === 'UserGeneSet' ?
+          userGeneSet?.geneMap?.nodes ? userGeneSet.geneMap.nodes.map(({ geneInfo }) => geneInfo)
+          : props.modalGeneSet.genes.map(symbol => ({ symbol }))
         : undefined
       }
       setShowModal={show => {

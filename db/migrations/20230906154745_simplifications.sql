@@ -364,6 +364,7 @@ select
     where gsyn.gene_id = g.id
   ) as synonyms
 from app_public.gene g;
+
 insert into app_public_v2.gene_set (id, term, gene_ids, n_gene_ids)
 select
   gs.id, gs.term,
@@ -378,14 +379,17 @@ select
     where gsg.gene_set_id = gs.id
   ) as n_gene_ids
 from app_public.gene_set gs;
+
 insert into app_public_v2.pmc_info (id, pmcid, title, yr, doi)
 select * from app_public.pmc_info;
-insert into app_public_v2.background (gene_ids, n_gene_ids)
-select
-  jsonb_object_agg(distinct gsg.gene_id, null) as gene_ids,
-  count(distinct gsg.gene_id) as n_gene_ids
-from app_public_v2.gene_set gs, jsonb_each(gs.gene_ids) gsg(gene_id, nil);
 
+insert into app_public_v2.background (gene_ids, n_gene_ids)
+with cte as (
+  select
+    jsonb_object_agg(distinct gsg.gene_id, null) as gene_ids,
+    count(distinct gsg.gene_id) as n_gene_ids
+  from app_public_v2.gene_set gs, jsonb_each(gs.gene_ids) gsg(gene_id, nil)
+) select * from cte where cte.gene_ids is not null;
 
 -- migrate:down
 drop schema app_public_v2 cascade;
