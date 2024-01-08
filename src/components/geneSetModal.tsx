@@ -1,6 +1,6 @@
 import React, { CSSProperties } from 'react'
 import EnrichrButton from './enrichrButton'
-import { useAddUserGeneSetMutation, AddUserGeneSetInput } from '@/graphql'
+import { useAddUserGeneSetMutation } from '@/graphql'
 import { useRouter } from 'next/navigation'
 import classNames from 'classnames'
 
@@ -9,10 +9,10 @@ const noWrap: CSSProperties = {
     whiteSpace: 'pre-line',
 }
 
-export default function GeneSetModal({ geneset, term, showModal, setShowModal }: { geneset?: ({ symbol: string, ncbi_gene_id?: number | null, description?: string | null, summary?: string | null } | null)[] | undefined, term: string | null | undefined, showModal?: boolean, setShowModal: (show: boolean) => void }) {
+export default function GeneSetModal({ geneset, term, showModal, setShowModal }: { geneset?: ({ symbol: string, ncbi_gene_id?: number | null, description?: string | null, summary?: string | null } | null | undefined)[] | undefined, term: string | null | undefined, showModal?: boolean, setShowModal: (show: boolean) => void }) {
     const router = useRouter()
     const [addUserGeneSetMutation, { loading, error }] = useAddUserGeneSetMutation()
-    const genes = React.useMemo(() => geneset?.filter((gene): gene is Exclude<typeof gene, null> => gene != null).map(({ symbol }) => symbol), [geneset])
+    const genes = React.useMemo(() => geneset?.filter((gene): gene is Exclude<typeof gene, null | undefined> => !!gene).map(({ symbol }) => symbol), [geneset])
     return (
         <>
             {showModal ? (
@@ -38,7 +38,7 @@ export default function GeneSetModal({ geneset, term, showModal, setShowModal }:
                                                     <th>Summary</th>
                                                 </thead>
                                                 <tbody>
-                                                    {geneset.filter((gene): gene is Exclude<typeof gene, null> => gene != null).map(gene =>
+                                                    {geneset.filter((gene): gene is Exclude<typeof gene, null | undefined> => !!gene).map(gene =>
                                                         <tr key={gene.symbol}>
                                                             <th>{gene.symbol}</th>
                                                             <td>{gene.description}</td>
