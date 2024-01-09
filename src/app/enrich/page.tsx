@@ -16,7 +16,6 @@ import Stats from '../stats'
 import Image from 'next/image'
 import GeneSetModal from '@/components/geneSetModal'
 import partition from '@/utils/partition'
-import classNames from 'classnames'
 
 const pageSize = 10
 
@@ -103,10 +102,10 @@ function EnrichmentResults({ userGeneSet, setModalGeneSet }: { userGeneSet?: Fet
         <table className="table table-xs">
           <thead>
             <tr>
-              <th>Paper(s)</th>
+              <th>Paper</th>
               <th>Title</th>
-              <th>Table(s)</th>
-              <th>Column(s)</th>
+              <th>Table</th>
+              <th>Column</th>
               <th>Gene Set Size</th>
               <th>Overlap</th>
               <th>Odds</th>
@@ -123,9 +122,8 @@ function EnrichmentResults({ userGeneSet, setModalGeneSet }: { userGeneSet?: Fet
             {enrichmentResults?.currentBackground?.enrich?.nodes?.flatMap((enrichmentResult, genesetIndex) => {
               if (!enrichmentResult?.geneSets) return null
               const papers = {} as Record<string, {
-                tables: Record<string, { columns: string[], descriptions: Set<string> }>,
+                tables: Record<string, { columns: Record<string, typeof enrichmentResult['geneSets']['nodes'][0]>, descriptions: Set<string> }>,
                 nTableColumns: number,
-                geneSet: typeof enrichmentResult['geneSets']['nodes'][0],
                 pmcInfoByPmcid: typeof enrichmentResult['geneSets']['nodes'][0]['geneSetPmcsById']['nodes'][0]['pmcInfoByPmcid'],
               }>
               let nPapers = 0
@@ -140,24 +138,23 @@ function EnrichmentResults({ userGeneSet, setModalGeneSet }: { userGeneSet?: Fet
                   papers[paper] = {
                     tables: {},
                     nTableColumns: 0,
-                    geneSet: node,
                     pmcInfoByPmcid: node.geneSetPmcsById.nodes[0].pmcInfoByPmcid,
                   }
                   nPapers += 1
                 }
                 if(!(table in papers[paper].tables)) {
-                  papers[paper].tables[table] = { columns: [], descriptions: new Set() }
+                  papers[paper].tables[table] = { columns: {}, descriptions: new Set() }
                   nPaperTables += 1
                 }
-                papers[paper].tables[table].columns.push(column)
+                papers[paper].tables[table].columns[column] = node
                 papers[paper].tables[table].descriptions.add(node.description ?? '')
                 papers[paper].nTableColumns += 1
                 nPaperTableColumns += 1
               }
-              return Object.entries(papers).flatMap(([pmcid, { tables, nTableColumns, geneSet, pmcInfoByPmcid }], paperIndex) =>
+              return Object.entries(papers).flatMap(([pmcid, { tables, nTableColumns, pmcInfoByPmcid }], paperIndex) =>
                 Object.entries(tables).flatMap(([table, { columns, descriptions }], tableIndex) =>
                   [
-                    ...columns.flatMap((column, columnIndex) =>
+                    ...Object.entries(columns).flatMap(([column, geneSet], columnIndex) =>
                       <tr key={`${genesetIndex}-${paperIndex}-${tableIndex}-${columnIndex}`} className="border-b-0">
                         {tableIndex === 0 && columnIndex === 0 ? <th rowSpan={nTableColumns+Object.keys(tables).length}>
                           <a
@@ -168,7 +165,7 @@ function EnrichmentResults({ userGeneSet, setModalGeneSet }: { userGeneSet?: Fet
                           >{pmcid}</a>
                         </th> : null}
                         {tableIndex === 0 && columnIndex === 0 ? <td rowSpan={nTableColumns+Object.keys(tables).length}>{pmcInfoByPmcid?.title ?? ''}</td> : null}
-                        {columnIndex === 0 ? <td rowSpan={columns.length}>
+                        {columnIndex === 0 ? <td rowSpan={Object.keys(columns).length}>
                           <a
                             className="underline cursor-pointer"
                             href={`https://www.ncbi.nlm.nih.gov/pmc/articles/${pmcid}/bin/${table}`}
@@ -177,20 +174,22 @@ function EnrichmentResults({ userGeneSet, setModalGeneSet }: { userGeneSet?: Fet
                             {table}
                           </a>
                         </td> : null}
-                        <td rowSpan={1}>{column}</td>
+                        <td rowSpan={1}>
+                          <label
+                            htmlFor="geneSetModal"
+                            className="prose underline cursor-pointer"
+                            onClick={evt => {
+                              setModalGeneSet({
+                                type: 'GeneSet',
+                                id: geneSet.id,
+                                description: geneSet.term ?? '',
+                              })
+                            }}
+                          >{column}</label>
+                        </td>
                         {paperIndex === 0 && tableIndex === 0 && columnIndex === 0 ? <>
                           <td rowSpan={nPaperTableColumns+nPaperTables} className="whitespace-nowrap text-underline cursor-pointer">
-                            <label
-                              htmlFor="geneSetModal"
-                              className="prose underline cursor-pointer"
-                              onClick={evt => {
-                                setModalGeneSet({
-                                  type: 'GeneSet',
-                                  id: geneSet.id,
-                                  description: geneSet.term ?? '',
-                                })
-                              }}
-                            >{geneSet.nGeneIds}</label>
+                            {geneSet.nGeneIds}
                           </td>
                           <td rowSpan={nPaperTableColumns+nPaperTables} className="whitespace-nowrap text-underline cursor-pointer">
                             <label
@@ -200,7 +199,7 @@ function EnrichmentResults({ userGeneSet, setModalGeneSet }: { userGeneSet?: Fet
                                 setModalGeneSet({
                                   type: 'GeneSetOverlap',
                                   id: geneSet.id,
-                                  description: geneSet.term ?? '',
+                                  description: `${userGeneSet?.userGeneSet?.description || 'User gene set'} & ${geneSet.term || 'Rummagene gene set'}`,
                                   genes,
                                 })
                               }}
