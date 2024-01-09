@@ -60,7 +60,7 @@ export default function GeneSetModal({ geneset, term, showModal, setShowModal }:
                                         type="button"
                                         onClick={() => {
                                             setShowModal(false)
-                                            navigator.clipboard.writeText(geneset?.join('\n') || '')
+                                            navigator.clipboard.writeText(genes?.join('\n') || '')
                                         }}
                                     >
                                         Copy to Clipboard
