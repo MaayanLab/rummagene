@@ -27,6 +27,7 @@ export default function GeneSetModal({ geneset, term, showModal, setShowModal }:
                                     <p className="text-md text-center text-gray-900 dark:text-white">
                                         Gene Set  ({geneset ? geneset?.length : 'n'})
                                     </p>
+                                    <p className="text-md text-center text-gray-600 dark:text-white">{term}</p>
                                 </div>
                                 <div className={classNames("p-2 py-6 h-56 overflow-y-scroll text-slate-500 text-sm leading-relaxed")} style={noWrap}>
                                     {geneset ?
@@ -72,7 +73,8 @@ export default function GeneSetModal({ geneset, term, showModal, setShowModal }:
                                             evt.preventDefault()
                                             const result = await addUserGeneSetMutation({
                                                 variables: {
-                                                    genes
+                                                    genes,
+                                                    description: term,
                                                 }
                                             })
                                             const id = result.data?.addUserGeneSet?.userGeneSet?.id
