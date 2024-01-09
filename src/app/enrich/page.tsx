@@ -36,6 +36,9 @@ type GeneSetModalT = {
 } | undefined
 
 function description_markdown(text: string) {
+  if (!text) return <span className="italic">No description found</span>
+  const m = /\*\*(.+?)\*\*/.exec(text)
+  if (m) return <><span>{text.slice(0, m.index)}</span><span className="font-bold italic">{m[1]}</span><span>{text.slice(m.index + 4 + m[1].length)}</span></>
   return text
 }
 
