@@ -25,6 +25,7 @@ query EnrichmentQuery($genes: [String]!, $filterTerm: String = "", $offset: Int 
   currentBackground {
     enrich(genes: $genes, filterTerm: $filterTerm, offset: $offset, first: $first) {
       nodes {
+        geneSetHash
         pvalue
         adjPvalue
         oddsRatio
