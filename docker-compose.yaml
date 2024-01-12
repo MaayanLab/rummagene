@@ -11,6 +11,8 @@ services:
       - NEXT_PUBLIC_GA_MEASUREMENT_ID=$NEXT_PUBLIC_GA_MEASUREMENT_ID
     ports:
       - 3000:3000
+    volumes:
+      - ./data/bot/output-clean.gmt:/app/public/latest.gmt:ro
   rummagene-enrich:
     build: enrich
     image: maayanlab/rummagene-enrich:0.2.1
