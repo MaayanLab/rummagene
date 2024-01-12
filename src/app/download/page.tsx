@@ -46,8 +46,8 @@ export default function Download() {
     const downloads_with_latest = [
       ...downloads,
       {
-        url: '/download.gmt',
-        filename: 'download.gmt',
+        url: '/latest.gmt',
+        filename: 'latest.gmt',
         title: 'latest.gmt',
         value: <Stats show_gene_sets />,
         size: <><span className="whitespace-nowrap">Approx 700MB</span></>,
