@@ -257,6 +257,7 @@ def _read_xml_supplement(tar: tarfile.TarFile, root: ET.Element):
   members = {member_name.name: (member_name, member) for member in tar.getmembers() for member_name in (PurePosixPath(member.name),)}
   for supplementary_material in root.findall('.//supplementary-material'):
     gene_sets = []
+    supplementary_material_caption = _read_xml_text(supplementary_material.find('./caption')).rstrip('.')
     for media in supplementary_material.findall('./media'):
       # find gene sets from the different media attachements
       href = media.attrib['{http://www.w3.org/1999/xlink}href']
@@ -270,15 +271,16 @@ def _read_xml_supplement(tar: tarfile.TarFile, root: ET.Element):
           media_gene_sets.append((f"{slugify(sheet)}-{slugify(column)}", gene_set))
       #
       if media_gene_sets:
-        caption = _read_xml_text(media.find('./caption')).rstrip('.')
-        gene_sets += [(term, caption, gene_set) for term, gene_set in media_gene_sets]
+        media_caption = _read_xml_text(media.find('./caption')).rstrip('.')
+        caption = '  '.join(filter(None, [supplementary_material_caption, media_caption])).strip().rstrip('.')
+        gene_sets += [(f"{member_name.parent.name}-{member_name.name}-{term}", caption, gene_set) for term, gene_set in media_gene_sets]
     #
     if gene_sets:
       # given that we have genesets, assemble description and yield them
       mention = _read_xml_mentions(root, supplementary_material.attrib.get('id')).rstrip('.')
       for term, caption, gene_set in gene_sets:
         description = '  '.join(filter(None, (mention, caption,)))
-        yield f"{member_name.parent.name}-{member_name.name}-{term}", description, gene_set
+        yield term, description, gene_set
 
 def extract_tables_from_xml(tar: tarfile.TarFile, member_path: PurePosixPath, f):
   parsed = ET.parse(f)
