@@ -20,12 +20,8 @@ import tqdm
 import numpy as np
 import pandas as pd
 
-from docx import Document
-from maayanlab_bioinformatics.harmonization.ncbi_genes import ncbi_genes_lookup
-
-# import tabula
-# java = shutil.which('java')
-# assert java, 'Missing java, necessary for tabula-py'
+java = shutil.which('java')
+assert java, 'Missing java, necessary for tabula-py'
 
 soffice = shutil.which('soffice', path=':'.join(filter(None, [os.environ.get('PATH'), '/Applications/LibreOffice.app/Contents/MacOS/'])))
 assert soffice, 'Missing `soffice` binary for converting doc to docx'
@@ -59,11 +55,16 @@ def run_with_timeout(fn, *args, timeout: int = 60):
   finally:
     proc.join(1)
     if proc.exitcode is None:
-      proc.terminate()
+      import signal
+      try: os.kill(proc.pid, signal.SIGINT)
+      except ProcessLookupError: pass
       proc.join(1)
       if proc.exitcode is None:
-        proc.kill()
+        proc.terminate()
         proc.join(1)
+        if proc.exitcode is None:
+          proc.kill()
+          proc.join(1)
 
 ext_handlers = {}
 def register_ext_handler(*exts):
@@ -90,6 +91,7 @@ def read_docx_tables(f):
   ''' This reads tables out of a docx file
   '''
   with contextlib.redirect_stderr(_DevNull()):
+    from docx import Document
     doc = Document(f)
   for i, tab in enumerate(doc.tables):
     yield str(i), _read_docx_tab(tab)
@@ -108,7 +110,7 @@ def prepare_docx(fr):
 def read_doc_as_docx(fr):
   ''' For doc support, convert .doc to .docx in a temporary directory and call read_docx_tables
   '''
-  with tempfile.TemporaryDirectory() as tmpdir:
+  with tempfile.TemporaryDirectory(prefix='rummagene-') as tmpdir:
     tmpdir = Path(tmpdir)
     with (tmpdir / 'table.doc').open('wb') as fw:
       shutil.copyfileobj(fr, fw)
@@ -149,13 +151,24 @@ def read_txt_tables(f):
 def _read_xml_text(node):
   ''' Read the text from an xml node (or the text from all it's children)
   '''
-  return ''.join(node.itertext()) if node is not None else ''
+  return re.sub(r'\s+', ' ', ''.join(node.itertext()) if node is not None else '', 0, re.MULTILINE).strip()
+
+def _read_xml_text_with_exclusion(node, exclude={'table-wrap', 'fig'}):
+  ''' Read the text from an xml node (or the text from all it's children)
+  '''
+  import copy
+  node = copy.deepcopy(node)
+  for excl in exclude:
+    for el in node.findall(f".//{excl}"):
+      el.clear()
+  return _read_xml_text(node)
+
 
 def _read_xml_table(tbl):
   ''' This reads a xml table as a pandas dataframe
   '''
-  columns = [[_read_xml_text(td).replace('\t', '  ').replace('\n', ' ').strip() for td in tr.findall('./')] for tr in tbl.find('./thead').findall('./tr')]
-  values = [[_read_xml_text(td).replace('\t', '  ').replace('\n', ' ').strip() for td in tr.findall('./')] for tr in tbl.find('./tbody').findall('./tr')]
+  columns = [[_read_xml_text(td) for td in tr.findall('./')] for tr in tbl.find('./thead').findall('./tr')]
+  values = [[_read_xml_text(td) for td in tr.findall('./')] for tr in tbl.find('./tbody').findall('./tr')]
   n_cols = max(map(len, columns + values))
   if n_cols > len(columns[0]):
     columns[0] += ['']*(n_cols - len(columns[0]))
@@ -166,67 +179,133 @@ def _read_xml_table(tbl):
   )
   return df
 
-def _read_xml_tables(root):
-  ''' Tables embedded in the xml files, are parsed along with their labels & captions
+def match_parens(text):
+  ''' Because I hate mismatched parenthecies (: -- which can happen a lot given that
+  references usually exist in parens but we only read text up to the reference
+  '''
+  # missing trailing paren
+  if text.rfind('(') <= text.rfind('['):
+    if text.rfind('(') > text.rfind(')'): text = text + ')'
+    elif text.rfind('[') > text.rfind(']'): text = text + ']'
+  else:
+    if text.rfind('[') > text.rfind(']'): text = text + ']'
+    elif text.rfind('(') > text.rfind(')'): text = text + ')'
+  # missing leading paren
+  openParen = text.find('(')
+  if openParen == -1: openParen = len(text)
+  closeParen = text.find(')')
+  if closeParen >= 0 and closeParen < openParen:
+    text = text[:closeParen] + text[closeParen+1:]
+  #
+  openParen = text.find('[')
+  if openParen == -1: openParen = len(text)
+  closeParen = text.find(']')
+  if closeParen >= 0 and closeParen < openParen:
+    text = text[:closeParen] + text[closeParen+1:]
+  return text
+
+def _read_xml_mentions(root, ref: str):
+  if not ref:
+    return ''
+  try:
+    # get the first parent paragraph mentioning the reference
+    xrefParentNode, mention = next(iter(
+      (xrefParentNode, mention)
+      # for xrefParentNode in root.findall(f".//xref[@rid='{ref}']/..")
+      for xrefParentNode in root.findall(f".//xref[@rid]/..")
+      if any(xref.attrib['rid'] == ref for xref in xrefParentNode.findall('xref'))
+      for mention in (_read_xml_text_with_exclusion(xrefParentNode),)
+      if mention
+    ))
+    # get the reference text
+    xrefNode = next(iter(xrefNode for xrefNode in xrefParentNode.findall('xref') if xrefNode.attrib['rid'] == ref))
+    xrefNodeText = _read_xml_text(xrefNode)
+    # read up to the reference (encased in parens/brackets)
+    indexOfRef = mention.index(xrefNodeText)
+    # get at most 20 words before the reference
+    return match_parens(' '.join(re.split(r'\s+', mention[:indexOfRef])[-15:]) + '**'+' '.join(re.split(r'\s+', xrefNodeText))+'**')
+  except StopIteration:
+    return ''
+
+def _read_xml_tables(root, member_path: PurePosixPath):
+  ''' Tables are embedded in the xml files, they can be parsed 
   '''
   for tblWrap in root.findall('.//table-wrap'):
-    label = _read_xml_text(tblWrap.find('./label'))
-    description = _read_xml_text(tblWrap.find('./caption')).replace('\n', ' ').replace('\t', ' ')
-    #
+    gene_sets = []
+    # read the wrapped table
     tbl = tblWrap.find('./table')
     if tbl and tbl.find('./thead') and tbl.find('./tbody'):
       try:
-        tbl = _read_xml_table(tbl)
+        df = _read_xml_table(tbl)
+        # extract any gene set columns
+        gene_sets.extend(extract_gene_set_columns(df))
       except KeyboardInterrupt:
         raise
       except:
         traceback.print_exc()
-      else:
-        yield label, description, tbl
+    #
+    if gene_sets:
+      # given that we have genesets, assemble description and yield them
+      label = _read_xml_text(tblWrap.find('./label'))
+      caption = _read_xml_text(tblWrap.find('./caption')).rstrip('.')
+      mention = _read_xml_mentions(root, tblWrap.attrib.get('id')).rstrip('.')
+      description = '  '.join(filter(None, (mention, caption,)))
+      for column, gene_set in gene_sets:
+        yield f"{member_path.parent.name}-{member_path.name}-{slugify(label)}-{slugify(column)}", description, gene_set
 
 def _read_xml_supplement(tar: tarfile.TarFile, root: ET.Element):
-  ''' Handle supplemental tables -- extract the material files referenced from the tarfile, and use the provided caption
-  '''
   members = {member_name.name: (member_name, member) for member in tar.getmembers() for member_name in (PurePosixPath(member.name),)}
   for supplementary_material in root.findall('.//supplementary-material'):
-    media = supplementary_material.find('./media')
-    if not media: continue
-    href = media.attrib['{http://www.w3.org/1999/xlink}href']
-    if href not in members: continue
-    member_name, member = members[href]
-    handler = ext_handlers.get(member_name.suffix)
-    if not handler: continue
-    description = _read_xml_text(media.find('./caption'))
-    for sheet, df in handler(tar.extractfile(member)):
-      yield f"{member_name.parent.name}-{member_name.name}-{slugify(sheet)}", description, df
+    gene_sets = []
+    supplementary_material_caption = _read_xml_text(supplementary_material.find('./caption')).rstrip('.')
+    for media in supplementary_material.findall('./media'):
+      # find gene sets from the different media attachements
+      href = media.attrib['{http://www.w3.org/1999/xlink}href']
+      if href not in members: continue
+      member_name, member = members[href]
+      handler = ext_handlers.get(member_name.suffix.lower())
+      if not handler: continue
+      media_gene_sets = []
+      for sheet, df in handler(tar.extractfile(member)):
+        for column, gene_set in extract_gene_set_columns(df):
+          media_gene_sets.append((f"{slugify(sheet)}-{slugify(column)}", gene_set))
+      #
+      if media_gene_sets:
+        media_caption = _read_xml_text(media.find('./caption')).rstrip('.')
+        caption = '  '.join(filter(None, [supplementary_material_caption, media_caption])).strip().rstrip('.')
+        gene_sets += [(f"{member_name.parent.name}-{member_name.name}-{term}", caption, gene_set) for term, gene_set in media_gene_sets]
+    #
+    if gene_sets:
+      # given that we have genesets, assemble description and yield them
+      mention = _read_xml_mentions(root, supplementary_material.attrib.get('id')).rstrip('.')
+      for term, caption, gene_set in gene_sets:
+        description = '  '.join(filter(None, (mention, caption,)))
+        yield term, description, gene_set
 
 def extract_tables_from_xml(tar: tarfile.TarFile, member_path: PurePosixPath, f):
-  ''' Reading the .nxml file, we extract tables from the paper and find supplemental material at the bottom
-  '''
   parsed = ET.parse(f)
   root = parsed.getroot()
-  for label, description, df in _read_xml_tables(root):
-    yield f"{member_path.parent.name}-{member_path.name}-{slugify(label)}", description, df
+  yield from _read_xml_tables(root, member_path)
   yield from _read_xml_supplement(tar, root)
 
-# it's unclear whether this really gives us any new information, and it is extremely expensive to compute
-#  so for now I'm leaving it out.
-# @register_ext_handler('.pdf')
-# def read_pdf_tables(f):
-#   ''' pdf tables read by tabula library
-#   '''
-#   results = tabula.read_pdf(f, pages='all', multiple_tables=True, silent=True)
-#   if type(results) == list:
-#     for i, df in enumerate(results):
-#       yield f"{i}", df
-#   elif type(results) == dict:
-#     for key, df in results.items():
-#       yield key, df
-#   else:
-#     raise NotImplementedError()
+@register_ext_handler('.pdf')
+def read_pdf_tables(f):
+  ''' pdf tables read by tabula library
+  '''
+  import tabula
+  results = tabula.read_pdf(f, pages='all', multiple_tables=True, silent=True)
+  if type(results) == list:
+    for i, df in enumerate(results):
+      yield f"{i}", df
+  elif type(results) == dict:
+    for key, df in results.items():
+      yield key, df
+  else:
+    raise NotImplementedError()
 
-def extract_tables_from_oa_package(oa_package):
-  ''' Given a oa_package (open access bundle with paper & figures) extract all tables
+def extract_gmt_from_oa_package(oa_package):
+  ''' Given a oa_package (open access bundle with paper & figures) extract all applicable gene sets
+   from all applicable tables
   '''
   with tarfile.open(oa_package) as tar:
     for member in tar.getmembers():
@@ -244,7 +323,9 @@ def gene_lookup(value):
   if re.match(r'\d+(\.\d+)?', value): return None
   global lookup
   if lookup is None:
-    lookup = ncbi_genes_lookup(filters=lambda ncbi: ncbi)
+    import json
+    with open('lookup.json', 'r') as fr:
+      lookup = json.load(fr).get
   return lookup(value)
 
 def extract_gene_set_columns(df):
@@ -263,13 +344,6 @@ def slugify(s):
   ''' Replace non-characters/numbers with _
   '''
   return re.sub(r'[^\w\d-]+', '_', s).strip('_')
-
-def extract_gmt_from_oa_package(oa_package):
-  ''' Create a GMT from an oa_package archive
-  '''
-  for term, description, df in extract_tables_from_oa_package(oa_package):
-    for column, gene_set in extract_gene_set_columns(df):
-      yield f"{term}-{slugify(column)}", description, gene_set
 
 def fetch_oa_file_list(data_dir = Path()):
   ''' Fetch the PMCID, PMID, oa_file listing; we sort it newest first.
@@ -317,7 +391,7 @@ def filter_oa_file_list_by(oa_file_list, pmc_ids):
 def fetch_extract_gmt_from_oa_package(oa_package):
   ''' Given the oa_package name from the oa_file_list, we'll download it temporarily and then extract a gmt out of it
   '''
-  with tempfile.NamedTemporaryFile(suffix=''.join(PurePosixPath(oa_package).suffixes)) as tmp:
+  with tempfile.NamedTemporaryFile(prefix='rummagene-', suffix=''.join(PurePosixPath(oa_package).suffixes)) as tmp:
     with urllib.request.urlopen(f"https://ftp.ncbi.nlm.nih.gov/pub/pmc/{oa_package}") as fr:
       shutil.copyfileobj(fr, tmp)
     tmp.flush()
@@ -343,6 +417,28 @@ def main(data_dir = Path(), oa_file_list = None, progress = 'done.txt', progress
   new_done_file = data_dir / progress_output
   output_file = data_dir / output
 
+  # prepare gene symbol lookup, since this preparation is somewhat slow
+  #  doing this before hand speeds up the sub-tasks (which run in new processes) substantially
+  gene_lookup_file = Path('lookup.json')
+  if not gene_lookup_file.exists():
+    import json
+    from maayanlab_bioinformatics.harmonization.ncbi_genes import ncbi_genes_fetch
+    ncbi_genes = ncbi_genes_fetch(organism='Mammalia/Homo_sapiens')
+    synonyms, symbols = zip(*{
+      (synonym, gene_info['Symbol'])
+      for _, gene_info in ncbi_genes.iterrows()
+      for synonym in gene_info['All_synonyms']
+    })
+    ncbi_lookup = pd.Series(symbols, index=synonyms)
+    index_values = ncbi_lookup.index.value_counts()
+    ambiguous = index_values[index_values > 1].index
+    ncbi_lookup_disambiguated = ncbi_lookup[(
+      (ncbi_lookup.index == ncbi_lookup) | (~ncbi_lookup.index.isin(ambiguous))
+    )]
+    lookup_dict = ncbi_lookup_disambiguated.to_dict()
+    with gene_lookup_file.open('w') as fw:
+      json.dump(lookup_dict, fw)
+
   # find out what we've already processed
   if done_file.exists():
     with done_file.open('r') as fr:
@@ -358,14 +454,17 @@ def main(data_dir = Path(), oa_file_list = None, progress = 'done.txt', progress
   oa_file_list = oa_file_list[~oa_file_list['File'].isin(list(done))]
 
   # fetch and extract gmts from oa_packages using a process pool
-  #  append gmt term, gene_sets as they are ready into one gmt file
+  #  append gmt term, gene sets as they are ready into one gmt file
   with new_done_file.open('a') as done_file_fh:
     with output_file.open('a') as output_fh:
       with ThreadPool() as pool:
         for record, err, res in tqdm.tqdm(
           pool.imap_unordered(
             task,
-            (row for _, row in oa_file_list.iterrows())
+            (
+              { 'File': row['File'] }
+              for _, row in oa_file_list.iterrows()
+            )
           ),
           initial=oa_file_list_size - oa_file_list.shape[0],
           total=oa_file_list_size

@@ -29,7 +29,16 @@ export async function GET(request: Request) {
   if (!nodes) throw new Error('No results')
 
   return new Response(
-    streamTsv(['pmcid', 'pmcidTitle', 'table', 'column', 'geneSetSize', 'nOverlap', 'oddsRatio', 'pvalue', 'adjPvalue'], nodes, item => {
+    streamTsv(['pmcid', 'pmcidTitle', 'table', 'column', 'description', 'geneSetSize', 'nOverlap', 'oddsRatio', 'pvalue', 'adjPvalue', 'geneSetHash'],
+      nodes.flatMap(node => node?.geneSets.nodes.map(geneSet => ({
+        geneSetHash: node.geneSetHash,
+        geneSet,
+        pvalue: node.pvalue,
+        adjPvalue: node.adjPvalue,
+        nOverlap: node.nOverlap,
+        oddsRatio: node.oddsRatio,
+      }))),
+      item => {
       if (!item?.geneSet) return
       const [pmcid, _, term] = partition(item.geneSet.term, '-')
       const m = term ? /^(.+?\.\w+)-+(.+)$/.exec(term) : null
@@ -40,11 +49,13 @@ export async function GET(request: Request) {
         pmcidTitle: item.geneSet.geneSetPmcsById.nodes[0].pmcInfoByPmcid?.title,
         table,
         column,
+        description: item.geneSet.description,
         geneSetSize: item.geneSet.nGeneIds,
         nOverlap: item.nOverlap,
         oddsRatio: item.oddsRatio,
         pvalue: item.pvalue,
         adjPvalue: item.adjPvalue,
+        geneSetHash: item.geneSetHash,
       }
     }),
     {

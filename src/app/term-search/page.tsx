@@ -39,7 +39,7 @@ const examples = [
 ]
 
 export default function TermSearchPage() {
-  const [queryString, setQueryString] = useQsState({ q: '' })
+  const [queryString, setQueryString] = useQsState({ page: '1', q: '' })
   const [rawTerms, setRawTerms] = React.useState('')
   React.useEffect(() => {setRawTerms(queryString.q ?? '')}, [queryString.q])
   if (!queryString.q) {
@@ -50,7 +50,7 @@ export default function TermSearchPage() {
           className="flex flex-col items-center gap-2"
           onSubmit={evt => {
             evt.preventDefault()
-            setQueryString({ q: rawTerms })
+            setQueryString({ page: '1', q: rawTerms })
           }}
         >
           <span className="label-text text-lg">Search Term(s)</span>
@@ -75,7 +75,7 @@ export default function TermSearchPage() {
             <a
               key={example}
               className="font-bold text-sm cursor-pointer"
-              onClick={() => {setQueryString({ q: example })}}
+              onClick={() => {setQueryString({ page: '1', q: example })}}
             >{example}</a>
           ])}
         </p>
@@ -89,7 +89,7 @@ export default function TermSearchPage() {
           className="flex flex-row items-center gap-4"
           onSubmit={evt => {
             evt.preventDefault()
-            setQueryString({ q: rawTerms })
+            setQueryString({ page: '1', q: rawTerms })
           }}
         >
           <span className="label-text text-lg">Term</span>
@@ -115,7 +115,7 @@ export default function TermSearchPage() {
             <a
               key={example}
               className="font-bold text-sm cursor-pointer"
-              onClick={() => {setQueryString({ q: example })}}
+              onClick={() => {setQueryString({ page: '1', q: example })}}
             >{example}</a>
           ])}
         </p>

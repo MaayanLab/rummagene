@@ -25,22 +25,27 @@ query EnrichmentQuery($genes: [String]!, $filterTerm: String = "", $offset: Int 
   currentBackground {
     enrich(genes: $genes, filterTerm: $filterTerm, offset: $offset, first: $first) {
       nodes {
+        geneSetHash
         pvalue
         adjPvalue
         oddsRatio
         nOverlap
-        geneSet {
-          id
-          term
-          nGeneIds
-          geneSetPmcsById(first: 1) {
-            nodes {
-              pmcInfoByPmcid {
-                pmcid
-                title
+        geneSets {
+          nodes {
+            id
+            term
+            description
+            nGeneIds
+            geneSetPmcsById(first: 1) {
+              nodes {
+                pmcInfoByPmcid {
+                  pmcid
+                  title
+                }
               }
             }
           }
+          totalCount
         }
       }
       totalCount
@@ -106,6 +111,9 @@ query ViewGeneSet($id: UUID!) {
     genes {
       nodes {
         symbol
+        ncbiGeneId
+        description
+        summary
       }
     }
   }
@@ -116,6 +124,22 @@ query OverlapQuery($id: UUID!, $genes: [String]!) {
     overlap(genes: $genes) {
       nodes {
         symbol
+        ncbiGeneId
+        description
+        summary
+      }
+    }
+  }
+}
+
+query FetchGeneInfo($genes: [String]!) {
+  geneMap(genes: $genes) {
+    nodes {
+      geneInfo {
+        symbol
+        ncbiGeneId
+        description
+        summary
       }
     }
   }

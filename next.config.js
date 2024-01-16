@@ -10,10 +10,6 @@ const nextConfig = {
         source: '/graphiql',
         destination: '/api/graphiql',
       },
-      {
-        source: '/download.gmt',
-        destination: '/api/download.gmt',
-      },
     ]
   },
 }

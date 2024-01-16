@@ -14,9 +14,7 @@ RUN set -x \
 WORKDIR /work
 VOLUME ["/work/data"]
 
-ADD ./plpy.py .
-ADD ./helper.py .
+ADD ./helper helper
 ADD ./download_extract.py .
-ADD ./clean.py .
 ADD ./bot.sh .
 RUN chmod +x bot.sh

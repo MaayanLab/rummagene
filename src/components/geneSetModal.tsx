@@ -1,6 +1,6 @@
 import React, { CSSProperties } from 'react'
 import EnrichrButton from './enrichrButton'
-import { useAddUserGeneSetMutation, AddUserGeneSetInput } from '@/graphql'
+import { useAddUserGeneSetMutation } from '@/graphql'
 import { useRouter } from 'next/navigation'
 import classNames from 'classnames'
 
@@ -9,10 +9,10 @@ const noWrap: CSSProperties = {
     whiteSpace: 'pre-line',
 }
 
-export default function GeneSetModal({ geneset, term, showModal, setShowModal }: { geneset?: (string | null)[] | undefined, term: string | null | undefined, showModal?: boolean, setShowModal: (show: boolean) => void }) {
+export default function GeneSetModal({ geneset, term, showModal, setShowModal }: { geneset?: ({ symbol: string, ncbi_gene_id?: number | null, description?: string | null, summary?: string | null } | null | undefined)[] | undefined, term: string | null | undefined, showModal?: boolean, setShowModal: (show: boolean) => void }) {
     const router = useRouter()
     const [addUserGeneSetMutation, { loading, error }] = useAddUserGeneSetMutation()
-    const genes = React.useMemo(() => geneset?.filter(gene => gene != null) as string[], [geneset])
+    const genes = React.useMemo(() => geneset?.filter((gene): gene is Exclude<typeof gene, null | undefined> => !!gene).map(({ symbol }) => symbol), [geneset])
     return (
         <>
             {showModal ? (
@@ -27,12 +27,30 @@ export default function GeneSetModal({ geneset, term, showModal, setShowModal }:
                                     <p className="text-md text-center text-gray-900 dark:text-white">
                                         Gene Set  ({geneset ? geneset?.length : 'n'})
                                     </p>
+                                    <p className="text-md text-center text-gray-600 dark:text-white">{term}</p>
                                 </div>
-                                <div className="p-2 h-56 overflow-y-scroll text-center" style={noWrap}>
-                                    <p className="my-4 text-slate-500 text-sm leading-relaxed">
-                                        {geneset ? geneset?.join('\n') : <span className='loading loading-ring loading-lg'></span>}
-
-                                    </p>
+                                <div className={classNames("p-2 py-6 h-56 overflow-y-scroll text-slate-500 text-sm leading-relaxed")} style={noWrap}>
+                                    {geneset ?
+                                        <div className="overflow-x-auto">
+                                            <table className="table table-xs table-pin-rows table-pin-cols">
+                                                <thead>
+                                                    <th>Symbol</th>
+                                                    <th>Description</th>
+                                                    <th>Summary</th>
+                                                </thead>
+                                                <tbody>
+                                                    {geneset.filter((gene): gene is Exclude<typeof gene, null | undefined> => !!gene).map(gene =>
+                                                        <tr key={gene.symbol}>
+                                                            <th>{gene.symbol}</th>
+                                                            <td>{gene.description}</td>
+                                                            <td>{gene.summary}</td>
+                                                        </tr>
+                                                    )}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    : <span className='loading loading-ring loading-lg'></span>
+                                    }
                                 </div>
 
                                 <div className="flex items-center justify-end p-6 border-t border-solid border-slate-200 rounded-b">
@@ -42,12 +60,12 @@ export default function GeneSetModal({ geneset, term, showModal, setShowModal }:
                                         type="button"
                                         onClick={() => {
                                             setShowModal(false)
-                                            navigator.clipboard.writeText(geneset?.join('\n') || '')
+                                            navigator.clipboard.writeText(genes?.join('\n') || '')
                                         }}
                                     >
                                         Copy to Clipboard
                                     </button>
-                                    <EnrichrButton genes={geneset} description={term}></EnrichrButton>
+                                    <EnrichrButton genes={genes} description={term}></EnrichrButton>
                                     <button
                                         className="btn btn-sm btn-outline text-xs p-2 m-2"
                                         type="button"
@@ -55,7 +73,8 @@ export default function GeneSetModal({ geneset, term, showModal, setShowModal }:
                                             evt.preventDefault()
                                             const result = await addUserGeneSetMutation({
                                                 variables: {
-                                                    genes
+                                                    genes,
+                                                    description: term,
                                                 }
                                             })
                                             const id = result.data?.addUserGeneSet?.userGeneSet?.id

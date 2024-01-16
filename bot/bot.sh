@@ -16,20 +16,23 @@ test -f $WORK_DIR/output.gmt || exit 1
 test -f $WORK_DIR/done.new.txt || exit 1
 
 echo "assembling output-clean.gmt... (pruned, and normalized gene sets)"
-PTH=$WORK_DIR $PYTHON ./clean.py || exit 1
+$PYTHON -m helper clean -i $WORK_DIR/output.gmt -o $WORK_DIR/output-clean.gmt || exit 1
 test -f $WORK_DIR/output-clean.gmt || exit 1
 
 echo "ingesting new gene sets..."
-$PYTHON ./helper.py ingest -i $WORK_DIR/output-clean.gmt || exit 1
+$PYTHON -m helper ingest -i $WORK_DIR/output-clean.gmt || exit 1
 
 echo "fetching & ingesting latest PMC metadata..."
-$PYTHON ./helper.py ingest-paper-info || exit 1
+$PYTHON -m helper ingest-paper-info || exit 1
+
+echo "fetching & ingesting gene description & summary..."
+$PYTHON -m helper ingest-gene-info || exit 1
 
 echo "registering a new release..."
-$PYTHON ./helper.py create-release "$(wc -l $WORK_DIR/done.new.txt | awk '{ print $1 }')" || exit 1
+$PYTHON -m helper create-release "$(wc -l $WORK_DIR/done.new.txt | awk '{ print $1 }')" || exit 1
 
 echo "updating app background..."
-ENRICH_URL=$ENRICH_URL $PYTHON ./helper.py update-background || exit 1
+ENRICH_URL=$ENRICH_URL $PYTHON -m helper update-background || exit 1
 
 echo "adding to output.gmt..."
 cat $WORK_DIR/output.gmt >> data/output.gmt
