@@ -156,21 +156,23 @@ async fn ensure_index(db: &mut Connection<Postgres>, state: &State<PersistentSta
         }
 
         // compute the index in memory
-        sqlx::query("select id, term, description, hash, gene_ids from app_public_v2.gene_set;")
+        sqlx::query("select id, term, coalesce(description, '') as description, hash, gene_ids from app_public_v2.gene_set;")
             .fetch(&mut **db)
             .for_each(|row| {
                 let row = row.unwrap();
                 let gene_set_id: uuid::Uuid = row.try_get("id").unwrap();
                 let term: String = row.try_get("term").unwrap();
                 let description: String = row.try_get("description").unwrap();
-                let gene_set_hash: uuid::Uuid = row.try_get("hash").unwrap();
-                if !bitmap.terms.contains_key(&gene_set_hash) {
-                    let gene_ids: sqlx::types::Json<HashMap<String, sqlx::types::JsonValue>> = row.try_get("gene_ids").unwrap();
-                    let gene_ids = gene_ids.keys().map(|gene_id| Uuid::parse_str(gene_id).unwrap()).collect::<Vec<Uuid>>();
-                    let bitset = bitvec(&bitmap.columns, gene_ids);
-                    bitmap.values.push((gene_set_hash, bitset));
+                let gene_set_hash: Result<uuid::Uuid, _> = row.try_get("hash");
+                if let Ok(gene_set_hash) = gene_set_hash {
+                    if !bitmap.terms.contains_key(&gene_set_hash) {
+                        let gene_ids: sqlx::types::Json<HashMap<String, sqlx::types::JsonValue>> = row.try_get("gene_ids").unwrap();
+                        let gene_ids = gene_ids.keys().map(|gene_id| Uuid::parse_str(gene_id).unwrap()).collect::<Vec<Uuid>>();
+                        let bitset = bitvec(&bitmap.columns, gene_ids);
+                        bitmap.values.push((gene_set_hash, bitset));
+                    }
+                    bitmap.terms.entry(gene_set_hash).or_default().push((gene_set_id, term, description));
                 }
-                bitmap.terms.entry(gene_set_hash).or_default().push((gene_set_id, term, description));
                 future::ready(())
             })
             .await;
