@@ -78,7 +78,7 @@ const examples = [
 
 export default function PubMedSearchPage() {
   const [rawSearch, setRawSearch] = React.useState('')
-  const [queryString, setQueryString] = useQsState({ q: '' })
+  const [queryString, setQueryString] = useQsState({ page: '1', q: '' })
   React.useEffect(() => setRawSearch(queryString.q ?? ''), [queryString.q])
   if (!queryString.q) {
     return (
@@ -88,7 +88,7 @@ export default function PubMedSearchPage() {
           className="flex flex-col items-center gap-4"
           onSubmit={evt => {
             evt.preventDefault()
-            setQueryString({ q: rawSearch })
+            setQueryString({ page: '1', q: rawSearch })
           }}
         >
           <span className="label-text text-lg">Search Term(s)</span>
@@ -113,7 +113,7 @@ export default function PubMedSearchPage() {
             <a
               key={example}
               className="font-bold text-sm cursor-pointer"
-              onClick={() => {setQueryString({ q: example })}}
+              onClick={() => {setQueryString({ page: '1', q: example })}}
             >{example}</a>
           ])}
         </p>
@@ -127,7 +127,7 @@ export default function PubMedSearchPage() {
             className="flex flex-row items-center gap-2 mt-5"
             onSubmit={evt => {
               evt.preventDefault()
-              setQueryString({ q: rawSearch })
+              setQueryString({ page: '1', q: rawSearch })
             }}
           >
             <span className="label-text text-lg">Search Term(s)</span>
@@ -153,7 +153,7 @@ export default function PubMedSearchPage() {
               <a
                 key={example}
                 className="font-bold text-sm cursor-pointer"
-                onClick={() => {setQueryString({ q: example })}}
+                onClick={() => {setQueryString({ page: '1', q: example })}}
               >{example}</a>
             ])}
           </p>
