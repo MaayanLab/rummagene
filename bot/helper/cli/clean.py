@@ -2,14 +2,13 @@ import click
 from pathlib import Path
 from helper.cli import cli
 
+lookup = None
+
 @cli.command()
 @click.option('-i', '--input', type=click.Path(exists=True, file_okay=True, path_type=Path), help='GMT file to clean')
 @click.option('-o', '--output', type=click.Path(path_type=Path), help='Output location')
 def clean(input, output):
   import re
-  from maayanlab_bioinformatics.harmonization.ncbi_genes import ncbi_genes_lookup
-
-  lookup = None
   def gene_lookup(value):
     ''' Don't allow pure numbers or spaces--numbers can typically match entrez ids
     '''
@@ -18,7 +17,9 @@ def clean(input, output):
     if re.match(r'\d+(\.\d+)?', value): return None
     global lookup
     if lookup is None:
-      lookup = ncbi_genes_lookup(filters=lambda ncbi: ncbi)
+      import json
+      with open('lookup.json', 'r') as fr:
+        lookup = json.load(fr).get
     return lookup(value)
 
   terms = set()
