@@ -31,13 +31,13 @@ $PYTHON -m helper ingest-gene-info || exit 1
 echo "registering a new release..."
 $PYTHON -m helper create-release "$(wc -l $WORK_DIR/done.new.txt | awk '{ print $1 }')" || exit 1
 
-echo "updating app background..."
-ENRICH_URL=$ENRICH_URL $PYTHON -m helper update-background || exit 1
-
 echo "adding to output.gmt..."
 cat $WORK_DIR/output.gmt >> data/output.gmt
 cat $WORK_DIR/output-clean.gmt >> data/output-clean.gmt
 cat $WORK_DIR/done.new.txt >> data/done.txt
+
+echo "updating app background..."
+ENRICH_URL=$ENRICH_URL $PYTHON -m helper update-background || exit 1
 
 # echo "cleanup work_dir..."
 # rm $WORK_DIR
