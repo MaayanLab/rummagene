@@ -66,12 +66,18 @@ export default function GeneSetModal({ geneset, term, showModal, setShowModal }:
                         <button
                             className="btn btn-sm btn-outline text-xs p-2 m-2"
                             type="button"
-                            onClick={() => {
-                                setShowModal(false)
+                        <button
+                            className="btn btn-sm btn-outline text-xs p-2 m-2 transition-colors duration-500"
+                            type="button"
+                            onClick={(evt) => {
+                                const currentRef = evt.currentTarget
+                                const currentColor = currentRef.style.backgroundColor
+                                currentRef.style.backgroundColor = 'green'
+                                setTimeout(() => {currentRef.style.backgroundColor = currentColor}, 500)
                                 navigator.clipboard.writeText(genes?.join('\n') || '')
                             }}
                         >
-                            Copy to Clipboard
+                            Copy Symbols to Clipboard
                         </button>
                         <EnrichrButton genes={genes} description={term}></EnrichrButton>
                         <button
