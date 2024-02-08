@@ -3,6 +3,8 @@ import EnrichrButton from './enrichrButton'
 import { useAddUserGeneSetMutation } from '@/graphql'
 import { useRouter } from 'next/navigation'
 import classNames from 'classnames'
+import blobTsv from '@/utils/blobTsv'
+import clientDownloadBlob from '@/utils/clientDownloadBlob'
 
 function ExpandableText({ text }: { text: string }) {
     const [more, setMore] = React.useState(false)
@@ -62,10 +64,21 @@ export default function GeneSetModal({ geneset, term, showModal, setShowModal }:
 
                     <div className="flex items-center justify-end p-6 border-t border-solid border-slate-200 rounded-b  flex-shrink-0">
 
-
                         <button
                             className="btn btn-sm btn-outline text-xs p-2 m-2"
                             type="button"
+                            onClick={(evt) => {
+                                if (!geneset) return
+                                const blob = blobTsv(['symbol', 'description', 'summary'], geneset, item => ({
+                                  symbol: item?.symbol,
+                                  description: item?.description,
+                                  summary: item?.summary,
+                                }))
+                                clientDownloadBlob(blob, `${term ? term : 'gene_set'}.tsv`)
+                            }}
+                        >
+                            Download Table
+                        </button>
                         <button
                             className="btn btn-sm btn-outline text-xs p-2 m-2 transition-colors duration-500"
                             type="button"
