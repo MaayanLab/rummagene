@@ -37,7 +37,7 @@ function enrich(options: any) {
 export default function EnrichrButton({ genes, description }: { genes?: (string | null)[] | undefined, description?: string | null }) {
     return (
         <button
-            className="btn btn-sm btn-outline text-xs p-2 m-2"
+            className="btn btn-sm btn-outline text-xs"
             type="button"
             onClick={() => {
                 enrich({ list: genes?.join('\n') || '', description: description, popup: true })

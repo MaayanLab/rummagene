@@ -62,7 +62,7 @@ export default function GeneSetModal({ geneset, term, showModal, setShowModal }:
                         }
                     </div>
 
-                    <div className="flex items-center justify-end border-t border-solid border-slate-200 flex-shrink-0 gap-2 px-4 p-1">
+                    <div className="flex items-center justify-end border-t border-solid border-slate-200 flex-shrink-0 gap-2 p-3">
 
                         <button
                             className="btn btn-sm btn-outline text-xs"
