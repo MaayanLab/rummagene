@@ -33,12 +33,12 @@ export default function GeneSetModal({ geneset, term, showModal, setShowModal }:
     return (
         <>
             <dialog className="modal" ref={ref}>
-                <div className="modal-box w-11/12 max-w-screen-xl h-5/6 overflow-hidden flex flex-col">
-                    <p className="text-md text-center text-gray-900 dark:text-white flex-shrink-0">
+                <div className="modal-box w-11/12 max-w-screen-xl h-5/6 overflow-hidden flex flex-col p-0">
+                    <p className="text-md text-center text-gray-900 dark:text-white flex-shrink-0 py-2">
                         Gene Set  ({geneset ? geneset?.length : 'n'})
                     </p>
                     <p className="text-md text-center text-gray-600 dark:text-white">{term}</p>
-                    <div className={classNames("p-2 py-6 text-slate-500 text-sm leading-relaxed whitespace-pre-line overflow-hidden flex flex-grow flex-shrink")}>
+                    <div className={classNames("p-2 text-slate-500 text-sm leading-relaxed whitespace-pre-line overflow-hidden flex flex-grow flex-shrink")}>
                         {geneset ?
                             <div className="overflow-x-auto block">
                                 <table className="table table-xs table-pin-rows table-pin-cols">
@@ -62,10 +62,10 @@ export default function GeneSetModal({ geneset, term, showModal, setShowModal }:
                         }
                     </div>
 
-                    <div className="flex items-center justify-end p-6 border-t border-solid border-slate-200 rounded-b  flex-shrink-0">
+                    <div className="flex items-center justify-end border-t border-solid border-slate-200 flex-shrink-0 gap-2 px-4 p-1">
 
                         <button
-                            className="btn btn-sm btn-outline text-xs p-2 m-2"
+                            className="btn btn-sm btn-outline text-xs"
                             type="button"
                             onClick={(evt) => {
                                 if (!geneset) return
@@ -80,7 +80,7 @@ export default function GeneSetModal({ geneset, term, showModal, setShowModal }:
                             Download Table
                         </button>
                         <button
-                            className="btn btn-sm btn-outline text-xs p-2 m-2 transition-colors duration-500"
+                            className="btn btn-sm btn-outline text-xs transition-colors duration-500"
                             type="button"
                             onClick={(evt) => {
                                 const currentRef = evt.currentTarget
@@ -94,7 +94,7 @@ export default function GeneSetModal({ geneset, term, showModal, setShowModal }:
                         </button>
                         <EnrichrButton genes={genes} description={term}></EnrichrButton>
                         <button
-                            className="btn btn-sm btn-outline text-xs p-2 m-2"
+                            className="btn btn-sm btn-outline text-xs"
                             type="button"
                             onClick={async (evt) => {
                                 evt.preventDefault()
