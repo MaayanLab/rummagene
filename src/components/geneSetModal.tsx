@@ -58,7 +58,7 @@ export default function GeneSetModal({ geneset, term, showModal, setShowModal }:
                                     </tbody>
                                 </table>
                             </div>
-                        : <span className='loading loading-ring loading-lg'></span>
+                        : <div className="w-full flex justify-center"><span className='loading loading-ring w-24'></span></div>
                         }
                     </div>
 
