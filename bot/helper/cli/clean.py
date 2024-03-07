@@ -4,6 +4,15 @@ from helper.cli import cli
 
 lookup = None
 
+def unique(L):
+  S = set()
+  L_ = []
+  for el in L:
+    if el in S: continue
+    S.add(el)
+    L_.append(el)
+  return L_
+
 @cli.command()
 @click.option('-i', '--input', type=click.Path(exists=True, file_okay=True, path_type=Path), help='GMT file to clean')
 @click.option('-o', '--output', type=click.Path(path_type=Path), help='Output location')
@@ -27,7 +36,7 @@ def clean(input, output):
     with output.open('w') as fw:
       for line in filter(None, map(str.strip, fr)):
         term, _, *geneset = line.split('\t')
-        geneset_mapped = [gene_mapped for gene in geneset for gene_mapped in (gene_lookup(gene),) if gene_mapped]
+        geneset_mapped = unique([gene_mapped for gene in geneset for gene_mapped in (gene_lookup(gene),) if gene_mapped])
         if (
           len(geneset_mapped) >= 5
           and len(geneset_mapped) < 2500
