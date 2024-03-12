@@ -41,6 +41,10 @@ function description_markdown(text: string) {
   return text
 }
 
+function Breakable(props: { children: string }) {
+  return props.children.split('_').map((part, i) => <React.Fragment key={i}>{(i === 0 ? '' : '_') + part}<wbr /></React.Fragment>)
+}
+
 function EnrichmentResults({ userGeneSet, setModalGeneSet }: { userGeneSet?: FetchUserGeneSetQuery, setModalGeneSet: React.Dispatch<React.SetStateAction<GeneSetModalT>> }) {
   const genes = React.useMemo(() =>
     ensureArray(userGeneSet?.userGeneSet?.genes).filter((gene): gene is string => !!gene).map(gene => gene.toUpperCase()),
@@ -171,7 +175,7 @@ function EnrichmentResults({ userGeneSet, setModalGeneSet }: { userGeneSet?: Fet
                             href={`https://www.ncbi.nlm.nih.gov/pmc/articles/${pmcid}/bin/${table}`}
                             target="_blank"
                           >
-                            {table}
+                            <Breakable>{table}</Breakable>
                           </a>
                         </td> : null}
                         <td rowSpan={1}>
@@ -185,7 +189,7 @@ function EnrichmentResults({ userGeneSet, setModalGeneSet }: { userGeneSet?: Fet
                                 description: geneSet.term ?? '',
                               })
                             }}
-                          >{column}</label>
+                          ><Breakable>{column}</Breakable></label>
                         </td>
                         {paperIndex === 0 && tableIndex === 0 && columnIndex === 0 ? <>
                           <td rowSpan={nPaperTableColumns+nPaperTables} className="whitespace-nowrap text-underline cursor-pointer">
