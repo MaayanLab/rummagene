@@ -34,7 +34,7 @@ services:
       - ./data/postgres/:/var/lib/postgresql/data
   rummagene-bot:
     build: bot
-    image: maayanlab/rummagene-bot:0.2.0
+    image: maayanlab/rummagene-bot:0.2.1
     command: ["bash", "-c", "cd /work/data && touch log && tail -f log"]
     environment:
       - DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@rummagene-postgres:5432/${POSTGRES_DB}
