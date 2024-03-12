@@ -9,6 +9,7 @@ import clientDownloadBlob from '@/utils/clientDownloadBlob'
 function ExpandableText({ text }: { text: string }) {
     const [more, setMore] = React.useState(false)
     const startText = React.useMemo(() => text.split('. ')[0], [text])
+    if (!text) return null
     return <>
         {more ? text : startText}
         &nbsp;
@@ -17,11 +18,11 @@ function ExpandableText({ text }: { text: string }) {
     </>
 }
 
-export default function GeneSetModal({ geneset, term, showModal, setShowModal }: { geneset?: ({ symbol: string, ncbi_gene_id?: number | null, description?: string | null, summary?: string | null } | null | undefined)[] | undefined, term: string | null | undefined, showModal?: boolean, setShowModal: (show: boolean) => void }) {
+export default function GeneSetModal({ geneset, term, showModal, setShowModal }: { geneset?: ({ gene?: string | null, symbol?: string | null, ncbi_gene_id?: number | null, description?: string | null, summary?: string | null } | null | undefined)[] | undefined, term: string | null | undefined, showModal?: boolean, setShowModal: (show: boolean) => void }) {
     const ref = React.useRef<HTMLDialogElement>(null)
     const router = useRouter()
     const [addUserGeneSetMutation, { loading, error }] = useAddUserGeneSetMutation()
-    const genes = React.useMemo(() => geneset?.filter((gene): gene is Exclude<typeof gene, null | undefined> => !!gene).map(({ symbol }) => symbol), [geneset])
+    const genes = React.useMemo(() => geneset?.filter((gene): gene is Exclude<typeof gene, null | undefined> & { symbol: string } => !!gene?.symbol).map(({ symbol }) => symbol), [geneset])
     React.useEffect(() => {
         if (!ref.current) return
         ref.current.addEventListener('close', () => setShowModal(false))
@@ -43,13 +44,15 @@ export default function GeneSetModal({ geneset, term, showModal, setShowModal }:
                             <div className="overflow-x-auto block">
                                 <table className="table table-xs table-pin-rows table-pin-cols">
                                     <thead className="bg-white sticky top-0">
+                                        <th>&nbsp;</th>
                                         <th>Symbol</th>
                                         <th>Description</th>
                                         <th>Summary</th>
                                     </thead>
                                     <tbody className="overflow-y-auto">
-                                        {geneset.filter((gene): gene is Exclude<typeof gene, null | undefined> => !!gene).map(gene =>
+                                        {geneset.filter((gene): gene is Exclude<typeof gene, null | undefined> & { symbol: string } => !!gene?.symbol).map(gene =>
                                             <tr key={gene.symbol}>
+                                                <td>{gene.gene}</td>
                                                 <td className="font-bold">{gene.symbol}</td>
                                                 <td>{gene.description}</td>
                                                 <td><ExpandableText text={gene.summary ?? ''} /></td>

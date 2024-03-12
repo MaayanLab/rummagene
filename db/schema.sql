@@ -189,7 +189,7 @@ CREATE TABLE app_public_v2.background (
 CREATE FUNCTION app_private_v2.indexed_enrich(background app_public_v2.background, gene_ids uuid[], filter_term character varying DEFAULT NULL::character varying, overlap_ge integer DEFAULT 1, pvalue_le double precision DEFAULT 0.05, adj_pvalue_le double precision DEFAULT 0.05, "offset" integer DEFAULT NULL::integer, first integer DEFAULT NULL::integer) RETURNS app_public_v2.paginated_enrich_result
     LANGUAGE plpython3u IMMUTABLE PARALLEL SAFE
     AS $$
-  import requests
+  import os, requests
   params = dict(
     overlap_ge=overlap_ge,
     pvalue_le=pvalue_le,
@@ -199,7 +199,7 @@ CREATE FUNCTION app_private_v2.indexed_enrich(background app_public_v2.backgroun
   if offset: params['offset'] = offset
   if first: params['limit'] = first
   req = requests.post(
-    f"http://rummagene-enrich:8000/{background['id']}",
+    f"{os.environ.get('ENRICH_URL', 'http://rummagene-enrich:8000')}/{background['id']}",
     params=params,
     json=gene_ids,
   )
@@ -721,7 +721,7 @@ CREATE TABLE app_public_v2.gene_set (
     n_gene_ids integer NOT NULL,
     created timestamp without time zone DEFAULT now() NOT NULL,
     description character varying,
-    hash uuid
+    hash uuid NOT NULL
 );
 
 
@@ -748,6 +748,19 @@ CREATE FUNCTION app_public_v2.gene_map(genes character varying[]) RETURNS SETOF 
   select g.id as gene_id, ug.gene as gene
   from unnest(gene_map.genes) ug(gene)
   inner join app_public_v2.gene g on g.symbol = ug.gene or g.synonyms ? ug.gene;
+$$;
+
+
+--
+-- Name: gene_map_2(character varying[]); Type: FUNCTION; Schema: app_public_v2; Owner: -
+--
+
+CREATE FUNCTION app_public_v2.gene_map_2(genes character varying[]) RETURNS SETOF app_public_v2.gene_mapping
+    LANGUAGE sql IMMUTABLE STRICT PARALLEL SAFE
+    AS $$
+  select g.id as gene_id, ug.gene as gene
+  from unnest(gene_map_2.genes) ug(gene)
+  inner join app_public_v2.gene g on g.symbol = upper(ug.gene) or g.synonyms ? upper(ug.gene);
 $$;
 
 
@@ -1649,4 +1662,6 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20240102204243'),
     ('20240105152755'),
     ('20240105161415'),
-    ('20240108174441');
+    ('20240108174441'),
+    ('20240116174826'),
+    ('20240312145213');

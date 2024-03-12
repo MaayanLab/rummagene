@@ -265,7 +265,7 @@ function GeneSetModalWrapper(props: { modalGeneSet: GeneSetModalT, setModalGeneS
         props.modalGeneSet?.type === 'GeneSet' ? geneSet?.geneSet?.genes.nodes
         : props.modalGeneSet?.type === 'GeneSetOverlap' ? overlap?.geneSet?.overlap.nodes
         : props.modalGeneSet?.type === 'UserGeneSet' ?
-          userGeneSet?.geneMap?.nodes ? userGeneSet.geneMap.nodes.map(({ geneInfo }) => geneInfo)
+          userGeneSet?.geneMap2?.nodes ? userGeneSet.geneMap2.nodes.map(({ gene, geneInfo }) => ({gene, ...geneInfo}))
           : props.modalGeneSet.genes.map(symbol => ({ symbol }))
         : undefined
       }

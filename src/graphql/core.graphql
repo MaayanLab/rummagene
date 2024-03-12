@@ -133,8 +133,9 @@ query OverlapQuery($id: UUID!, $genes: [String]!) {
 }
 
 query FetchGeneInfo($genes: [String]!) {
-  geneMap(genes: $genes) {
+  geneMap2(genes: $genes) {
     nodes {
+      gene
       geneInfo {
         symbol
         ncbiGeneId
