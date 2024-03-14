@@ -247,7 +247,7 @@ plt.hlines(dd_hi['y'], xmin=dd_hi.index, xmax=dd_hi['x2'], colors='black')
 selected = []
 for x,r in dd_lo.iterrows():
   selected.append(df_umap.loc[(df_umap['set_size'] > r['x2']) & (df_umap['set_size'] <= x), 'median_citations'] < r['y'])
-# selected = pd.concat(selected)
+selected = pd.concat(selected)
 
 plt.scatter(
   x=df_umap.loc[df_umap.index.isin(selected.index)].loc[selected, 'set_size'],
