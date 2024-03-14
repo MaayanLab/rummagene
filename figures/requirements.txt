@@ -1,0 +1,11 @@
+biopython
+glasbey
+hdbscan
+matplotlib
+numpy
+pandas
+python-dotenv
+scikit-learn
+scipy
+tqdm
+umap-learn
