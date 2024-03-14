@@ -11,7 +11,8 @@ from maayanlab_bioinformatics.harmonization import ncbi_genes_lookup
 from common import data_dir, add_p_value_annotation
 from scipy import stats
 
-fig_dir = os.makedirs('figures/fig2', exist_ok=True)
+fig_dir = pathlib.Path('figures')/'fig2'
+os.makedirs('figures/fig2', exist_ok=True)
 
 def read_gmt(path):
   with pathlib.Path(path).open('r') as fr:
@@ -39,7 +40,7 @@ savefigs = True
 font = {'size' : 10}
 matplotlib.rc('font', **font)
 
-terms = extract_term_counts('out/table-mining-clean.gmt')
+terms = extract_term_counts(data_dir/'table-mining-clean.gmt')
 df = pd.DataFrame.from_dict(terms).T.reset_index()
 df.columns = ['term', 'count']
 df['pmc'] = df['term'].apply(lambda x: x.split('-')[0])
@@ -115,6 +116,7 @@ bars = ax.barh(['terms containing TF(s)','terms containing kinase(s)', 'unique T
 
 ax.bar_label(bars, fmt='{:,.0f}')
 ax.set_xlim(0, 12000)
+plt.tight_layout
 plt.savefig(fig_dir/'2a.png', dpi=300)
 plt.savefig(fig_dir/'2a.pdf', dpi=300)
 plt.clf()
@@ -149,6 +151,7 @@ bars = ax.barh(['containing gene(s)', 'unique genes',
 
 ax.bar_label(bars, fmt='{:,.0f}')
 ax.set_xlim(0, 125000)
+plt.tight_layout()
 plt.savefig(fig_dir/'2b.png', dpi=300)
 plt.savefig(fig_dir/'2b.pdf', dpi=300)
 plt.clf()
@@ -258,7 +261,7 @@ df_100 = df[(df['count'] >= 100)]
 tf_terms_clean = df_100[~df_100['tf_clean'].isna()][['term', 'pmc', 'tf_clean']]
 kinase_terms_clean = df_100[~df_100['kinase_clean'].isna()][['term', 'pmc', 'kinase_clean']]
 
-gmt = read_gmt('out/table-mining-clean.gmt')
+gmt = read_gmt(data_dir/'table-mining-clean.gmt')
 
 sig_tfs = []
 seen = set()
