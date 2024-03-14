@@ -92,4 +92,4 @@ figures/fig7: .venv data/joint-umap.tsv
 	.venv/bin/python fig7.py
 
 .PHONY: build
-build: figures/fig1 figures/fig7
+build: figures/fig1 figures/fig2 figures/fig3 figures/fig4 figures/fig5 figures/fig7
