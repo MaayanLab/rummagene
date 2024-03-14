@@ -353,5 +353,3 @@ fig.update_layout(yaxis_title='Mean Jaccard', plot_bgcolor='white', yaxis_gridco
 
 fig = add_p_value_annotation(fig, [[0, 1], [2, 3]])
 fig.write_image(fig_dir/'2d.png')
-
-## TODO E-H
