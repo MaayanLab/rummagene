@@ -13,7 +13,7 @@ from common import data_dir
 random_state = 42
 
 #%%
-fig_dir = pathlib.Path('figures/fig7')
+fig_dir = pathlib.Path('figures')/'fig7'
 fig_dir.mkdir(parents=True, exist_ok=True)
 
 #%%
@@ -303,4 +303,4 @@ plt.clf()
 #%%
 unique_rummagene_terms = meta[(meta['cluster'].isin(top_uniquely_rummagene_clust) & (meta['source'] == 'rummagene'))][['term', 'cluster']]
 unique_rummagene_terms.sort_values('cluster', inplace=True)
-unique_rummagene_terms.to_csv('data/unique_rummagene_cluster_terms.tsv', sep='\t', index=None)
+unique_rummagene_terms.to_csv(data_dir/'unique_rummagene_cluster_terms.tsv', sep='\t', index=None)

@@ -9,7 +9,7 @@ from matplotlib.lines import Line2D
 from common import data_dir, GMT
 
 #%%
-fig_dir = pathlib.Path('figures/fig1')
+fig_dir = pathlib.Path('figures')/'fig1'
 fig_dir.mkdir(parents=True, exist_ok=True)
 
 #%%
@@ -260,8 +260,8 @@ plt.clf()
 from ast import literal_eval
 selected_terms = set(selected[selected].index.map(lambda i: literal_eval(i)[0]))
 
-with open('data/table-mining-clean.gmt', 'r') as fr:
-  with open('data/understudied.gmt', 'w') as fw:
+with open(data_dir/'table-mining-clean.gmt', 'r') as fr:
+  with open(data_dir/'understudied.gmt', 'w') as fw:
     for line in fr:
       term, desc, *gene_set = line.strip().split('\t')
       if term not in selected_terms: continue
@@ -269,20 +269,6 @@ with open('data/table-mining-clean.gmt', 'r') as fr:
 
 
 #%%
-lookup = None
-def gene_lookup(value):
-  ''' Don't allow pure numbers or spaces--numbers can typically match entrez ids
-  '''
-  if type(value) != str: return None
-  if re.search(r'\s', value): return None
-  if re.match(r'\d+(\.\d+)?', value): return None
-  global lookup
-  if lookup is None:
-    import json
-    with open('data/lookup.json', 'r') as fr:
-      lookup = json.load(fr).get
-  return lookup(value)
-
 def sha256(s):
   import hashlib
   return hashlib.sha256(s.encode()).hexdigest()
@@ -300,17 +286,16 @@ genesets = {}
 G = {}
 oob = []
 
-with open('data/table-mining-clean.gmt', 'r') as fr:
+with open(data_dir/'table-mining-clean.gmt', 'r') as fr:
   for line in tqdm(fr):
     line_split = line.strip().split('\t')
     if len(line_split) < 2: continue
     term, desc, *geneset = line_split
-    geneset_mapped = [gene_mapped for gene in geneset for gene_mapped in (gene_lookup(gene),) if gene_mapped]
-    if len(geneset_mapped) < 5 or len(geneset_mapped) > 2000:
-      oob.append(len(geneset_mapped))
+    if len(geneset) < 5 or len(geneset) > 2000:
+      oob.append(len(geneset))
       continue
-    geneset_hash = sha256('\t'.join(sorted(set(geneset_mapped))))
-    genesets[geneset_hash] = set(geneset_mapped)
+    geneset_hash = sha256('\t'.join(sorted(set(geneset))))
+    genesets[geneset_hash] = set(geneset)
     m = expr.match(term)
     insert(G, geneset_hash, m.group('paper'), term, None)
 

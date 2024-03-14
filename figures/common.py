@@ -28,6 +28,20 @@ def maybe_tqdm(iterable, **kwargs):
   except ImportError:
     return iterable
 
+lookup = None
+def gene_lookup(value):
+  ''' Don't allow pure numbers or spaces--numbers can typically match entrez ids
+  '''
+  if type(value) != str: return None
+  if re.search(r'\s', value): return None
+  if re.match(r'\d+(\.\d+)?', value): return None
+  global lookup
+  if lookup is None:
+    import json
+    with open(data_dir/'lookup.json', 'r') as fr:
+      lookup = json.load(fr).get
+  return lookup(value)
+
 @contextlib.contextmanager
 def ensure_io(arg: io.TextIOBase | str | pathlib.Path):
   ''' ensure we have a file handle open for reading, open if we have a str/Path

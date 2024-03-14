@@ -7,7 +7,7 @@
 # https://github.com/MaayanLab/rummagene/tree/main/bot
 data/table-mining.gmt:
 	mkdir -p data && curl https://s3.dev.maayanlab.cloud/rummagene/table-mining.gmt.gz | gzip -d > $@
-# data/table-mining-clean.gmt: .venv data/table-mining.gmt
+# data/table-mining-clean.gmt: .venv data/lookup.json data/table-mining.gmt
 # 	.venv/bin/python clean_gmt.py < data/table-mining.gmt > data/table-mining-clean.gmt
 data/table-mining-clean.gmt:
 	mkdir -p data && curl https://s3.dev.maayanlab.cloud/rummagene/table-mining-clean.gmt.gz | gzip -d > $@
@@ -18,6 +18,10 @@ data/table-mining-clean.gmt:
 data/pubmed_rif.tsv:
 	mkdir -p data && curl https://s3.dev.maayanlab.cloud/rummagene/pubmed_rif_8-17-23.tsv.gz | gzip -d > $@
 
+# this constructs a gene synonym/symbol lookup file used by clean_gmt.py
+data/lookup.json: .venv
+	.venv/bin/python gene_lookup.py
+
 # Downloads all gene set libraries from Enrichr
 data/Enrichr: .venv
 	.venv/bin/python download_enrichr_db.py
@@ -27,7 +31,7 @@ data/enrichr.gmt: .venv data/Enrichr
 	.venv/bin/python assemble_enrichr_gmt.py
 
 # clean the enrichr gmt
-data/enrichr-clean.gmt: .venv data/enrichr.gmt
+data/enrichr-clean.gmt: .venv data/lookup.json data/enrichr.gmt
 	.venv/bin/python clean_gmt.py < data/enrichr.gmt > data/enrichr-clean.gmt
 
 # construct UMAP coordinates of the rummagene database
