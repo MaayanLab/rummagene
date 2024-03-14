@@ -74,20 +74,23 @@ data/joint-umap.tsv: .venv data/table-mining-clean.gmt data/enrichr-clean.gmt
 figures/fig1: .venv data/table-mining-clean.gmt data/pubmed_rif.tsv data/rummagene-umap.tsv
 	.venv/bin/python fig1.py
 
-figures/fig2: .venv data/bto.owl data/table-mining-clean.gmt data/tf-kinases.json:
+# generate the figure panels for fig2
+figures/fig2: .venv data/bto.owl data/table-mining-clean.gmt data/tf-kinases.json
 	.venv/bin/python fig2.py
 
-# generate the figure panels for fig1
+# generate the figure panels for fig3
 figures/fig3: .venv data/benchmarking_data_tf data/benchmarking_data_kinase data/consensus_kinase_clean.gmt data/consensus_tf_clean.gmt
 	.venv/bin/python fig3.py
 
+# generate the figure panels for fig4
 figures/fig4: .venv data/table-mining-clean.gmt data/doi_info.csv
 	.venv/bin/python fig4.py
 
+# generate the figure panels for fig5
 figures/fig5: .venv data/sigs_df_filtered.tsv
 	.venv/bin/python fig5.py
 
-# generate the figure panels for fig2
+# generate the figure panels for fig7
 figures/fig7: .venv data/joint-umap.tsv
 	.venv/bin/python fig7.py
 
