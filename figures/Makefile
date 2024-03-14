@@ -12,6 +12,34 @@ data/table-mining.gmt:
 data/table-mining-clean.gmt:
 	mkdir -p data && curl https://s3.dev.maayanlab.cloud/rummagene/table-mining-clean.gmt.gz | gzip -d > $@
 
+data/consensus_kinase_clean.gmt:
+	mkdir -p data && curl https://minio.dev.maayanlab.cloud/table-mining/consensus_kinase_clean.gmt > $@
+
+data/consensus_tf_clean.gmt:
+	mkdir -p data && curl https://minio.dev.maayanlab.cloud/table-mining/consensus_tf_clean.gmt > $@
+
+data/tf-kinases.json:
+	mkdir -p data && curl https://minio.dev.maayanlab.cloud/table-mining/tf-kinases.json > $@
+
+data/bto.owl:
+	mkdir -p data && curl http://purl.obolibrary.org/obo/bto.owl > $@
+
+data/sigs_df_annotated.tsv.gz:
+	mkdir -p data && curl https://minio.dev.maayanlab.cloud/table-mining/sigs_df_filtered.tsv.gz > $@
+
+# download and unzip tf benchmarking data
+data/benchmarking_data_tf:
+	mkdir -p data && curl https://minio.dev.maayanlab.cloud/table-mining/benchmarking_data_tf.zip --output data/benchmarking_data_tf.zip
+	unzip data/benchmarking_data_tf.zip -d data
+
+# download and unzip kinase benchmarking data
+data/benchmarking_data_kinase:
+	mkdir -p data && curl https://minio.dev.maayanlab.cloud/table-mining/benchmarking_data_kinase.zip --output data/benchmarking_data_kinase.zip
+	unzip data/benchmarking_data_kinase.zip -d data
+
+data/doi_info.csv:
+	mkdir -p data && curl https://minio.dev.maayanlab.cloud/table-mining/doi_info.csv > $@
+
 # This is a supplemental file for gene citations, we already ran it
 # data/pubmed_rif.tsv: .venv data/table-mining-clean.gmt
 # 	.venv/bin/python collect_citations.py
@@ -45,6 +73,19 @@ data/joint-umap.tsv: .venv data/table-mining-clean.gmt data/enrichr-clean.gmt
 # generate the figure panels for fig1
 figures/fig1: .venv data/table-mining-clean.gmt data/pubmed_rif.tsv data/rummagene-umap.tsv
 	.venv/bin/python fig1.py
+
+figures/fig2: .venv data/bto.owl data/table-mining-clean.gmt data/tf-kinases.json:
+	.venv/bin/python fig2.py
+
+# generate the figure panels for fig1
+figures/fig3: .venv data/benchmarking_data_tf data/benchmarking_data_kinase data/consensus_kinase_clean.gmt data/consensus_tf_clean.gmt
+	.venv/bin/python fig3.py
+
+figures/fig4: .venv data/table-mining-clean.gmt data/doi_info.csv
+	.venv/bin/python fig4.py
+
+figures/fig5: .venv data/sigs_df_filtered.tsv
+	.venv/bin/python fig5.py
 
 # generate the figure panels for fig2
 figures/fig7: .venv data/joint-umap.tsv

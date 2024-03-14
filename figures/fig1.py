@@ -89,10 +89,31 @@ plt.savefig(fig_dir/'1c.png', dpi=300)
 plt.clf()
 
 #%%
-# TODO: 1d
+df_pmcids = pd.read_csv('https://ftp.ncbi.nlm.nih.gov/pub/pmc/PMC-ids.csv.gz')
+df_pmcids = df_pmcids[df_pmcids['PMCID'].isin(papers)]
+yr_data = []
+for yr in tqdm(sorted(set(df_pmcids['Year']))): 
+    pmcs_yr = df_pmcids[df_pmcids['Year'] == yr]['PMCID'].values.tolist()
+    filtered_terms = list(filter(lambda p: p in pmcs_yr, papers))
+    avg_len = np.mean([len(gmt[t]) for t in filtered_terms])
+    yr_data.append([yr, avg_len, len(filtered_terms)])
+len_df = pd.DataFrame(yr_data, columns=['year', 'mean gene set length', 'number of gene sets'])
+plt.scatter(len_df['year'],len_df['mean gene set length'], color='black')
+plt.plot(len_df['year'], len_df['mean gene set length'], color='black')
+plt.xlabel('year')
+plt.ylabel('mean gene set length')
+plt.tight_layout()
+plt.savefig(fig_dir/'1d.png', dpi=300)
+plt.savefig(fig_dir/'1d.pdf', dpi=300)
 
 #%%
-# TODO: 1e
+len_df = pd.DataFrame(yr_data, columns=['year', 'mean gene set length', 'number of gene sets'])
+plt.scatter(len_df['year'],len_df['number of gene sets'], color='black')
+plt.plot(len_df['year'], len_df['number of gene sets'], color='black')
+plt.xlabel('year')
+plt.ylabel('gene sets')
+plt.savefig(fig_dir/'1e.png', dpi=300)
+plt.savefig(fig_dir/'1e.pdf', dpi=300)
 
 #%%
 df_umap = pd.read_csv(data_dir/'rummagene-umap.tsv', sep='\t', index_col=0)

@@ -9,3 +9,11 @@ scikit-learn
 scipy
 tqdm
 umap-learn
+plotly
+seaborn
+git+https://github.com/Maayanlab/maayanlab-bioinformatics.git
+pyLDAvis
+gensim
+nltk
+kaleido
+bokeh
