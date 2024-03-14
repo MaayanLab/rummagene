@@ -66,6 +66,14 @@ data/enrichr-clean.gmt: .venv data/lookup.json data/enrichr.gmt
 data/rummagene-umap.tsv: .venv data/table-mining-clean.gmt
 	.venv/bin/python compute_umap.py
 
+# used for similarity matrices
+data/random50k_co-occurrence.f:
+	mkdir -p data && curl https://s3.dev.maayanlab.cloud/rummagene/random50k_co-occurrence.f.gz | gzip -d > $@
+
+# construct similarity matrix
+data/nmi.f: .venv data/random50k_co-occurrence.f
+	.venv/bin/python similarity_matrices.py
+
 # construct UMAP coordinates & clustering of the rummagene database + enrichr
 data/joint-umap.tsv: .venv data/table-mining-clean.gmt data/enrichr-clean.gmt
 	.venv/bin/python compute_joint_umap.py
@@ -90,9 +98,13 @@ figures/fig4: .venv data/table-mining-clean.gmt data/doi_info.csv
 figures/fig5: .venv data/sigs_df_filtered.tsv
 	.venv/bin/python fig5.py
 
+# generate the figure panels for fig6
+figures/fig6: .venv data/nmi.f data/Enrichr
+	.venv/bin/python fig6.py
+
 # generate the figure panels for fig7
 figures/fig7: .venv data/joint-umap.tsv
 	.venv/bin/python fig7.py
 
 .PHONY: build
-build: figures/fig1 figures/fig2 figures/fig3 figures/fig4 figures/fig5 figures/fig7
+build: figures/fig1 figures/fig2 figures/fig3 figures/fig4 figures/fig5 figures/fig6 figures/fig7
