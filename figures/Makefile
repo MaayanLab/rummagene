@@ -9,11 +9,15 @@ data/table-mining.gmt:
 	mkdir -p data && curl https://s3.dev.maayanlab.cloud/rummagene/table-mining.gmt.gz | gzip -d > $@
 # data/table-mining-clean.gmt: .venv data/lookup.json data/table-mining.gmt
 # 	.venv/bin/python clean_gmt.py < data/table-mining.gmt > data/table-mining-clean.gmt
+
 data/table-mining-clean.gmt:
 	mkdir -p data && curl https://s3.dev.maayanlab.cloud/rummagene/table-mining-clean.gmt.gz | gzip -d > $@
 
 data/consensus_kinase_clean.gmt:
 	mkdir -p data && curl https://s3.dev.maayanlab.cloud/rummagene/consensus_kinase_clean.gmt.gz | gzip -d > $@
+
+data/consensus_tf_clean.gmt:
+	mkdir -p data && curl https://s3.dev.maayanlab.cloud/rummagene/consensus_tf_clean.gmt.gz | gzip -d > $@
 
 data/consensus_tf_clean.gmt:
 	mkdir -p data && curl https://s3.dev.maayanlab.cloud/rummagene/consensus_tf_clean.gmt.gz | gzip -d > $@
@@ -45,6 +49,16 @@ data/Rummagene_transcription_factors.gmt:
 
 data/Rummagene_kinases.gmt:
 	mkdir -p data && curl https://s3.dev.maayanlab.cloud/rummagene/Rummagene_kinases.gmt.gz | gzip -d > $@
+
+# create consensus and term level kinase and tf gene set libraries
+#data/consensus_kinase_clean.gmt: data/table-mining-clean.gmt data/tf-kinases.json
+#	.venv/bin/python create_tf_kinase_gsl.py
+#data/consensus_tf_clean.gmt:  data/table-mining-clean.gmt data/tf-kinases.json
+#	.venv/bin/python create_tf_kinase_gsl.py
+#data/Rummagene_transcription_factors.gmt:  data/table-mining-clean.gmt data/tf-kinases.json
+#	.venv/bin/python create_tf_kinase_gsl.py
+#data/Rummagene_kinases.gmt:  data/table-mining-clean.gmt data/tf-kinases.json
+#	.venv/bin/python create_tf_kinase_gsl.py
 
 # This is a supplemental file for gene citations, we already ran it
 # data/pubmed_rif.tsv: .venv data/table-mining-clean.gmt
