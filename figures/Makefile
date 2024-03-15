@@ -51,13 +51,13 @@ data/Rummagene_kinases.gmt:
 	mkdir -p data && curl https://s3.dev.maayanlab.cloud/rummagene/Rummagene_kinases.gmt.gz | gzip -d > $@
 
 # create consensus and term level kinase and tf gene set libraries
-#data/consensus_kinase_clean.gmt: data/table-mining-clean.gmt data/tf-kinases.json
+#data/consensus_kinase_clean.gmt: .venv data/table-mining-clean.gmt data/tf-kinases.json
 #	.venv/bin/python create_tf_kinase_gsl.py
-#data/consensus_tf_clean.gmt:  data/table-mining-clean.gmt data/tf-kinases.json
+#data/consensus_tf_clean.gmt: .venv  data/table-mining-clean.gmt data/tf-kinases.json
 #	.venv/bin/python create_tf_kinase_gsl.py
-#data/Rummagene_transcription_factors.gmt:  data/table-mining-clean.gmt data/tf-kinases.json
+#data/Rummagene_transcription_factors.gmt: .venv data/table-mining-clean.gmt data/tf-kinases.json
 #	.venv/bin/python create_tf_kinase_gsl.py
-#data/Rummagene_kinases.gmt:  data/table-mining-clean.gmt data/tf-kinases.json
+#data/Rummagene_kinases.gmt: .venv  data/table-mining-clean.gmt data/tf-kinases.json
 #	.venv/bin/python create_tf_kinase_gsl.py
 
 # This is a supplemental file for gene citations, we already ran it
