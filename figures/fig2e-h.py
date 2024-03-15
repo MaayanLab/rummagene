@@ -152,6 +152,45 @@ def get_scatterplot(scatterdf, color_by='cluster', limit=None, hide_legend=False
     return plot_emb
 
 # %% [markdown]
+# ### Transcription Factors
+
+# %%
+l_dict = get_scatter_library('Rummagene-transcription-factors')
+
+# %%
+print(f"Now processing Rummagene-transcription-factors")
+## defaults: nneighbors=30, mindist=0.1, spread=1.0, maxdf=1.0, mindf=1
+scatter_df = process_scatterplot(
+    l_dict, 
+    nneighbors=11,
+    mindist=0.50,
+    # spread=0., 
+    maxdf=0.04, 
+    # mindf=5
+)
+print(f"\tDone!")
+
+# %%
+scatter_df['PMID'] = scatter_df['term'].apply(lambda x: x.split('-')[0])
+scatter_df['TF'] = scatter_df['term'].apply(lambda x: x.split('_')[-1])
+
+# %%
+# Display Scatter Plots
+plot_top20 = get_scatterplot(scatter_df,color_by='TF', limit=20)
+# show(plot_top20)
+# output_file(filename=f"Figures/TFs_byTFTop20_v2.html")
+# save(plot_top20)
+export_svg(plot_top20, filename=str(fig_dir/"2e.svg"))
+
+# %%
+# Display Scatter Plots
+plot_pmid = get_scatterplot(scatter_df,color_by='PMID', hide_legend=True)
+# output_file(filename=f"Figures/TFs_byPMID_v2.html")
+# save(plot_pmid)
+# show(plot_pmid)
+export_svg(plot_pmid, filename=str(fig_dir/"2f.svg"))
+
+# %% [markdown]
 # ### Kinases
 
 # %%

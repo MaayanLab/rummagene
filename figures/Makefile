@@ -89,14 +89,9 @@ figures/fig1: .venv data/table-mining-clean.gmt data/pubmed_rif.tsv data/rummage
 	.venv/bin/python fig1.py
 
 # generate the figure panels for fig2
-figures/fig2: .venv data/bto.owl data/table-mining-clean.gmt data/tf-kinases.json
+figures/fig2: .venv data/bto.owl data/table-mining-clean.gmt data/tf-kinases.json data/Rummagene-transcription-factors.gmt data/Rummagene-kinases.gmt
 	.venv/bin/python fig2.py
-
-figures/fig2e-f: .venv data/Rummagene-transcription-factors.gmt
-	.venv/bin/python fig2e-f.py
-
-figures/fig2g-h: .venv data/Rummagene-kinases.gmt
-	.venv/bin/python fig2g-h.py
+	.venv/bin/python fig2e-h.py
 
 # generate the figure panels for fig3
 figures/fig3: .venv data/benchmarking_data_tf data/benchmarking_data_kinase data/consensus_kinase_clean.gmt data/consensus_tf_clean.gmt
