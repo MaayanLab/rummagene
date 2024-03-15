@@ -155,10 +155,10 @@ def get_scatterplot(scatterdf, color_by='cluster', limit=None, hide_legend=False
 # ### Transcription Factors
 
 # %%
-l_dict = get_scatter_library('Rummagene-transcription-factors')
+l_dict = get_scatter_library('Rummagene_transcription_factors')
 
 # %%
-print(f"Now processing Rummagene-transcription-factors")
+print(f"Now processing Rummagene_transcription_factors")
 ## defaults: nneighbors=30, mindist=0.1, spread=1.0, maxdf=1.0, mindf=1
 scatter_df = process_scatterplot(
     l_dict, 
@@ -194,10 +194,10 @@ export_svg(plot_pmid, filename=str(fig_dir/"2f.svg"))
 # ### Kinases
 
 # %%
-l_dict = get_scatter_library('Rummagene-kinases')
+l_dict = get_scatter_library('Rummagene_kinases')
 
 # %%
-print(f"Now processing Rummagene-kinases")
+print(f"Now processing Rummagene_kinases")
 ## defaults: nneighbors=30, mindist=0.1, spread=1.0, maxdf=1.0, mindf=1
 scatter_df = process_scatterplot(
     l_dict, 
