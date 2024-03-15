@@ -40,10 +40,11 @@ data/benchmarking_data_kinase:
 data/doi_info.csv:
 	mkdir -p data && curl https://minio.dev.maayanlab.cloud/table-mining/doi_info.csv > $@
 
-# data/Rummagene-transcription-factorsv2.gmt:
-# 	TODO
-# data/Rummagene-kinases.gmt:
-# 	TODO
+data/Rummagene-transcription-factors.gmt:
+	mkdir -p data && curl https://s3.dev.maayanlab.cloud/rummagene/Rummagene-transcription-factors.gmt.gz | gzip -d > $@
+
+data/Rummagene-kinases.gmt:
+	mkdir -p data && curl https://s3.dev.maayanlab.cloud/rummagene/Rummagene-kinases.gmt.gz | gzip -d > $@
 
 # This is a supplemental file for gene citations, we already ran it
 # data/pubmed_rif.tsv: .venv data/table-mining-clean.gmt
@@ -91,7 +92,7 @@ figures/fig1: .venv data/table-mining-clean.gmt data/pubmed_rif.tsv data/rummage
 figures/fig2: .venv data/bto.owl data/table-mining-clean.gmt data/tf-kinases.json
 	.venv/bin/python fig2.py
 
-figures/fig2e-f: .venv data/Rummagene-transcription-factorsv2.gmt
+figures/fig2e-f: .venv data/Rummagene-transcription-factors.gmt
 	.venv/bin/python fig2e-f.py
 
 figures/fig2g-h: .venv data/Rummagene-kinases.gmt

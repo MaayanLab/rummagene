@@ -155,10 +155,10 @@ def get_scatterplot(scatterdf, color_by='cluster', limit=None, hide_legend=False
 # ### Transcription Factors
 
 # %%
-l_dict = get_scatter_library('Rummagene-transcription-factorsv2')
+l_dict = get_scatter_library('Rummagene-transcription-factors')
 
 # %%
-print(f"Now processing Rummagene-transcription-factors-v2")
+print(f"Now processing Rummagene-transcription-factors")
 ## defaults: nneighbors=30, mindist=0.1, spread=1.0, maxdf=1.0, mindf=1
 scatter_df = process_scatterplot(
     l_dict, 
