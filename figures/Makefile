@@ -22,7 +22,7 @@ data/tf-kinases.json:
 	mkdir -p data && curl https://minio.dev.maayanlab.cloud/table-mining/tf-kinases.json > $@
 
 data/bto.owl:
-	mkdir -p data && curl https://raw.githubusercontent.com/BRENDA-Enzymes/BTO/master/bto.owl > $@
+	mkdir -p data && curl -L https://raw.githubusercontent.com/BRENDA-Enzymes/BTO/fcba7305e162314d91e2886a615f48481ca0a49b/bto.owl > $@
 
 data/sigs_df_annotated.tsv.gz:
 	mkdir -p data && curl https://minio.dev.maayanlab.cloud/table-mining/sigs_df_filtered.tsv.gz > $@
