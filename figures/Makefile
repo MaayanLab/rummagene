@@ -13,32 +13,32 @@ data/table-mining-clean.gmt:
 	mkdir -p data && curl https://s3.dev.maayanlab.cloud/rummagene/table-mining-clean.gmt.gz | gzip -d > $@
 
 data/consensus_kinase_clean.gmt:
-	mkdir -p data && curl https://minio.dev.maayanlab.cloud/table-mining/consensus_kinase_clean.gmt > $@
+	mkdir -p data && curl https://s3.dev.maayanlab.cloud/rummagene/consensus_kinase_clean.gmt.gz | gzip -d > $@
 
 data/consensus_tf_clean.gmt:
-	mkdir -p data && curl https://minio.dev.maayanlab.cloud/table-mining/consensus_tf_clean.gmt > $@
+	mkdir -p data && curl https://s3.dev.maayanlab.cloud/rummagene/consensus_tf_clean.gmt.gz | gzip -d > $@
 
 data/tf-kinases.json:
-	mkdir -p data && curl https://minio.dev.maayanlab.cloud/table-mining/tf-kinases.json > $@
+	mkdir -p data && curl https://s3.dev.maayanlab.cloud/rummagene/tf-kinases.json.gz | gzip -d > $@
 
 data/bto.owl:
 	mkdir -p data && curl -L https://raw.githubusercontent.com/BRENDA-Enzymes/BTO/fcba7305e162314d91e2886a615f48481ca0a49b/bto.owl > $@
 
 data/sigs_df_annotated.tsv.gz:
-	mkdir -p data && curl https://minio.dev.maayanlab.cloud/table-mining/sigs_df_filtered.tsv.gz > $@
+	mkdir -p data && curl https://s3.dev.maayanlab.cloud/rummagene/sigs_df_filtered.tsv.gz | gzip -d > $@
 
 # download and unzip tf benchmarking data
 data/benchmarking_data_tf:
-	mkdir -p data && curl https://minio.dev.maayanlab.cloud/table-mining/benchmarking_data_tf.zip --output data/benchmarking_data_tf.zip
+	mkdir -p data && curl https://s3.dev.maayanlab.cloud/rummagene/benchmarking_data_tf.zip --output data/benchmarking_data_tf.zip
 	unzip data/benchmarking_data_tf.zip -d data
 
 # download and unzip kinase benchmarking data
 data/benchmarking_data_kinase:
-	mkdir -p data && curl https://minio.dev.maayanlab.cloud/table-mining/benchmarking_data_kinase.zip --output data/benchmarking_data_kinase.zip
+	mkdir -p data && curl https://s3.dev.maayanlab.cloud/rummagene/benchmarking_data_kinase.zip --output data/benchmarking_data_kinase.zip
 	unzip data/benchmarking_data_kinase.zip -d data
 
 data/doi_info.csv:
-	mkdir -p data && curl https://minio.dev.maayanlab.cloud/table-mining/doi_info.csv > $@
+	mkdir -p data && curl https://s3.dev.maayanlab.cloud/rummagene/doi_info.csv.gz | gzip -d > $@
 
 data/Rummagene-transcription-factors.gmt:
 	mkdir -p data && curl https://s3.dev.maayanlab.cloud/rummagene/Rummagene-transcription-factors.gmt.gz | gzip -d > $@
