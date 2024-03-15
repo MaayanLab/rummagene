@@ -5,7 +5,7 @@ from common import data_dir, add_p_value_annotation
 import plotly.graph_objects as go
 import numpy as np
 
-sigs_df = pd.read_csv(data_dir/'sigs_df_annotated.tsv.gz', sep='\t', index_col=0, compression='gzip')
+sigs_df = pd.read_csv(data_dir/'sigs_df_annotated.tsv', sep='\t', index_col=0, compression='gzip')
 
 fig = go.Figure()
 vecs= [('all pairs',sigs_df['most_cited_genes_percent'].values), ('top 10,000',sigs_df['most_cited_genes_percent'].values[:10000]), ('top 1000',sigs_df['most_cited_genes_percent'].values[:1000]), ('top 100',sigs_df['most_cited_genes_percent'].values[:100])]

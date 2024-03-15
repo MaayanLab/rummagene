@@ -88,13 +88,13 @@ plt.savefig(fig_dir/'1c.png', dpi=300)
 plt.clf()
 
 #%%
-df_pmcids = pd.read_csv('https://ftp.ncbi.nlm.nih.gov/pub/pmc/PMC-ids.csv.gz')
+df_pmcids = pd.read_csv(data_dir/'PMC-ids.csv')
 df_pmcids = df_pmcids[df_pmcids['PMCID'].isin(papers)]
 yr_data = []
 for yr in maybe_tqdm(sorted(set(df_pmcids['Year']))): 
     pmcs_yr = df_pmcids[df_pmcids['Year'] == yr]['PMCID'].values.tolist()
     filtered_terms = list(filter(lambda p: p in pmcs_yr, papers))
-    avg_len = np.mean([len(gmt[t]) for t in filtered_terms])
+    avg_len = set_sizes[keep][papers.isin(pmcs_yr)].mean()
     yr_data.append([yr, avg_len, len(filtered_terms)])
 len_df = pd.DataFrame(yr_data, columns=['year', 'mean gene set length', 'number of gene sets'])
 plt.scatter(len_df['year'],len_df['mean gene set length'], color='black')
@@ -141,8 +141,8 @@ plt.ylabel('UMAP-2')
 plt.xticks([])
 plt.yticks([])
 plt.tight_layout()
-plt.savefig(fig_dir/'1f.pdf', dpi=300)
-plt.savefig(fig_dir/'1f.png', dpi=300)
+plt.savefig(fig_dir/'1g.pdf', dpi=300)
+plt.savefig(fig_dir/'1g.png', dpi=300)
 # plt.show()
 plt.clf()
 
@@ -165,30 +165,14 @@ plt.ylabel('UMAP-2')
 plt.xticks([])
 plt.yticks([])
 plt.tight_layout()
-plt.savefig(fig_dir/'1g.pdf', dpi=300)
-plt.savefig(fig_dir/'1g.png', dpi=300)
+plt.savefig(fig_dir/'1f.pdf', dpi=300)
+plt.savefig(fig_dir/'1f.png', dpi=300)
 # plt.show()
 plt.clf()
 
 
 #%%
-plt.rcParams['font.size'] = 12
-fig = plt.figure(figsize=(6,5), dpi=300)
-plt.scatter(
-  x=df_umap['set_size'],
-  y=df_umap['median_citations'],
-  s=0.2,
-  alpha=0.5,
-  rasterized=True,
-)
-plt.xlabel('genes in set')
-plt.ylabel('median gene citations')
-plt.loglog()
-plt.tight_layout()
-plt.savefig(fig_dir/'1h.pdf', dpi=300)
-plt.savefig(fig_dir/'1h.png', dpi=300)
-plt.show()
-plt.clf()
+# TODO: 1h
 
 #%%
 random_median_citations = np.array([
@@ -265,7 +249,7 @@ plt.legend(handles=[
   Line2D([0], [0], marker='o', markerfacecolor=color_pallete[label], color='w', label=label.replace(' ', '\n'), markersize=10)
   for label in ['Rummagene', 'Rummagene Understudied', 'Random']
 ] + [
-  Line2D([0], [0], markerfacecolor='black', color='black', label='$\mu_{r} \pm 3\sigma$', markersize=10)
+  Line2D([0], [0], markerfacecolor='black', color='black', label='$\\mu_{r} \\pm 3\\sigma$', markersize=10)
 ], loc='lower left')
 
 plt.tight_layout()

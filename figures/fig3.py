@@ -13,8 +13,6 @@ from common import data_dir, maybe_tqdm
 fig_dir = pathlib.Path('figures/fig3')
 fig_dir.mkdir(parents=True, exist_ok=True)
 
-
-os.makedirs('out', exist_ok=True)
 colors = ['#E69F00', '#009E73', '#F0E442', '#0072B2', '#404040', '#D55E00', '#CC79A7', '#56B4E9', "#000000"]
 
 def read_gmt(path):
@@ -454,7 +452,8 @@ def make_boxplot(ranked_vectors: dict, name: str, ylabel='Scaled Rank'):
     if ylabel == 'P-value':
         fig.add_hline(y=.05, line_width=1, line_dash="dash", line_color="black")
     fig.update_layout(yaxis_title=ylabel, plot_bgcolor='white', yaxis_gridcolor='gray')
-    fig.show()
+    # fig.show()
+    fig.write_image(fig_dir/f'{name}.pdf')
     fig.write_image(fig_dir/f'{name}.png')
 
 

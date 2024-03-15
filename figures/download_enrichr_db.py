@@ -3,7 +3,7 @@ import json
 from common import data_dir, cached_urlretrieve, maybe_tqdm
 
 #%%
-(data_dir/'Enrichr').mkdir()
+(data_dir/'Enrichr').mkdir(parents=True, exist_ok=True)
 
 #%%
 cached_urlretrieve(

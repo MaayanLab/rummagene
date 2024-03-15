@@ -25,6 +25,8 @@ from nltk.tokenize import word_tokenize
 from nltk.corpus import stopwords
 from nltk.corpus import wordnet
 nltk.download('wordnet')
+nltk.download('punkt')
+nltk.download('stopwords')
 from nltk.stem import WordNetLemmatizer
 
 from common import data_dir 
@@ -78,27 +80,15 @@ def fetch_oa_file_list(data_dir = Path()):
     df = pd.read_csv(oa_file_list)
   return df
 
-oa_file_list = fetch_oa_file_list()
+oa_file_list = fetch_oa_file_list(data_dir)
 X_embed_more = pd.merge(left=df_filtered, left_on='pmc', right=oa_file_list, right_on='Accession ID')
 
 # %%
-df_pmcids = pd.read_csv('https://ftp.ncbi.nlm.nih.gov/pub/pmc/PMC-ids.csv.gz')
+df_pmcids = pd.read_csv(data_dir/'PMC-ids.csv')
 X_embed_more = pd.merge(left=X_embed_more, left_on='pmc', right=df_pmcids, right_on='PMCID')
 
 # %%
-data = []
-with open(data_dir/'doi-info.tsv') as f:
-    lines = f.readlines()
-    for l in lines:
-        l_data = []
-        l_data.append(l.split('\t')[0])
-        l_data.append(l.split('\t')[1].strip())
-        l_data.append(l.split('\t')[2].strip().replace('\n', ''))
-        data.append(l_data)
-
-doi_abs_titles = pd.DataFrame(data=data[1:], columns=data[0])
-os.makedirs('out', exist_ok=True)
-doi_abs_titles.to_csv('out/doi_info.csv')
+doi_abs_titles = pd.read_csv('data/doi_info.csv')
 
 # %%
 doi_abs_titles['description'] = doi_abs_titles['title'] + doi_abs_titles['abstract']
@@ -162,7 +152,7 @@ paper_topics = lda_model.get_document_topics(corpus)
 
 
 # %%
-def format_topics_sentences(ldamodel=None, corpus=corpus, texts=data):
+def format_topics_sentences(ldamodel=None, corpus=corpus, texts=None):
 
     sent_topics = []
 

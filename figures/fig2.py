@@ -112,7 +112,7 @@ bars = ax.barh(['terms containing TF(s)','terms containing kinase(s)', 'unique T
 
 ax.bar_label(bars, fmt='{:,.0f}')
 ax.set_xlim(0, 12000)
-plt.tight_layout
+plt.tight_layout()
 plt.savefig(fig_dir/'2a.png', dpi=300)
 plt.savefig(fig_dir/'2a.pdf', dpi=300)
 plt.clf()
@@ -348,4 +348,5 @@ for (gs, vec) in [['Same TF in Column Name', sig_tfs], ['Different TF + PMC', si
 fig.update_layout(yaxis_title='Mean Jaccard', plot_bgcolor='white', yaxis_gridcolor='gray', width=1000, height=800, showlegend=False, font=dict(size=18), yaxis_range=[-.02, 0.2])
 
 fig = add_p_value_annotation(fig, [[0, 1], [2, 3]])
+fig.write_image(fig_dir/'2d.pdf')
 fig.write_image(fig_dir/'2d.png')
