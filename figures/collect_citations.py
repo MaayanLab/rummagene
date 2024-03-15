@@ -1,8 +1,6 @@
-import pandas as pd
 import pathlib
 import os
-from tqdm import tqdm
-from datetime import date
+from common import maybe_tqdm
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -28,7 +26,7 @@ if __name__ == '__main__':
     domain = 'https://www.ncbi.nlm.nih.gov/entrez/eutils'
     retmode='json'
     with open(f'data/pubmed_rif.tsv', 'w') as f:
-        for g in tqdm(genes):
+        for g in maybe_tqdm(genes):
             query = g
             handle = Entrez.esearch(db="pubmed", retmax=9999999 ,term=g, idtype="acc")
             record = Entrez.read(handle)

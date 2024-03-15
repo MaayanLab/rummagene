@@ -1,15 +1,11 @@
 import pathlib
 import os
-from tqdm import tqdm
-import requests
 import pandas as pd
-import numpy as np
 import plotly.graph_objects as go
 import matplotlib
 from matplotlib import pyplot as plt
 from maayanlab_bioinformatics.harmonization import ncbi_genes_lookup
-from common import data_dir, add_p_value_annotation
-from scipy import stats
+from common import data_dir, add_p_value_annotation, maybe_tqdm
 
 fig_dir = pathlib.Path('figures')/'fig2'
 os.makedirs('figures/fig2', exist_ok=True)
@@ -209,13 +205,13 @@ df['term-description'] = df['term'].apply(lambda t: re.split(extensions_pattern,
 
 
 tissue_list = []
-for i in tqdm(range(len(df))):
+for i in maybe_tqdm(range(len(df))):
     term = re.sub(r'[-_.]', ' ', df.iloc[i]['term-description'])
     tissue_list.append(re.findall(r'\b(?:(?=\S)' + '|'.join(map(re.escape, tissues_cell_types)) + r')\b', term))
 df['tissue_cell_type'] = tissue_list
 
 cell_line_list = []
-for i in tqdm(range(len(df))):
+for i in maybe_tqdm(range(len(df))):
     term = re.sub(r'[-_.]', ' ', df.iloc[i]['term-description'])
     cell_line_list.append(re.findall(r'\b(?:(?=\S)' + '|'.join(map(re.escape, cell_lines)) + r')\b', term))
 df['cell_line'] = cell_line_list
@@ -265,7 +261,7 @@ gmt = read_gmt(data_dir/'table-mining-clean.gmt')
 
 sig_tfs = []
 seen = set()
-for i, row in tqdm(tf_terms_clean.iterrows()):
+for i, row in maybe_tqdm(tf_terms_clean.iterrows()):
     tf_genesets = {}
     tf = row['tf_clean']
     if tf in seen:
@@ -285,7 +281,7 @@ for i, row in tqdm(tf_terms_clean.iterrows()):
 
 sig_tfs_shuffle = []
 seen = set()
-for i, row in tqdm(tf_terms_clean.iterrows(), total=len(tf_terms_clean)):
+for i, row in maybe_tqdm(tf_terms_clean.iterrows(), total=len(tf_terms_clean)):
     gs = gmt[row['term']]
     pmc = row['pmc']
     tf = row['tf_clean']
@@ -301,7 +297,7 @@ for i, row in tqdm(tf_terms_clean.iterrows(), total=len(tf_terms_clean)):
 
 sig_kinases = []
 seen = set()
-for i, row in tqdm(kinase_terms_clean.iterrows()):
+for i, row in maybe_tqdm(kinase_terms_clean.iterrows()):
     kinase_genesets = {}
     pmc = row['pmc']
     kinase = row['kinase_clean']
@@ -321,7 +317,7 @@ for i, row in tqdm(kinase_terms_clean.iterrows()):
 
 sig_kinases_shuffle = []
 seen = set()
-for i, row in tqdm(kinase_terms_clean.iterrows(), total=len(kinase_terms_clean)):
+for i, row in maybe_tqdm(kinase_terms_clean.iterrows(), total=len(kinase_terms_clean)):
     gs = gmt[row['term']]
     pmc = row['pmc']
     kinase = row['kinase_clean']

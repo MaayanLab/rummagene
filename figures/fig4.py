@@ -1,17 +1,13 @@
 # %%
-import random
 import re
 import pathlib
 from pprint import pprint
-from tqdm import tqdm
 import os
 
 from pathlib import Path
 import pandas as pd
 import numpy as np
-import plotly.express as px
 from matplotlib import pyplot as plt
-from umap import UMAP
 
 from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
 

@@ -4,9 +4,8 @@ import pathlib
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from tqdm.auto import tqdm
 from matplotlib.lines import Line2D
-from common import data_dir, GMT
+from common import data_dir, GMT, maybe_tqdm
 
 #%%
 fig_dir = pathlib.Path('figures')/'fig1'
@@ -36,7 +35,7 @@ avg_citations = np.array([
      gene_pubs.get(gene, 0)
      for gene in gene_list
   ])
-  for gene_list in tqdm(gmt.gene_lists, desc='Computing avg citations...')
+  for gene_list in maybe_tqdm(gmt.gene_lists, desc='Computing avg citations...')
 ])
 
 #%%
@@ -45,7 +44,7 @@ median_citations = np.array([
      gene_pubs.get(gene, 0)
      for gene in gene_list
   ])
-  for gene_list in tqdm(gmt.gene_lists, desc='Computing median citations...')
+  for gene_list in maybe_tqdm(gmt.gene_lists, desc='Computing median citations...')
 ])
 
 #%%
@@ -92,7 +91,7 @@ plt.clf()
 df_pmcids = pd.read_csv('https://ftp.ncbi.nlm.nih.gov/pub/pmc/PMC-ids.csv.gz')
 df_pmcids = df_pmcids[df_pmcids['PMCID'].isin(papers)]
 yr_data = []
-for yr in tqdm(sorted(set(df_pmcids['Year']))): 
+for yr in maybe_tqdm(sorted(set(df_pmcids['Year']))): 
     pmcs_yr = df_pmcids[df_pmcids['Year'] == yr]['PMCID'].values.tolist()
     filtered_terms = list(filter(lambda p: p in pmcs_yr, papers))
     avg_len = np.mean([len(gmt[t]) for t in filtered_terms])
@@ -308,7 +307,7 @@ G = {}
 oob = []
 
 with open(data_dir/'table-mining-clean.gmt', 'r') as fr:
-  for line in tqdm(fr):
+  for line in maybe_tqdm(fr):
     line_split = line.strip().split('\t')
     if len(line_split) < 2: continue
     term, desc, *geneset = line_split

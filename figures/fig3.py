@@ -3,13 +3,12 @@ import pathlib
 import random
 import pandas as pd
 import numpy as np
-from tqdm import tqdm
 from matplotlib import pyplot as plt
 from maayanlab_bioinformatics.enrichment import enrich_crisp
 from sklearn.metrics import roc_curve, auc
 import plotly.graph_objects as go
 
-from common import data_dir
+from common import data_dir, maybe_tqdm
 
 fig_dir = pathlib.Path('figures/fig3')
 fig_dir.mkdir(parents=True, exist_ok=True)
@@ -99,10 +98,10 @@ def rank_vecs_kinase(consensus: dict):
     - rank_vecs_consensus (dict): A dictionary containing the ranked vectors based on the consensus data.
     """
     rank_vecs_consensus = {}
-    for name in tqdm(benchmarking_libs_kinase):  
+    for name in maybe_tqdm(benchmarking_libs_kinase):  
         bench_lib = benchmarking_libs_kinase[name]
         results = []
-        for term in tqdm(bench_lib):
+        for term in maybe_tqdm(bench_lib):
             try:
                 enrichment = enrich(bench_lib[term], consensus, f"{term}:consensus")
                 if '_' in term:
@@ -149,10 +148,10 @@ def rank_vecs_tf(consensus: dict):
     """
         
     rank_vecs_consensus = {}
-    for name in tqdm(benchmarking_libs_tf):  
+    for name in maybe_tqdm(benchmarking_libs_tf):  
         bench_lib = benchmarking_libs_tf[name]
         results = []
-        for term in tqdm(bench_lib):
+        for term in maybe_tqdm(bench_lib):
             try:
                 enrichment = enrich(bench_lib[term], consensus, f"{term}:consensus")
                 if '_' in term:
@@ -183,11 +182,11 @@ def create_roc_vals_kinase(consensus: dict):
         dict: A dictionary containing the ROC values.
     """
     roc_vals = {}
-    for name in tqdm(benchmarking_libs_kinase):  
+    for name in maybe_tqdm(benchmarking_libs_kinase):  
         bench_lib = benchmarking_libs_kinase[name]
         results = []
         misses = []
-        for term in tqdm(bench_lib):
+        for term in maybe_tqdm(bench_lib):
             try:
                 enrichment = enrich(bench_lib[term], consensus, f"{term}:consensus")
                 if '_' in term:
@@ -247,10 +246,10 @@ def sig_vecs_kinase(consensus: dict) -> dict:
     """
         
     rank_vecs_consensus = {}
-    for name in tqdm(benchmarking_libs_kinase):  
+    for name in maybe_tqdm(benchmarking_libs_kinase):  
         bench_lib = benchmarking_libs_kinase[name]
         results = []
-        for term in tqdm(bench_lib):
+        for term in maybe_tqdm(bench_lib):
             enrichment = enrich(bench_lib[term], consensus, f"{term}:consensus")
             if '_' in term:
                 kinase = term.split('_')[0]
@@ -292,10 +291,10 @@ def sig_vecs_tf(consensus: dict) -> dict:
         dict: A dictionary containing the ranked vectors for each benchmarking library.
     """
     rank_vecs_consensus = {}
-    for name in tqdm(benchmarking_libs_tf):  
+    for name in maybe_tqdm(benchmarking_libs_tf):  
         bench_lib = benchmarking_libs_tf[name]
         results = []
-        for term in tqdm(bench_lib):
+        for term in maybe_tqdm(bench_lib):
             try:
                 enrichment = enrich(bench_lib[term], consensus, f"{term}:consensus")
                 if '_' in term:
@@ -328,11 +327,11 @@ def create_roc_vals_tf(consensus: dict) -> dict:
     """
 
     roc_vals = {}
-    for name in tqdm(benchmarking_libs_tf):  
+    for name in maybe_tqdm(benchmarking_libs_tf):  
         bench_lib = benchmarking_libs_tf[name]
         results = []
         misses = []
-        for term in tqdm(bench_lib):
+        for term in maybe_tqdm(bench_lib):
             try:
                 enrichment = enrich(bench_lib[term], consensus, f"{term}:consensus")
                 if '_' in term:
@@ -409,7 +408,7 @@ def plot_roc_curve(roc_vals: dict, name: str, n_bootstrap=5000):
     base_fpr = np.linspace(0, 1, 50)
 
     lib_curves = {}
-    for lib in tqdm(roc_vals):
+    for lib in maybe_tqdm(roc_vals):
         bootstrapped_res = bootstrap_roc_curve(1 - np.array(roc_vals[lib]['tp']), 1 - np.array(roc_vals[lib]['fp']), n_bootstrap)
         print(lib, bootstrapped_res['auc'])
         lib_curves[lib] =bootstrapped_res
