@@ -17,7 +17,6 @@ import pyLDAvis.gensim
 import gensim
 import gensim.corpora as corpora
 
-from maayanlab_bioinformatics.harmonization import ncbi_genes_lookup
 from sklearn.manifold import TSNE
 from bokeh.plotting import figure
 
@@ -27,8 +26,6 @@ from nltk.corpus import stopwords
 from nltk.corpus import wordnet
 nltk.download('wordnet')
 from nltk.stem import WordNetLemmatizer
-
-lookup = ncbi_genes_lookup()
 
 from common import data_dir 
 
