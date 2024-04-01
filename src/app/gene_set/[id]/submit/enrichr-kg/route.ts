@@ -23,5 +23,8 @@ export async function GET(request: Request, { params }: { params: { id: string }
   })
   const res = await req.json()
   if (!res.shortId) return new Response(JSON.stringify({error: 'Failed to Register Gene Set'}), { status: 500 })
-  redirect(`https://maayanlab.cloud/enrichr-kg?userListId=${res.shortId}&search=true`)
+  const searchParams = new URLSearchParams()
+  searchParams.append('userListId', res.userListId)
+  searchParams.append('search', 'true')
+  redirect(`https://maayanlab.cloud/enrichr-kg?${searchParams.toString()}`)
 }

@@ -36,5 +36,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
   })
   const userGeneSet = await req.json()
   if (!userGeneSet.data?.addUserGeneSet?.userGeneSet?.id) return new Response(JSON.stringify({error: 'Failed to Register'}), { status: 500 })
-  redirect(`https://rummageo.com/enrich?dataset=${userGeneSet.data.addUserGeneSet.userGeneSet.id}`)
+  const searchParams = new URLSearchParams()
+  searchParams.append('dataset', userGeneSet.data.addUserGeneSet.userGeneSet.id)
+  redirect(`https://rummageo.com/enrich?${searchParams.toString()}`)
 }

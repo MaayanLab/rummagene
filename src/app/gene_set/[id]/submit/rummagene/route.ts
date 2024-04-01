@@ -19,5 +19,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
     },
   })
   if (!userGeneSet.data?.addUserGeneSet?.userGeneSet?.id) return new Response(JSON.stringify({error: 'Failed to Register'}), { status: 500 })
-  redirect(`https://${request.headers.get('Host')}/enrich?dataset=${userGeneSet.data.addUserGeneSet.userGeneSet.id}`)
+  const searchParams = new URLSearchParams()
+  searchParams.append('dataset', userGeneSet.data.addUserGeneSet.userGeneSet.id)
+  redirect(`https://${request.headers.get('Host')}/enrich?${searchParams.toString()}`)
 }
