@@ -1,4 +1,4 @@
-import { AddUserGeneSetDocument, AddUserGeneSetMutation, AddUserGeneSetMutationVariables, ViewGeneSetDocument, ViewGeneSetQuery, ViewGeneSetQueryVariables } from "@/graphql"
+import { ViewGeneSetDocument, ViewGeneSetQuery, ViewGeneSetQueryVariables } from "@/graphql"
 import { getClient } from "@/lib/apollo/client"
 import { redirect } from 'next/navigation'
 
