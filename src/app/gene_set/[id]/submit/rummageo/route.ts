@@ -11,7 +11,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
     },
   })
   if (!geneSet.data.geneSet) return new Response(JSON.stringify({error: 'Not Found'}), { status: 404 })
-  const req = await fetch({
+  const req = await fetch('https://rummageo.com/graphql', {
     headers: {
       'Accept': 'application/json',
       'Content-Type': 'application/json',
