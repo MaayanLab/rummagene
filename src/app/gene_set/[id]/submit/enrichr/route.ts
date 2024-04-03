@@ -14,7 +14,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
   const formData = new FormData()
   formData.append('list', geneSet.data.geneSet.genes.nodes.map(gene => gene.symbol).join('\n'))
   formData.append('description', `Rummagene Gene Set ${params.id}`)
-  const req = await fetch('https://maayanlab.cloud/Enrichr/api/addList', {
+  const req = await fetch('https://maayanlab.cloud/Enrichr/addList', {
     headers: {
       'Accept': 'application/json',
     },
