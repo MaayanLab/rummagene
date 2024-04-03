@@ -30,6 +30,6 @@ export async function GET(request: Request, { params }: { params: { id: string }
     }),
   })
   const res = await req.json()
-  if (!res.shortId) return new Response(JSON.stringify({error: 'Failed to Register Gene Set'}), { status: 500 })
+  if (!res) return new Response(JSON.stringify({error: 'Failed to Register Gene Set'}), { status: 500 })
   redirect(`https://playbook-workflow-builder.cloud/graph/${res}`)
 }
