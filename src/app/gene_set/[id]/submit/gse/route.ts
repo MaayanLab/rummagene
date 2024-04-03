@@ -14,7 +14,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
   const formData = new FormData()
   formData.append('list', geneSet.data.geneSet.genes.nodes.map(gene => gene.symbol).join('\n'))
   formData.append('description', `Rummagene Gene Set ${params.id}`)
-  const req = await fetch('https://maayanlab.cloud/Enrichr/api/addList', {
+  const req = await fetch('https://maayanlab.cloud/Enrichr/addList', {
     headers: {
       'Accept': 'application/json',
     },
@@ -24,6 +24,6 @@ export async function GET(request: Request, { params }: { params: { id: string }
   const res = await req.json()
   if (!res.shortId) return new Response(JSON.stringify({error: 'Failed to Register Gene Set'}), { status: 500 })
   const searchParams = new URLSearchParams()
-  searchParams.append('q', JSON.stringify({"userListId":res.userListId,"search":true}))
-  redirect(`https://cfde-gskg.dev.maayanlab.cloud/?${searchParams.toString()}`)
+  searchParams.append('q', JSON.stringify({"userListId":res.userListId.toString()}))
+  redirect(`https://gse.cfde.cloud/?${searchParams.toString()}`)
 }
