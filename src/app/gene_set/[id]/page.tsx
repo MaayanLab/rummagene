@@ -1,11 +1,8 @@
-'use client'
-import { useViewGeneSet2Query } from "@/graphql";
 import Link from "next/link";
+import getItem from "./item";
 
-export default function Page(props: { params: { id: string } }) {
-  const { data, error } = useViewGeneSet2Query({ variables: { id: props.params.id } })
-  if (error) return <div className="alert alert-error">{error.toString()}</div>
-  else if (!data) return null
+export default async function Page(props: { params: { id: string } }) {
+  const { data } = await getItem(props.params.id)
   return (
     <>
       <h1 className="text-xl">{data.geneSet?.term}</h1>

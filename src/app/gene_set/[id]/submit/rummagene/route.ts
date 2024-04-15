@@ -1,16 +1,12 @@
-import { AddUserGeneSetDocument, AddUserGeneSetMutation, AddUserGeneSetMutationVariables, ViewGeneSetDocument, ViewGeneSetQuery, ViewGeneSetQueryVariables } from "@/graphql"
+import getItem from "../../item"
+import { AddUserGeneSetDocument, AddUserGeneSetMutation, AddUserGeneSetMutationVariables } from "@/graphql"
 import { getClient } from "@/lib/apollo/client"
 import { redirect } from 'next/navigation'
 
 export async function GET(request: Request, { params }: { params: { id: string } }) {
-  const client = getClient()
-  const geneSet = await client.query<ViewGeneSetQuery, ViewGeneSetQueryVariables>({
-    query: ViewGeneSetDocument,
-    variables: {
-      id: params.id,
-    },
-  })
+  const geneSet = await getItem(params.id)
   if (!geneSet.data.geneSet) return new Response(JSON.stringify({error: 'Not Found'}), { status: 404 })
+  const client = getClient()
   const userGeneSet = await client.mutate<AddUserGeneSetMutation, AddUserGeneSetMutationVariables>({
     mutation: AddUserGeneSetDocument,
     variables: {

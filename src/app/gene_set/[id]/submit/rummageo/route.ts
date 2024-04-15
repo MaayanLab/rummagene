@@ -1,15 +1,8 @@
-import { ViewGeneSetDocument, ViewGeneSetQuery, ViewGeneSetQueryVariables } from "@/graphql"
-import { getClient } from "@/lib/apollo/client"
+import getItem from "../../item"
 import { redirect } from 'next/navigation'
 
 export async function GET(request: Request, { params }: { params: { id: string } }) {
-  const client = getClient()
-  const geneSet = await client.query<ViewGeneSetQuery, ViewGeneSetQueryVariables>({
-    query: ViewGeneSetDocument,
-    variables: {
-      id: params.id,
-    },
-  })
+  const geneSet = await getItem(params.id)
   if (!geneSet.data.geneSet) return new Response(JSON.stringify({error: 'Not Found'}), { status: 404 })
   const req = await fetch('https://rummageo.com/graphql', {
     headers: {
