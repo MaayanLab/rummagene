@@ -23,7 +23,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
       `,
       variables: {
         genes: geneSet.data.geneSet?.genes.nodes.map(node => node.symbol),
-        description: `Rummagene Gene Set ${params.id}`,
+        description: `Rummagene ${geneSet.data.geneSet.term}`,
       },
     }),
   })

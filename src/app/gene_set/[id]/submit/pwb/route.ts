@@ -14,7 +14,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
       data:{
         "gene_set": {
           "type":"Input[Set[Gene]]",
-          "value":{"description": `Rummagene Gene Set ${params.id}`,"set": geneSet.data.geneSet.genes.nodes.map(gene => gene.symbol)}
+          "value":{"description": `Rummagene ${geneSet.data.geneSet.term}`, "set": geneSet.data.geneSet.genes.nodes.map(gene => gene.symbol)}
         }
       },
       workflow:[

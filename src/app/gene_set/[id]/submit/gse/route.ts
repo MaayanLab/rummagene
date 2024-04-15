@@ -6,7 +6,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
   if (!geneSet.data.geneSet) return new Response(JSON.stringify({error: 'Not Found'}), { status: 404 })
   const formData = new FormData()
   formData.append('list', geneSet.data.geneSet.genes.nodes.map(gene => gene.symbol).join('\n'))
-  formData.append('description', `Rummagene Gene Set ${params.id}`)
+  formData.append('description', `Rummagene ${geneSet.data.geneSet.term}`)
   const req = await fetch('https://maayanlab.cloud/Enrichr/addList', {
     headers: {
       'Accept': 'application/json',
