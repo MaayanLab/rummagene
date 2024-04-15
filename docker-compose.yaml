@@ -2,7 +2,7 @@ version: '3.9'
 services:
   rummagene-app:
     build: .
-    image: maayanlab/rummagene:0.2.5
+    image: maayanlab/rummagene:0.3.0
     environment:
       - PUBLIC_URL=https://rummagene.com
       - DATABASE_URL=postgres://$POSTGRES_USER:$POSTGRES_PASSWORD@rummagene-postgres/$POSTGRES_DB
