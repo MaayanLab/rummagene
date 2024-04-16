@@ -16,7 +16,7 @@ export async function GET(request: Request, { params }: { params: { id: string }
       description: `Rummagene ${geneSet.data.geneSet.description}`,
     }),
   })
-  const { text: session_id } = await req.json()
+  const { session_id } = await req.json()
   if (!session_id) return new Response(JSON.stringify({error: 'Failed to Register Gene Set'}), { status: 500 })
   redirect(`https://g2sg.cfde.cloud/analyze/${session_id}`)
 }
