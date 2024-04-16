@@ -5,11 +5,11 @@
   "scripts": {
     "dev": "concurrently \"next dev\" \"npm run generate -- --watch ./src/graphql/**/*.graphql\"",
     "build": "concurrently -k -s first \"next build\" \"npm run start:graphql\"",
-    "start:graphql": "npx ts-node src/cli/graphql.ts",
+    "start:graphql": "ts-node src/cli/graphql.ts",
     "start": "next start",
     "lint": "next lint",
     "generate": "graphql-codegen --config graphql.config.yml",
-    "version": "npm run build && ts-node cli/version-compose.ts && docker-compose build rummagene-app",
+    "version": "npm run build && ts-node src/cli/version-compose.ts && docker-compose build rummagene-app",
     "postversion": "docker-compose push rummagene-app"
   },
   "dependencies": {
