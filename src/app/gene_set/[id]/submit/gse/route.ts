@@ -17,6 +17,23 @@ export async function GET(request: Request, { params }: { params: { id: string }
   const res = await req.json()
   if (!res.shortId) return new Response(JSON.stringify({error: 'Failed to Register Gene Set'}), { status: 500 })
   const searchParams = new URLSearchParams()
-  searchParams.append('q', JSON.stringify({"userListId":res.userListId.toString()}))
+  searchParams.append('q', JSON.stringify({
+    "userListId": res.userListId.toString(),
+    "min_lib": 1,
+    "libraries":[
+      {"name":"LINCS_L1000_Chem_Pert_Consensus_Sigs","limit":5},
+      {"name":"HuBMAP_ASCTplusB_augmented_2022","limit":5},
+      {"name":"MoTrPAC_2023","limit":5},
+      {"name":"Metabolomics_Workbench_Metabolites_2022","limit":5},
+      {"name":"LINCS_L1000_CRISPR_KO_Consensus_Sigs","limit":5},
+      {"name":"GTEx_Tissues_V8_2023","limit":5},
+      {"name":"GlyGen_Glycosylated_Proteins_2022","limit":5},
+      {"name":"IDG_Drug_Targets_2022","limit":5},
+      {"name":"KOMP2_Mouse_Phenotypes_2022","limit":5},
+      {"name":"GTEx_Aging_Signatures_2021","limit":5}
+    ],
+    "gene_limit":200,
+    "search":true,
+  }))
   redirect(`https://gse.cfde.cloud/?${searchParams.toString()}`)
 }
