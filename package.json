@@ -8,7 +8,9 @@
     "start:graphql": "npx ts-node src/cli/graphql.ts",
     "start": "next start",
     "lint": "next lint",
-    "generate": "graphql-codegen --config graphql.config.yml"
+    "generate": "graphql-codegen --config graphql.config.yml",
+    "version": "npm run build && ts-node cli/version-compose.ts && docker-compose build rummagene-app",
+    "postversion": "docker-compose push rummagene-app"
   },
   "dependencies": {
     "@apollo/client": "^3.8.0-rc.2",
