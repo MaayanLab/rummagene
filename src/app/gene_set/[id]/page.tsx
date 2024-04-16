@@ -11,13 +11,13 @@ export default async function Page(props: { params: { id: string } }) {
         {data.geneSet?.genes.nodes.map(g => g.symbol).join('\n')}
       </code>
       {[
-        'gse',
-        'enrichr',
         'enrichr-kg',
+        'enrichr',
+        'g2sg',
+        'gse',
         'pwb',
         'rummagene',
         'rummageo',
-        // TODO: 'g2sg',
       ].map(t =>
         <Link key={t} className="link" href={`/gene_set/${props.params.id}/submit/${t}`} target="_blank">{`/gene_set/${props.params.id}/submit/${t}`}</Link>
       )}
