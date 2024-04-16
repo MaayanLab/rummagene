@@ -8,12 +8,12 @@ which $PYTHON > /dev/null || exit 1
 WORK_DIR=data/$(date +%Y-%m-%d)
 if [ -d $WORK_DIR ]; then rm -r $WORK_DIR; fi
 mkdir -p $WORK_DIR
-ln -s ../done.txt $WORK_DIR/done.txt
+ln -s ../done.txt $WORK_DIR/done.tsv
 
 echo "assembling output.gmt... (new gene sets extracted from PMC articles)"
 PTH=$WORK_DIR $PYTHON ./download_extract.py || exit 1
 test -f $WORK_DIR/output.gmt || exit 1
-test -f $WORK_DIR/done.new.txt || exit 1
+test -f $WORK_DIR/done.new.tsv || exit 1
 
 echo "assembling output-clean.gmt... (pruned, and normalized gene sets)"
 $PYTHON -m helper clean -i $WORK_DIR/output.gmt -o $WORK_DIR/output-clean.gmt || exit 1
@@ -29,12 +29,12 @@ echo "fetching & ingesting gene description & summary..."
 $PYTHON -m helper ingest-gene-info || exit 1
 
 echo "registering a new release..."
-$PYTHON -m helper create-release "$(wc -l $WORK_DIR/done.new.txt | awk '{ print $1 }')" || exit 1
+$PYTHON -m helper create-release "$(wc -l $WORK_DIR/done.new.tsv | awk '{ print $1 }')" || exit 1
 
 echo "adding to output.gmt..."
 cat $WORK_DIR/output.gmt >> data/output.gmt
 cat $WORK_DIR/output-clean.gmt >> data/output-clean.gmt
-cat $WORK_DIR/done.new.txt >> data/done.txt
+awk -F'\t' '{print $1}' $WORK_DIR/done.new.tsv >> data/done.txt
 
 echo "updating app background..."
 ENRICH_URL=$ENRICH_URL $PYTHON -m helper update-background || exit 1

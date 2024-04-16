@@ -282,11 +282,57 @@ def _read_xml_supplement(tar: tarfile.TarFile, root: ET.Element):
         description = '  '.join(filter(None, (mention, caption,)))
         yield term, description, gene_set
 
-def extract_tables_from_xml(tar: tarfile.TarFile, member_path: PurePosixPath, f):
+def _read_xml_date(node: ET.Element):
+  year = _read_xml_text(node.find('./year'))
+  month = _read_xml_text(node.find('./month'))
+  day = _read_xml_text(node.find('./day'))
+  try: return f"{int(year)}-{int(month):02}-{int(day):02}"
+  except ValueError: pass
+  try: return f"{int(year)}-{int(month):02}"
+  except ValueError: pass
+  try: return f"{int(year)}"
+  except ValueError: pass
+  return ''
+
+def _read_xml_info(root: ET.Element):
+  info = dict(
+    article_title=_read_xml_text(root.find('.//article-title')),
+    article_pubdate=_read_xml_date(root.find('.//pub-date')),
+    journal_title=_read_xml_text(root.find('.//journal-title')),
+  )
+  for corresp in root.findall(".//contrib[@contrib-type='author'][@corresp='yes']"):
+    email = _read_xml_text(corresp.find('./email')) or _read_xml_text(corresp.find('./address/email'))
+    if not email: continue
+    info.update(
+      corresp=True,
+      surname=_read_xml_text(corresp.find('./name/surname')),
+      given_name=_read_xml_text(corresp.find('./name/given-names')),
+      email=email,
+    )
+    break
+  if not info.get('email'):
+    for corresp in root.findall(".//contrib[@contrib-type='author']"):
+      email = _read_xml_text(corresp.find('./email')) or _read_xml_text(corresp.find('./address/email'))
+      if not email: continue
+      info.update(
+        corresp=False,
+        surname=_read_xml_text(corresp.find('./name/surname')),
+        given_name=_read_xml_text(corresp.find('./name/given-names')),
+        email=email,
+      )
+      break
+  return info
+
+def extract_from_xml(tar: tarfile.TarFile, member_path: PurePosixPath, f):
   parsed = ET.parse(f)
   root = parsed.getroot()
-  yield from _read_xml_tables(root, member_path)
-  yield from _read_xml_supplement(tar, root)
+  return dict(
+    info=_read_xml_info(root),
+    gene_sets=[
+      *_read_xml_tables(root, member_path),
+      *_read_xml_supplement(tar, root),
+    ],
+  )
 
 @register_ext_handler('.pdf')
 def read_pdf_tables(f):
@@ -303,7 +349,7 @@ def read_pdf_tables(f):
   else:
     raise NotImplementedError()
 
-def extract_gmt_from_oa_package(oa_package):
+def extract_from_oa_package(oa_package):
   ''' Given a oa_package (open access bundle with paper & figures) extract all applicable gene sets
    from all applicable tables
   '''
@@ -312,7 +358,7 @@ def extract_gmt_from_oa_package(oa_package):
       if not member.isfile(): continue
       member_path = PurePosixPath(member.name)
       if member_path.suffix.lower() not in ('.nxml', '.xml'): continue
-      yield from extract_tables_from_xml(tar, member_path, tar.extractfile(member))
+      return extract_from_xml(tar, member_path, tar.extractfile(member))
 
 lookup = None
 def gene_lookup(value):
@@ -388,30 +434,31 @@ def filter_oa_file_list_by(oa_file_list, pmc_ids):
   '''
   return oa_file_list[oa_file_list['Accession ID'].isin(list(pmc_ids))]
 
-def fetch_extract_gmt_from_oa_package(oa_package):
+def fetch_extract_from_oa_package(oa_package):
   ''' Given the oa_package name from the oa_file_list, we'll download it temporarily and then extract a gmt out of it
   '''
   with tempfile.NamedTemporaryFile(prefix='rummagene-', suffix=''.join(PurePosixPath(oa_package).suffixes)) as tmp:
     with urllib.request.urlopen(f"https://ftp.ncbi.nlm.nih.gov/pub/pmc/{oa_package}") as fr:
       shutil.copyfileobj(fr, tmp)
     tmp.flush()
-    return list(extract_gmt_from_oa_package(tmp.name))
+    return extract_from_oa_package(tmp.name)
 
 def task(record):
   try:
-    return record, None, run_with_timeout(fetch_extract_gmt_from_oa_package, record['File'], timeout=60*5)
+    return record, None, run_with_timeout(fetch_extract_from_oa_package, record['File'], timeout=60*5)
   except KeyboardInterrupt:
     raise
   except:
-    return record, traceback.format_exc(), None
+    return record, traceback.format_exc(), {}
 
-def main(data_dir = Path(), oa_file_list = None, progress = 'done.txt', progress_output = 'done.new.txt', output = 'output.gmt'):
+def main(data_dir = Path(), oa_file_list = None, progress = 'done.tsv', progress_output = 'done.new.tsv', output = 'output.gmt'):
   '''
   Work through oa_file_list (see: fetch_oa_file_list)
     -- you can filter it and provide it to this function
-  Track progress by storing oa_packages already processed in done.txt
+  Track progress by storing oa_packages already processed in done.tsv
   Write all results to output.gmt
   '''
+  import json
   data_dir.mkdir(parents=True, exist_ok=True)
   done_file = data_dir / progress
   new_done_file = data_dir / progress_output
@@ -442,7 +489,7 @@ def main(data_dir = Path(), oa_file_list = None, progress = 'done.txt', progress
   # find out what we've already processed
   if done_file.exists():
     with done_file.open('r') as fr:
-      done = set(filter(None, map(str.strip, fr)))
+      done = {oa_file for line in fr for oa_file, *_ in (line.strip().split('\t'),)}
   else:
     done = set()
 
@@ -470,7 +517,7 @@ def main(data_dir = Path(), oa_file_list = None, progress = 'done.txt', progress
           total=oa_file_list_size
         ):
           if err is None:
-            for term, description, gene_set in res:
+            for term, description, gene_set in res['gene_sets']:
               print(
                 term,
                 description,
@@ -480,7 +527,12 @@ def main(data_dir = Path(), oa_file_list = None, progress = 'done.txt', progress
               )
           else:
             print(err, file=sys.stderr)
-          print(record['File'], file=done_file_fh)
+          print(
+            record['File'],
+            json.dumps(res.get('info', {})),
+            sep='\t',
+            file=done_file_fh,
+          )
           output_fh.flush()
           done_file_fh.flush()
 
