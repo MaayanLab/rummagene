@@ -7,21 +7,33 @@ from textwrap import dedent
 from tqdm import tqdm
 from helper.cli import cli
 
+def human_list(L):
+  if len(L) == 0:
+    return ''
+  elif len(L) == 1:
+    start, = L
+    return start
+  elif len(L) == 2:
+    start, end = L
+    return f"{start} and {end}"
+  elif len(L) >= 3:
+    *start, end = L
+    return f"{', '.join(start)}, and {end}"
+
 email_template = jinja2.Template(dedent('''
   To: {{ email }}
   Subject: We found a gene set in your recent paper
 
   Dear Dr. {{ surname }},
 
-  Congratulations for your recent publication{% if articles|length > 1 %}s{% endif %} in {% for article in articles %}{% if loop.index > 0 %}, {% endif %}{{article.journal_title}}{% endfor %}.
+  {%- set single_article = articles|length == 1 %}
+  Congratulations for your recent publication{% if not single_article %}s{% endif %} in {{ human_list(journals) }}.
+  
+  {%- set single_gene_set = articles|length == 1 and articles[0].terms|length == 1 %}
+  We crawled the tables & supporting materials and found {% if single_gene_set %}a unique gene set{% else %}unique gene sets{% endif %} that we added to <a href="https://rummagene.com">Rummagene</a>.
 
-  We crawled the tables & supporting materials and found unique gene set(s) that were added to Rummagene.
-
-  {% for article in articles %}
-  - {{ article.article_title }} in {{ article.journal_title }}
-  {% endfor %}
-
-  You can further analyze the gene set(s) by submitting them for enrichment analysis with the following tools:
+  {%- if single_gene_set %}
+  You can further analyze the gene set by submitting them for enrichment analysis with the following tools:
 
   <a href="https://rummagene.com/gene_set/{props['gene_set_id']}/submit/rummagene">Rummagene</a> - find gene sets in other papers' supporting materials that are similar to your gene set
   <a href="https://rummagene.com/gene_set/{props['gene_set_id']}/submit/rummageo">RummaGEO</a> - find matching up/down gene sets extracted from the NCBI GEO database similar to your gene set
@@ -32,6 +44,37 @@ email_template = jinja2.Template(dedent('''
   <a href="https://rummagene.com/gene_set/{props['gene_set_id']}/submit/g2sg">G2SG</a> - add your gene set into a workspace where you can combine and compare it to other gene sets
 
   We hope that you will find these resources useful.
+  {%- else %}
+  {%- if single_article %}
+  The gene sets from your paper can be found <a href="https://rummagene.com/term-search?page=1&q={{ articles[0].pmc }}">here</a> and are now discoverable by other users of Rummagene.
+                                        
+  We hope that you will find this resource useful.
+  {%- endif %}
+  The gene sets from your papers listed below are now discoverable by other users of Rummagene.
+  
+  <table>
+    <thead>
+      <tr>
+        <th>Paper</th>
+        <th>Journal</th>
+        <th>Gene Sets</th>
+        <th>Rummagene Link</th>
+      </tr>
+    </thead>
+    <tbody>
+      {%- for article in articles %}
+      <tr>
+        <th>{{ article.article_title }}</th>
+        <th>{{ article.journal_title }}</th>
+        <th>{{ article.terms|length }}</th>
+        <th><a href="https://rummagene.com/term-search?page=1&q={{ article.pmc }}">Link</a></th>
+      </tr>
+      {%- endfor %}
+    </tbody>
+  </table>
+                                        
+  We hope that you will find this resource useful.
+  {%- endif %}
 
   Sincerely,
 
@@ -56,6 +99,7 @@ def compose_emails(progress_file: Path | str):
     for pmc, article_title, journal_title in zip(r['pmc'], r['article_title'], r['journal_title'])
   ], axis=1)
   email_article_authors = email_article_authors.drop(['pmc', 'article_title', 'journal_title'], axis=1)
+  email_article_authors['journals'] = email_article_authors['articles'].apply(lambda A: sorted({a['journal_title'] for a in A}))
   for email, record in email_article_authors.iterrows():
-    print(email_template.render(dict(record.to_dict(), email=email)))
+    print(email_template.render(dict(record.to_dict(), email=email, human_list=human_list)))
     break
