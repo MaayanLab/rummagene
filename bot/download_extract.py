@@ -349,8 +349,13 @@ def extract_from_xml(tar: tarfile.TarFile, member_path: PurePosixPath, f):
     )
     if len(gene_set_cleaned) >= 5 and len(gene_set_cleaned) < 2500
   ]
+  if gene_sets_cleaned:
+    info = _read_xml_info(root)
+    info.update(terms=[term for term, *_ in gene_sets])
+  else:
+    info = None
   return dict(
-    info=_read_xml_info(root),
+    info=info,
     gene_sets=gene_sets,
     gene_sets_cleaned=gene_sets_cleaned,
   )
