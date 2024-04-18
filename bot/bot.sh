@@ -13,11 +13,8 @@ ln -s ../done.txt $WORK_DIR/done.tsv
 echo "assembling output.gmt... (new gene sets extracted from PMC articles)"
 PTH=$WORK_DIR $PYTHON ./download_extract.py || exit 1
 test -f $WORK_DIR/output.gmt || exit 1
-test -f $WORK_DIR/done.new.tsv || exit 1
-
-echo "assembling output-clean.gmt... (pruned, and normalized gene sets)"
-$PYTHON -m helper clean -i $WORK_DIR/output.gmt -o $WORK_DIR/output-clean.gmt || exit 1
 test -f $WORK_DIR/output-clean.gmt || exit 1
+test -f $WORK_DIR/done.new.tsv || exit 1
 
 echo "ingesting new gene sets..."
 $PYTHON -m helper ingest -i $WORK_DIR/output-clean.gmt || exit 1

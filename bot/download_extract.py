@@ -38,6 +38,16 @@ def _run_with_timeout(send, fn, *args):
   except Exception as e:
     send.put((e, None))
 
+_unique_key_identity = lambda x: x
+def unique(L, key=_unique_key_identity):
+  S = set()
+  L_ = []
+  for el in L:
+    if key(el) in S: continue
+    S.add(key(el))
+    L_.append(el)
+  return L_
+
 def run_with_timeout(fn, *args, timeout: int = 60):
   mp_spawn = mp.get_context('spawn')
   recv = mp_spawn.Queue()
@@ -326,12 +336,23 @@ def _read_xml_info(root: ET.Element):
 def extract_from_xml(tar: tarfile.TarFile, member_path: PurePosixPath, f):
   parsed = ET.parse(f)
   root = parsed.getroot()
+  gene_sets = [
+    *_read_xml_tables(root, member_path),
+    *_read_xml_supplement(tar, root),
+  ]
+  gene_sets_cleaned = [
+    (term, desc, gene_set_cleaned)
+    for term, desc, gene_set in unique(gene_sets, key=lambda term_desc_gene_set: term_desc_gene_set[0])
+    if len(term) < 200
+    for gene_set_cleaned in (
+      unique([gene_mapped for gene in gene_set for gene_mapped in (gene_lookup(gene),) if gene_mapped]),
+    )
+    if len(gene_set_cleaned) >= 5 and len(gene_set_cleaned) < 2500
+  ]
   return dict(
     info=_read_xml_info(root),
-    gene_sets=[
-      *_read_xml_tables(root, member_path),
-      *_read_xml_supplement(tar, root),
-    ],
+    gene_sets=gene_sets,
+    gene_sets_cleaned=gene_sets_cleaned,
   )
 
 @register_ext_handler('.pdf')
@@ -451,7 +472,14 @@ def task(record):
   except:
     return record, traceback.format_exc(), {}
 
-def main(data_dir = Path(), oa_file_list = None, progress = 'done.tsv', progress_output = 'done.new.tsv', output = 'output.gmt'):
+def main(
+  data_dir = Path(),
+  oa_file_list = None,
+  progress = 'done.tsv',
+  progress_output = 'done.new.tsv',
+  output = 'output.gmt',
+  output_clean = 'output-clean.gmt',
+):
   '''
   Work through oa_file_list (see: fetch_oa_file_list)
     -- you can filter it and provide it to this function
@@ -463,6 +491,7 @@ def main(data_dir = Path(), oa_file_list = None, progress = 'done.tsv', progress
   done_file = data_dir / progress
   new_done_file = data_dir / progress_output
   output_file = data_dir / output
+  output_clean_file = data_dir / output_clean
 
   # prepare gene symbol lookup, since this preparation is somewhat slow
   #  doing this before hand speeds up the sub-tasks (which run in new processes) substantially
@@ -504,37 +533,47 @@ def main(data_dir = Path(), oa_file_list = None, progress = 'done.tsv', progress
   #  append gmt term, gene sets as they are ready into one gmt file
   with new_done_file.open('a') as done_file_fh:
     with output_file.open('a') as output_fh:
-      with ThreadPool() as pool:
-        for record, err, res in tqdm.tqdm(
-          pool.imap_unordered(
-            task,
-            (
-              { 'File': row['File'] }
-              for _, row in oa_file_list.iterrows()
-            )
-          ),
-          initial=oa_file_list_size - oa_file_list.shape[0],
-          total=oa_file_list_size
-        ):
-          if err is None:
-            for term, description, gene_set in res['gene_sets']:
-              print(
-                term,
-                description,
-                *gene_set,
-                sep='\t',
-                file=output_fh,
+      with output_clean_file.open('a') as output_clean_fh:
+        with ThreadPool() as pool:
+          for record, err, res in tqdm.tqdm(
+            pool.imap_unordered(
+              task,
+              (
+                { 'File': row['File'] }
+                for _, row in oa_file_list.iterrows()
               )
-          else:
-            print(err, file=sys.stderr)
-          print(
-            record['File'],
-            json.dumps(res.get('info', {})),
-            sep='\t',
-            file=done_file_fh,
-          )
-          output_fh.flush()
-          done_file_fh.flush()
+            ),
+            initial=oa_file_list_size - oa_file_list.shape[0],
+            total=oa_file_list_size
+          ):
+            if err is None:
+              for term, description, gene_set in res['gene_sets']:
+                print(
+                  term,
+                  description,
+                  *gene_set,
+                  sep='\t',
+                  file=output_fh,
+                )
+              for term, description, gene_set in res['gene_sets_cleaned']:
+                print(
+                  term,
+                  description,
+                  *gene_set,
+                  sep='\t',
+                  file=output_clean_fh,
+                )
+            else:
+              print(err, file=sys.stderr)
+            print(
+              record['File'],
+              json.dumps(res.get('info', {})),
+              sep='\t',
+              file=done_file_fh,
+            )
+            output_clean_fh.flush()
+            output_fh.flush()
+            done_file_fh.flush()
 
 if __name__ == '__main__':
   import os
