@@ -41,7 +41,7 @@ export default function About() {
           </p>
           <br />
           <p>Please acknowledge Rummagene in your publications by citing the following reference:</p>
-          <p>Clarke, D. J. B., Marino, G. B., Deng, E. Z., Xie, Z., Evangelista, J. E. & Ma&apos;ayan, A. Rummagene: massive mining of gene sets from supporting materials of biomedical research publications. Commun Biol 7, (2024). <a href="https://doi.org/10.1038/s42003-024-06177-7">10.1038/s42003-024-06177-7</a></p>
+          <p>Clarke, D. J. B., Marino, G. B., Deng, E. Z., Xie, Z., Evangelista, J. E. & Ma&apos;ayan, A. Rummagene: massive mining of gene sets from supporting materials of biomedical research publications. Commun Biol 7, (2024). <a className="underline cursor" href="https://doi.org/10.1038/s42003-024-06177-7" target="_blank">https://doi.org/10.1038/s42003-024-06177-7</a></p>
         </div>
        
       </div>
