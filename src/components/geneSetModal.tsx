@@ -26,7 +26,7 @@ export default function GeneSetModal({ geneset, term, showModal, setShowModal }:
     React.useEffect(() => {
         if (!ref.current) return
         ref.current.addEventListener('close', () => setShowModal(false))
-    }, [ref])
+    }, [ref, setShowModal])
     React.useEffect(() => {
         if (!ref.current) return
         if (showModal) ref.current.showModal()

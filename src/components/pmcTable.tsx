@@ -26,7 +26,7 @@ export default function PmcTable({ terms, data, gene_set_ids }: { terms?: Map<st
       const rowToSearch = el?.title + (terms?.get(el?.pmcid)?.join(' ') || '')
       return (rowToSearch?.toLowerCase().includes(searchTerm.toLowerCase()))
     }),
-  [data, searchTerm])
+  [data, terms, searchTerm])
 
   const [geneSetId, setGeneSetId] = React.useState<string | null>(gene_set_ids?.values().next().value?.at(0) || '')
   const [currTerm, setCurrTerm] = React.useState<string | null>(gene_set_ids?.keys().next().value?.at(0) || '')

@@ -11,7 +11,7 @@ function GA({ id }) {
     function gtag(){window.dataLayer.push(arguments);}
     gtag('js', new Date());
     gtag('config', id);
-  }, [])
+  }, [id])
   React.useEffect(() => {
     if (typeof window.dataLayer === 'undefined') return
     function gtag(){window.dataLayer.push(arguments);}
@@ -35,7 +35,7 @@ function Matomo({ url, siteId }) {
     _paq.push(['enableLinkTracking']);
     _paq.push(['setTrackerUrl', url+'matomo.php']);
     _paq.push(['setSiteId', siteId]);
-  }, [])
+  }, [siteId, url])
   React.useEffect(() => {
     if (typeof window._paq === 'undefined') return
     window._paq.push(['setCustomUrl', pathname])
