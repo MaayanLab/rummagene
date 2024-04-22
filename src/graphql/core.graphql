@@ -134,6 +134,21 @@ query ViewGeneSet2($id: UUID!) {
   }
 }
 
+query ViewGeneSet3($term: String!) {
+  geneSetByTerm(term: $term) {
+    term
+    description
+    genes {
+      nodes {
+        symbol
+        ncbiGeneId
+        description
+        summary
+      }
+    }
+  }
+}
+
 query OverlapQuery($id: UUID!, $genes: [String]!) {
   geneSet(id: $id) {
     overlap(genes: $genes) {

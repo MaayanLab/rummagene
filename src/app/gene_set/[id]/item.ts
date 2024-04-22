@@ -1,13 +1,13 @@
 'use server'
-import { ViewGeneSet2Document, ViewGeneSet2Query, ViewGeneSet2QueryVariables } from "@/graphql"
+import { ViewGeneSet3Document, ViewGeneSet3Query, ViewGeneSet3QueryVariables } from "@/graphql"
 import { getClient } from "@/lib/apollo/client"
 import React from "react"
 
-const getItem = React.cache(async (id: string) => {
+const getItem = React.cache(async (term: string) => {
   const client = getClient()
-  const geneSet = await client.query<ViewGeneSet2Query, ViewGeneSet2QueryVariables>({
-    query: ViewGeneSet2Document,
-    variables: { id },
+  const geneSet = await client.query<ViewGeneSet3Query, ViewGeneSet3QueryVariables>({
+    query: ViewGeneSet3Document,
+    variables: { term },
   })
   return geneSet
 })

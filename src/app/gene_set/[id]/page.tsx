@@ -5,10 +5,10 @@ export default async function Page(props: { params: { id: string } }) {
   const { data } = await getItem(props.params.id)
   return (
     <>
-      <h1 className="text-xl">{data.geneSet?.term}</h1>
-      <h3 className="text-md">{data.geneSet?.description}</h3>
+      <h1 className="text-xl">{data.geneSetByTerm?.term}</h1>
+      <h3 className="text-md">{data.geneSetByTerm?.description}</h3>
       <code className="w-40 h-20 overflow-y-scroll whitespace-pre-line">
-        {data.geneSet?.genes.nodes.map(g => g.symbol).join('\n')}
+        {data.geneSetByTerm?.genes.nodes.map(g => g.symbol).join('\n')}
       </code>
       {[
         'enrichr-kg',
