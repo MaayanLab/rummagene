@@ -12,6 +12,7 @@ __pycache__
 /build
 /coverage
 /enrich
+/figures
 /node_modules
 /out/
 data
