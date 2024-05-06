@@ -16,7 +16,7 @@ services:
       - ./data/bot/output-clean.gmt:/app/public/latest.gmt:ro
   rummagene-enrich:
     build: enrich
-    image: maayanlab/rummagene-enrich:0.2.2
+    image: maayanlab/rummagene-enrich:0.4.2
     environment:
       - 'ROCKET_DATABASES={postgres={url="postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@rummagene-postgres/${POSTGRES_DB}"}}'
     ports:
