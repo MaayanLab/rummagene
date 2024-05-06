@@ -401,7 +401,6 @@ version = "0.1.0"
 dependencies = [
  "adjustp",
  "async-lock",
- "fnv",
  "futures",
  "rayon",
  "retainer",
