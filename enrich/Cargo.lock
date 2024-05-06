@@ -401,7 +401,6 @@ version = "0.1.0"
 dependencies = [
  "adjustp",
  "async-lock",
- "fishers_exact",
  "fnv",
  "futures",
  "rayon",
@@ -472,12 +471,6 @@ name = "finl_unicode"
 version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8fcfdc7a0362c9f4444381a9e697c79d435fe65b52a37466fc2c1184cee9edc6"
-
-[[package]]
-name = "fishers_exact"
-version = "1.0.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "64993467e77edcbfce160dae38337b4c538aa0e8027039c6eabba8fa335c7b1e"
 
 [[package]]
 name = "fnv"

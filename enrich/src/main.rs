@@ -1,4 +1,5 @@
 mod async_rwlockhashmap;
+mod fastfisher;
 
 #[macro_use] extern crate rocket;
 use async_lock::RwLock;
@@ -13,7 +14,6 @@ use rocket_db_pools::sqlx::{self, Row};
 use std::collections::HashMap;
 use rayon::prelude::*;
 use uuid::Uuid;
-use fishers_exact::fishers_exact;
 use adjustp::{adjust, Procedure};
 use rocket::{State, response::status::Custom, http::Status};
 use rocket::serde::{json::{json, Json, Value}, Serialize};
@@ -22,6 +22,7 @@ use retainer::Cache;
 use std::time::Instant;
 use fnv::FnvHashSet;
 
+use fastfisher::FastFisher;
 use async_rwlockhashmap::RwLockHashMap;
 
 /**
@@ -83,6 +84,7 @@ impl Ord for BackgroundQuery {
 
 // This structure stores a persistent many-reader single-writer hashmap containing cached indexes for a given background id
 struct PersistentState { 
+    fisher: RwLock<FastFisher>,
     bitmaps: RwLockHashMap<Uuid, Bitmap>,
     latest: RwLock<Option<Uuid>>,
     cache: Cache<Arc<BackgroundQuery>, Arc<Vec<PartialQueryResult>>>,
@@ -148,6 +150,10 @@ async fn ensure_index(db: &mut Connection<Postgres>, state: &State<PersistentSta
         let background_genes: sqlx::types::Json<HashMap<String, String>> = background_info.try_get("genes").map_err(|e| e.to_string())?;
         let mut background_genes = background_genes.iter().map(|(id, symbol)| Ok((Uuid::parse_str(id).map_err(|e| e.to_string())?, symbol.clone()))).collect::<Result<Vec<_>, String>>()?;
         background_genes.sort_unstable();
+        {
+            let mut fisher = state.fisher.write().await;
+            fisher.extend_to(background_genes.len()*4);
+        };
         bitmap.columns.reserve(background_genes.len());
         bitmap.columns_str.reserve(background_genes.len());
         for (i, (gene_id, gene)) in background_genes.into_iter().enumerate() {
@@ -305,6 +311,7 @@ async fn query(
             // parallel overlap computation
             let n_background = bitmap.columns.len() as u32;
             let n_user_gene_id = background_query.input_gene_set.len() as u32;
+            let fisher = state.fisher.read().await;
             let mut results: Vec<_> = bitmap.values.par_iter()
                 .enumerate()
                 .filter_map(|(index, (_gene_set_hash, gene_set))| {
@@ -317,9 +324,7 @@ async fn query(
                     let b = n_user_gene_id - a;
                     let c = n_gs_gene_id - a;
                     let d = n_background - b - c + a;
-                    let table = [a, b, c, d];
-                    let result = fishers_exact(&table).map_err(|e| Custom(Status::InternalServerError, e.to_string())).ok()?;
-                    let pvalue = result.greater_pvalue;
+                    let pvalue = fisher.get_p_value(a as usize, b as usize, c as usize, d as usize);
                     if pvalue > pvalue_le {
                         return None
                     }
@@ -397,6 +402,7 @@ async fn query(
 fn rocket() -> _ {
     rocket::build()
         .manage(PersistentState {
+            fisher: RwLock::new(FastFisher::new()),
             bitmaps: RwLockHashMap::new(),
             latest: RwLock::new(None),
             cache: Cache::new(),
