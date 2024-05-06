@@ -36,5 +36,8 @@ awk -F'\t' '{print $1}' $WORK_DIR/done.new.tsv >> data/done.txt
 echo "updating app background..."
 ENRICH_URL=$ENRICH_URL $PYTHON -m helper update-background || exit 1
 
+echo "assembling emails..."
+$PYTHON -m helper compose-emails -i $WORK_DIR/done.new.tsv
+
 # echo "cleanup work_dir..."
 # rm $WORK_DIR
