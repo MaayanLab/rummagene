@@ -6,46 +6,46 @@
 # This is the rummagene database, as assembled by the rummagene bot
 # https://github.com/MaayanLab/rummagene/tree/main/bot
 data/table-mining.gmt:
-	mkdir -p data && curl -L https://s3.dev.maayanlab.cloud/rummagene/table-mining.gmt.gz | gzip -d > $@
+	mkdir -p data && curl -L https://s3.amazonaws.com/maayanlab-public/rummagene/table-mining.gmt.gz | gzip -d > $@
 # data/table-mining-clean.gmt: .venv data/lookup.json data/table-mining.gmt
 # 	.venv/bin/python clean_gmt.py < data/table-mining.gmt > data/table-mining-clean.gmt
 
 data/table-mining-clean.gmt:
-	mkdir -p data && curl -L https://s3.dev.maayanlab.cloud/rummagene/table-mining-clean.gmt.gz | gzip -d > $@
+	mkdir -p data && curl -L https://s3.amazonaws.com/maayanlab-public/rummagene/table-mining-clean.gmt.gz | gzip -d > $@
 
 data/consensus_kinase_clean.gmt:
-	mkdir -p data && curl -L https://s3.dev.maayanlab.cloud/rummagene/consensus_kinase_clean.gmt.gz | gzip -d > $@
+	mkdir -p data && curl -L https://s3.amazonaws.com/maayanlab-public/rummagene/consensus_kinase_clean.gmt.gz | gzip -d > $@
 
 data/consensus_tf_clean.gmt:
-	mkdir -p data && curl -L https://s3.dev.maayanlab.cloud/rummagene/consensus_tf_clean.gmt.gz | gzip -d > $@
+	mkdir -p data && curl -L https://s3.amazonaws.com/maayanlab-public/rummagene/consensus_tf_clean.gmt.gz | gzip -d > $@
 
 data/tf-kinases.json:
-	mkdir -p data && curl -L https://s3.dev.maayanlab.cloud/rummagene/tf-kinases.json.gz | gzip -d > $@
+	mkdir -p data && curl -L https://s3.amazonaws.com/maayanlab-public/rummagene/tf-kinases.json.gz | gzip -d > $@
 
 data/bto.owl:
 	mkdir -p data && curl -L https://raw.githubusercontent.com/BRENDA-Enzymes/BTO/fcba7305e162314d91e2886a615f48481ca0a49b/bto.owl > $@
 
 data/sigs_df_annotated.tsv:
-	mkdir -p data && curl -L https://s3.dev.maayanlab.cloud/rummagene/sigs_df_annotated.tsv.gz | gzip -d > $@
+	mkdir -p data && curl -L https://s3.amazonaws.com/maayanlab-public/rummagene/sigs_df_annotated.tsv.gz | gzip -d > $@
 
 # download and unzip tf benchmarking data
 data/benchmarking_data_tf:
-	mkdir -p data && curl -L https://s3.dev.maayanlab.cloud/rummagene/benchmarking_data_tf.zip --output data/benchmarking_data_tf.zip
+	mkdir -p data && curl -L https://s3.amazonaws.com/maayanlab-public/rummagene/benchmarking_data_tf.zip --output data/benchmarking_data_tf.zip
 	unzip data/benchmarking_data_tf.zip -d data
 
 # download and unzip kinase benchmarking data
 data/benchmarking_data_kinase:
-	mkdir -p data && curl -L https://s3.dev.maayanlab.cloud/rummagene/benchmarking_data_kinase.zip --output data/benchmarking_data_kinase.zip
+	mkdir -p data && curl -L https://s3.amazonaws.com/maayanlab-public/rummagene/benchmarking_data_kinase.zip --output data/benchmarking_data_kinase.zip
 	unzip data/benchmarking_data_kinase.zip -d data
 
 data/doi_info.csv:
-	mkdir -p data && curl -L https://s3.dev.maayanlab.cloud/rummagene/doi_info.csv.gz | gzip -d > $@
+	mkdir -p data && curl -L https://s3.amazonaws.com/maayanlab-public/rummagene/doi_info.csv.gz | gzip -d > $@
 
 data/Rummagene_transcription_factors.gmt:
-	mkdir -p data && curl -L https://s3.dev.maayanlab.cloud/rummagene/Rummagene_transcription_factors.gmt.gz | gzip -d > $@
+	mkdir -p data && curl -L https://s3.amazonaws.com/maayanlab-public/rummagene/Rummagene_transcription_factors.gmt.gz | gzip -d > $@
 
 data/Rummagene_kinases.gmt:
-	mkdir -p data && curl -L https://s3.dev.maayanlab.cloud/rummagene/Rummagene_kinases.gmt.gz | gzip -d > $@
+	mkdir -p data && curl -L https://s3.amazonaws.com/maayanlab-public/rummagene/Rummagene_kinases.gmt.gz | gzip -d > $@
 
 # create consensus and term level kinase and tf gene set libraries
 #data/consensus_kinase_clean.gmt: .venv data/table-mining-clean.gmt data/tf-kinases.json
@@ -61,7 +61,7 @@ data/Rummagene_kinases.gmt:
 # data/pubmed_rif.tsv: .venv data/table-mining-clean.gmt
 # 	.venv/bin/python collect_citations.py
 data/pubmed_rif.tsv:
-	mkdir -p data && curl -L https://s3.dev.maayanlab.cloud/rummagene/pubmed_rif_8-17-23.tsv.gz | gzip -d > $@
+	mkdir -p data && curl -L https://s3.amazonaws.com/maayanlab-public/rummagene/pubmed_rif_8-17-23.tsv.gz | gzip -d > $@
 
 data/PMC-ids.csv:
 	mkdir -p data && curl -L https://ftp.ncbi.nlm.nih.gov/pub/pmc/PMC-ids.csv.gz | gzip -d > $@
@@ -88,7 +88,7 @@ data/rummagene-umap.tsv: .venv data/table-mining-clean.gmt
 
 # used for similarity matrices
 data/random50k_co-occurrence.f:
-	mkdir -p data && curl -L https://s3.dev.maayanlab.cloud/rummagene/random50k_co-occurrence.f.gz | gzip -d > $@
+	mkdir -p data && curl -L https://s3.amazonaws.com/maayanlab-public/rummagene/random50k_co-occurrence.f.gz | gzip -d > $@
 
 # construct similarity matrix
 data/nmi.f: .venv data/random50k_co-occurrence.f

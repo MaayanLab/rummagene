@@ -6,7 +6,7 @@ import { useLatestReleaseQuery } from "@/graphql";
 // TODO: have downloads as a table in the database
 const downloads = [
   {
-    url: 'https://s3.dev.maayanlab.cloud/rummagene/table-mining.gmt.gz',
+    url: 'https://s3.amazonaws.com/maayanlab-public/rummagene/table-mining.gmt.gz',
     filename: 'table-mining.gmt.gz',
     title: 'table-mining.gmt.gz',
     value: '729,968 columns',
@@ -14,7 +14,7 @@ const downloads = [
     updated: new Date('Aug 7 2023'),
   },
   {
-    url: 'https://s3.dev.maayanlab.cloud/rummagene/table-mining-clean-with-desc.gmt.gz',
+    url: 'https://s3.amazonaws.com/maayanlab-public/rummagene/table-mining-clean-with-desc.gmt.gz',
     filename: 'table-mining-clean-with-desc.gmt.gz',
     title: 'table-mining-clean-with-desc.gmt.gz',
     value: '642,389 gene sets',
@@ -22,7 +22,7 @@ const downloads = [
     updated: new Date('Jan 5 2024'),
   },
   {
-    url: 'https://s3.dev.maayanlab.cloud/rummagene/table-mining-clean.gmt.gz',
+    url: 'https://s3.amazonaws.com/maayanlab-public/rummagene/table-mining-clean.gmt.gz',
     filename: 'table-mining-clean.gmt.gz',
     title: 'table-mining-clean.gmt.gz',
     value: '642,389 gene sets',
@@ -30,7 +30,7 @@ const downloads = [
     updated: new Date('Aug 7 2023'),
   },
   {
-    url: 'https://s3.dev.maayanlab.cloud/rummagene/umap.tsv.gz',
+    url: 'https://s3.amazonaws.com/maayanlab-public/rummagene/umap.tsv.gz',
     filename: 'umap.tsv.gz',
     title: 'umap.tsv.gz',
     value: '642,389 points',
