@@ -1,5 +1,18 @@
 import Link from "next/link";
 import getItem from "./item";
+import { Metadata, ResolvingMetadata } from "next";
+
+export async function generateMetadata(props: { params: { id: string } }, parent: ResolvingMetadata): Promise<Metadata> {
+  const parentMetadata = await parent
+  const { data } = await getItem(props.params.id)
+  return {
+    title: `${parentMetadata.title?.absolute} | Gene Set${data.geneSetByTerm?.term ? ` | ${data.geneSetByTerm.term}` : ''}`,
+    keywords: [
+      ...(data.geneSetByTerm?.term ? [data.geneSetByTerm.term] : []),
+      ...(parentMetadata.keywords ?? []),
+    ].join(', '),
+  }
+}
 
 export default async function Page(props: { params: { id: string } }) {
   const { data } = await getItem(props.params.id)

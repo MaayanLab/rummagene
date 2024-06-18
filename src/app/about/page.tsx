@@ -1,8 +1,18 @@
+import React from 'react'
 import Image from "next/image"
 import Stats from "../stats"
 import Link from "next/link"
+import { Metadata, ResolvingMetadata } from 'next'
 
-export default function About() {
+export async function generateMetadata(props: {}, parent: ResolvingMetadata): Promise<Metadata> {
+  const parentMetadata = await parent
+  return {
+    title: `${parentMetadata.title?.absolute} | About`,
+    keywords: parentMetadata.keywords,
+  }
+}
+
+export default async function About() {
   return (
     <div className="prose">
       <h2 className="title text-xl font-medium mb-3">About Rummagene</h2>
