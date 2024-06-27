@@ -2,8 +2,7 @@
 drop function app_private_v2.indexed_enrich;
 drop function app_public_v2.background_enrich;
 drop type app_public_v2.paginated_enrich_result;
-drop function app_public_v2.enrich_result_gene_sets;
-drop type app_public_v2.enrich_result;
+drop type app_public_v2.enrich_result cascade;
 
 create type app_public_v2.enrich_result as (
   gene_set_hash uuid,

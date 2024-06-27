@@ -38,13 +38,6 @@ CREATE SCHEMA internal;
 
 
 --
--- Name: postgraphile_watch; Type: SCHEMA; Schema: -; Owner: -
---
-
-CREATE SCHEMA postgraphile_watch;
-
-
---
 -- Name: plpython3u; Type: EXTENSION; Schema: -; Owner: -
 --
 
@@ -370,8 +363,7 @@ CREATE FUNCTION app_public.gene_set_library_enrich_fixed_background_size(gene_se
       select r.*
       from vectorized, internal.fishers_exact(vectorized.ids, vectorized.a, vectorized.b, vectorized.c, vectorized.d, vectorized.n, fdr, pvalue_less_than, adj_pvalue_less_than) r
     ) r on o.gene_set_id = r.id
-  order by r.pvalue asc
-  ;
+  order by r.pvalue asc;
 $$;
 
 
@@ -416,10 +408,12 @@ CREATE FUNCTION app_public.gene_set_library_enrich_library_background(gene_set_l
     r.pvalue,
     r.adj_pvalue
   from
-    vectorized,
-    internal.fishers_exact(vectorized.ids, vectorized.a, vectorized.b, vectorized.c, vectorized.d, vectorized.n, fdr, pvalue_less_than, adj_pvalue_less_than) r
-    left join overlap o on o.gene_set_id = r.id
-  ;
+    overlap o
+    inner join (
+      select r.*
+      from vectorized, internal.fishers_exact(vectorized.ids, vectorized.a, vectorized.b, vectorized.c, vectorized.d, vectorized.n, fdr, pvalue_less_than, adj_pvalue_less_than) r
+    ) r on o.gene_set_id = r.id
+  order by r.pvalue asc;
 $$;
 
 
@@ -490,10 +484,12 @@ CREATE FUNCTION app_public.gene_set_library_enrich_user_background(gene_set_libr
     r.pvalue,
     r.adj_pvalue
   from
-    vectorized,
-    internal.fishers_exact(vectorized.ids, vectorized.a, vectorized.b, vectorized.c, vectorized.d, vectorized.n, fdr, pvalue_less_than, adj_pvalue_less_than) r
-    left join overlap o on o.gene_set_id = r.id
-  ;
+    overlap o
+    inner join (
+      select r.*
+      from vectorized, internal.fishers_exact(vectorized.ids, vectorized.a, vectorized.b, vectorized.c, vectorized.d, vectorized.n, fdr, pvalue_less_than, adj_pvalue_less_than) r
+    ) r on o.gene_set_id = r.id
+  order by r.pvalue asc;
 $$;
 
 
@@ -589,6 +585,39 @@ CREATE FUNCTION app_public.gene_set_term_search_count(terms character varying[])
   from app_public.gene_set gs
   inner join unnest(terms) ut(term) on gs.term ilike ('%' || ut.term || '%')
   inner join app_public.gene_set_length gsl on gsl.id = gs.id;
+$$;
+
+
+--
+-- Name: pmc_info; Type: TABLE; Schema: app_public; Owner: -
+--
+
+CREATE TABLE app_public.pmc_info (
+    id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
+    pmcid character varying NOT NULL,
+    title character varying,
+    yr integer,
+    doi character varying
+);
+
+
+--
+-- Name: TABLE pmc_info; Type: COMMENT; Schema: app_public; Owner: -
+--
+
+COMMENT ON TABLE app_public.pmc_info IS '@foreignKey (pmcid) references app_public.gene_set_pmc (pmc)';
+
+
+--
+-- Name: get_pmc_info_by_ids(character varying[]); Type: FUNCTION; Schema: app_public; Owner: -
+--
+
+CREATE FUNCTION app_public.get_pmc_info_by_ids(pmcids character varying[]) RETURNS SETOF app_public.pmc_info
+    LANGUAGE sql IMMUTABLE STRICT PARALLEL SAFE
+    AS $$
+  select *
+  from app_public.pmc_info
+  where pmcid = ANY (pmcIds);
 $$;
 
 
@@ -927,6 +956,28 @@ $$;
 
 
 --
+-- Name: fishers_exact(uuid[], bigint[], bigint[], bigint[], bigint[], bigint, double precision, double precision, double precision); Type: FUNCTION; Schema: internal; Owner: -
+--
+
+CREATE FUNCTION internal.fishers_exact(ids uuid[], a bigint[], b bigint[], c bigint[], d bigint[], n bigint, fdr double precision DEFAULT 0.05, pvalue_less_than double precision DEFAULT 0.05, adj_pvalue_less_than double precision DEFAULT 0.05) RETURNS SETOF internal.fishers_exact_result
+    LANGUAGE plpython3u IMMUTABLE STRICT PARALLEL SAFE
+    AS $$
+  import sigcomlite
+  yield from sigcomlite.fishers_exact(
+    ids=ids,
+    a=a,
+    b=b,
+    c=c,
+    d=d,
+    n=n,
+    fdr=fdr,
+    pvalue_less_than=pvalue_less_than,
+    adj_pvalue_less_than=adj_pvalue_less_than,
+  )
+$$;
+
+
+--
 -- Name: gene_id_map_from_genes(character varying[]); Type: FUNCTION; Schema: internal; Owner: -
 --
 
@@ -1058,48 +1109,6 @@ $$;
 
 
 --
--- Name: notify_watchers_ddl(); Type: FUNCTION; Schema: postgraphile_watch; Owner: -
---
-
-CREATE FUNCTION postgraphile_watch.notify_watchers_ddl() RETURNS event_trigger
-    LANGUAGE plpgsql
-    AS $$
-begin
-  perform pg_notify(
-    'postgraphile_watch',
-    json_build_object(
-      'type',
-      'ddl',
-      'payload',
-      (select json_agg(json_build_object('schema', schema_name, 'command', command_tag)) from pg_event_trigger_ddl_commands() as x)
-    )::text
-  );
-end;
-$$;
-
-
---
--- Name: notify_watchers_drop(); Type: FUNCTION; Schema: postgraphile_watch; Owner: -
---
-
-CREATE FUNCTION postgraphile_watch.notify_watchers_drop() RETURNS event_trigger
-    LANGUAGE plpgsql
-    AS $$
-begin
-  perform pg_notify(
-    'postgraphile_watch',
-    json_build_object(
-      'type',
-      'drop',
-      'payload',
-      (select json_agg(distinct x.schema_name) from pg_event_trigger_dropped_objects() as x)
-    )::text
-  );
-end;
-$$;
-
-
---
 -- Name: gene_set_gene; Type: TABLE; Schema: app_public; Owner: -
 --
 
@@ -1191,26 +1200,6 @@ CREATE VIEW app_public.pmc AS
 --
 
 COMMENT ON VIEW app_public.pmc IS '@foreignKey (pmc) references app_public.gene_set_pmc (pmc)';
-
-
---
--- Name: pmc_info; Type: TABLE; Schema: app_public; Owner: -
---
-
-CREATE TABLE app_public.pmc_info (
-    id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
-    pmcid character varying NOT NULL,
-    title character varying,
-    yr integer,
-    doi character varying
-);
-
-
---
--- Name: TABLE pmc_info; Type: COMMENT; Schema: app_public; Owner: -
---
-
-COMMENT ON TABLE app_public.pmc_info IS '@foreignKey (pmcid) references app_public.gene_set_pmc (pmc)';
 
 
 --
@@ -1475,13 +1464,6 @@ CREATE INDEX gene_set_library_id_idx ON app_public.gene_set USING btree (library
 
 
 --
--- Name: gene_set_pmc_id; Type: INDEX; Schema: app_public; Owner: -
---
-
-CREATE INDEX gene_set_pmc_id ON app_public.gene_set_pmc USING btree (id);
-
-
---
 -- Name: gene_set_pmc_id_idx; Type: INDEX; Schema: app_public; Owner: -
 --
 
@@ -1616,23 +1598,6 @@ ALTER TABLE ONLY app_public.gene_set
 
 ALTER TABLE ONLY app_public.gene_synonym
     ADD CONSTRAINT gene_synonym_gene_id_fkey FOREIGN KEY (gene_id) REFERENCES app_public.gene(id);
-
-
---
--- Name: postgraphile_watch_ddl; Type: EVENT TRIGGER; Schema: -; Owner: -
---
-
-CREATE EVENT TRIGGER postgraphile_watch_ddl ON ddl_command_end
-         WHEN TAG IN ('ALTER AGGREGATE', 'ALTER DOMAIN', 'ALTER EXTENSION', 'ALTER FOREIGN TABLE', 'ALTER FUNCTION', 'ALTER POLICY', 'ALTER SCHEMA', 'ALTER TABLE', 'ALTER TYPE', 'ALTER VIEW', 'COMMENT', 'CREATE AGGREGATE', 'CREATE DOMAIN', 'CREATE EXTENSION', 'CREATE FOREIGN TABLE', 'CREATE FUNCTION', 'CREATE INDEX', 'CREATE POLICY', 'CREATE RULE', 'CREATE SCHEMA', 'CREATE TABLE', 'CREATE TABLE AS', 'CREATE VIEW', 'DROP AGGREGATE', 'DROP DOMAIN', 'DROP EXTENSION', 'DROP FOREIGN TABLE', 'DROP FUNCTION', 'DROP INDEX', 'DROP OWNED', 'DROP POLICY', 'DROP RULE', 'DROP SCHEMA', 'DROP TABLE', 'DROP TYPE', 'DROP VIEW', 'GRANT', 'REVOKE', 'SELECT INTO')
-   EXECUTE FUNCTION postgraphile_watch.notify_watchers_ddl();
-
-
---
--- Name: postgraphile_watch_drop; Type: EVENT TRIGGER; Schema: -; Owner: -
---
-
-CREATE EVENT TRIGGER postgraphile_watch_drop ON sql_drop
-   EXECUTE FUNCTION postgraphile_watch.notify_watchers_drop();
 
 
 --
