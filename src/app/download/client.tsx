@@ -37,6 +37,30 @@ const downloads = [
     size: <><span className="whitespace-nowrap">12.4MB compressed</span>, <span className="whitespace-nowrap">51.3MB uncompressed</span></>,
     updated: new Date('Oct 2 2023'),
   },
+  {
+    url: 'https://s3.amazonaws.com/maayanlab-public/rummagene/random50k_co-occurrence.f.gz',
+    filename: 'random50k_co-occurrence.f.gz',
+    title: 'random50k_co-occurrence.f.gz',
+    value: '19,551 genes',
+    size: <><span className="whitespace-nowrap">455.1MB compressed</span>, <span className="whitespace-nowrap">1GB uncompressed</span></>,
+    updated: new Date('Mar 14 2024'),
+  },
+  {
+    url: 'https://s3.amazonaws.com/maayanlab-public/rummagene/Rummagene_kinases.gmt.gz',
+    filename: 'Rummagene_kinases.gmt.gz',
+    title: 'Rummagene_kinases.gmt.gz',
+    value: '3,810 gene sets',
+    size: <><span className="whitespace-nowrap">2.0MB compressed</span>, <span className="whitespace-nowrap">5.2MB uncompressed</span></>,
+    updated: new Date('Mar 15 2024'),
+  },
+  {
+    url: 'https://s3.amazonaws.com/maayanlab-public/rummagene/Rummagene_transcription_factors.gmt.gz',
+    filename: 'Rummagene_transcription_factors.gmt.gz',
+    title: 'Rummagene_transcription_factors.gmt.gz',
+    value: '7,245 gene sets',
+    size: <><span className="whitespace-nowrap">4.4MB compressed</span>, <span className="whitespace-nowrap">11MB uncompressed</span></>,
+    updated: new Date('Mar 15 2024'),
+  },
 ]
 
 export default function DownloadClientPage() {
