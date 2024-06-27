@@ -2,6 +2,7 @@ version: '3.9'
 services:
   rummagene-app:
     build: .
+    platform: linux/amd64
     image: maayanlab/rummagene:0.3.10
     environment:
       - PUBLIC_URL=https://rummagene.com
@@ -16,6 +17,7 @@ services:
       - ./data/bot/output-clean.gmt:/app/public/latest.gmt:ro
   rummagene-enrich:
     build: enrich
+    platform: linux/amd64
     image: maayanlab/rummagene-enrich:0.4.2
     environment:
       - 'ROCKET_DATABASES={postgres={url="postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@rummagene-postgres/${POSTGRES_DB}"}}'
@@ -23,6 +25,7 @@ services:
       - 8000:8000
   rummagene-postgres:
     build: db
+    platform: linux/amd64
     image: maayanlab/rummagene-postgres:0.1.3
     environment:
       - POSTGRES_DB
@@ -35,6 +38,7 @@ services:
       - ./data/postgres/:/var/lib/postgresql/data
   rummagene-bot:
     build: bot
+    platform: linux/amd64
     image: maayanlab/rummagene-bot:0.2.1
     command: ["bash", "-c", "cd /work/data && touch log && tail -f log"]
     environment:
