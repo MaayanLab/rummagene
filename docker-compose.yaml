@@ -54,6 +54,28 @@ services:
       # 1 day of week (monday)
       ofelia.job-exec.update-db.schedule: "0 0 9 * * 1"
       ofelia.job-exec.update-db.command: "/bin/sh -c '/work/bot.sh > /work/data/log 2> /work/data/log'"
+
+  rummagene-backup:
+    image: restic/restic
+    entrypoint: /bin/sh
+    command: ["/bin/sh", "-c", "apk add --no-cache postgresql-client && mkdir -p /work/backup && cd /work/backup && touch log && tail -f log"]
+    environment:
+      - DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@rummagene-postgres:5432/${POSTGRES_DB}
+      - RESTIC_REPOSITORY
+      - RESTIC_PASSWORD
+      - AWS_ACCESS_KEY_ID
+      - AWS_SECRET_ACCESS_KEY
+    volumes:
+      - ./data/:/work
+    labels:
+      ofelia.enabled: "true"
+      # Mondays @ 5:00
+      ofelia.job-exec.backup-bot.schedule: "0 0 17 * * 1"
+      ofelia.job-exec.backup-bot.command: "/bin/sh -c 'restic backup /work/bot > /work/backup/log 2> /work/backup/log'"
+      # Mondays @ 5:30
+      ofelia.job-exec.backup-db.schedule: "0 30 17 * * 1"
+      ofelia.job-exec.backup-db.command: "/bin/sh -c 'pg_dump -Fc ${DATABASE_URL} | restic backup --stdin > /work/backup/log 2> /work/backup/log'"
+
   cron:
     image: mcuadros/ofelia:latest
     command: daemon --docker
