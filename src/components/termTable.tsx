@@ -9,7 +9,9 @@ import clientDownloadBlob from '@/utils/clientDownloadBlob';
 
 const pageSize = 10
 
-export default function TermTable({ terms }: { terms: { __typename?: "GeneSet" | undefined; term?: string | null | undefined; id?: any; nGeneIds?: number | null | undefined; }[] }) {
+export default function TermTable({ terms }: { terms: {
+  description?: any; __typename?: "GeneSet" | undefined; term?: string | null | undefined; id?: any; nGeneIds?: number | null | undefined; 
+}[] }) {
   const [queryString, setQueryString] = useQsState({ page: '1', f: '' })
   const { page, searchTerm } = React.useMemo(() => ({ page: queryString.page ? +queryString.page : 1, searchTerm: queryString.f ?? '' }), [queryString])
 
@@ -30,7 +32,7 @@ export default function TermTable({ terms }: { terms: { __typename?: "GeneSet" |
   return (
     <>
       <GeneSetModal geneset={genesQuery?.data?.geneSet?.genes.nodes} term={currTerm} showModal={showModal} setShowModal={setShowModal}></GeneSetModal>
-      <div className='border m-5 mt-1'>
+      <div className='m-5 mt-1'>
 
       <div className='join flex flex-row place-content-end items-center pt-3 pr-3'>
           <span className="label-text text-base">Search:&nbsp;</span>
@@ -76,14 +78,56 @@ export default function TermTable({ terms }: { terms: { __typename?: "GeneSet" |
           <thead>
             <tr>
               <td >Term</td>
+              <td >Figure</td>
+              <td >Thumbnail</td>
+              <td>Description</td>
               <td >Gene Set</td>
             </tr>
           </thead>
           <tbody>
-            {dataFiltered?.slice((page-1) * pageSize, page * pageSize).map(el => {
+            {dataFiltered?.slice((page-1) * pageSize, page * pageSize).map(async el => {
+              const pmcid = el?.term?.split('_')[0]
+              const figure = el?.term?.split('_')[2]
+              const description = el?.description
+              const figImg = await fetch(`https://pfocr.wikipathways.org/figures/${el?.term}.html`).then(response => response.text())
+              .then(text => {
+                let regex = /<a[^>]+href="([^"]+)"/i;
+                let match = text.match(regex);
+                // Extract the content
+                if (match && match[1]) {
+                  return match[1];
+                } else return ''
+            })
               return (
-                <tr key={el?.term} className={"hover:bg-gray-100 dark:hover:bg-gray-700"}>
-                  <td className="break-all"><LinkedTerm term={`${el?.term}`}></LinkedTerm></td>
+                <tr key={el?.term} className={""}>
+                  <td>
+                    <a
+                      className="underline cursor-pointer"
+                      href={`https://www.ncbi.nlm.nih.gov/pmc/articles/${pmcid}/`}
+                      target="_blank"
+                      rel="noreferrer"
+                    >{pmcid}</a>
+                  </td>
+                  <td>
+                    <a
+                      className="underline cursor-pointer"
+                      href={`https://pfocr.wikipathways.org/figures/${el?.term}.html`}
+                      target="_blank"
+                      rel="noreferrer"
+                    >{figure}</a>
+                  </td>
+                  <td>
+                  <a
+                      className="underline cursor-pointer"
+                      href={`https://pfocr.wikipathways.org/figures/${el?.term}.html`}
+                      target="_blank"
+                      rel="noreferrer"
+                    ><img src={`https://www.ncbi.nlm.nih.gov/pmc/articles/${pmcid}/bin/${figImg.split('__')[1]?.replace('.html', '')}.jpg`} style={{ width: 'fit-content', height: '70px', alignContent: 'center', margin: 'auto'}} /></a>
+                  </td>
+                  <td>
+                          {description}
+                        </td>
+                  
                   <td className='w-3/12'>
                     <button
                       className='btn btn-xs btn-outline p-2 h-auto'

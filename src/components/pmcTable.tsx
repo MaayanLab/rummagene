@@ -39,7 +39,7 @@ export default function PmcTable({ terms, data, gene_set_ids }: { terms?: Map<st
   return (
     <>
       <GeneSetModal geneset={genesQuery?.data?.geneSet?.genes.nodes} term={currTerm} showModal={showModal} setShowModal={setShowModal}></GeneSetModal>
-      <div className='border m-5 mt-1'>
+      <div className='m-5 mt-1'>
         <div className='join flex flex-row place-content-end items-center pt-3 pr-3'>
           <span className="label-text text-base">Search:&nbsp;</span>
           <input
@@ -85,19 +85,20 @@ export default function PmcTable({ terms, data, gene_set_ids }: { terms?: Map<st
         </div>
         <table className="table table-xs table-pin-rows table-pin-cols table-auto">
           <thead>
-            <tr>
-              <th>PMC</th>
-              <th>Title</th>
-              <th className="w-20">Year</th>
-              <th># Terms</th>
-              <th></th>
+            <tr className='bg-transparent'>
+              <th className='bg-transparent'>PMC</th>
+              <th className='bg-transparent'>Title</th>
+              <th className="w-20 bg-transparent">Year</th>
+              <th className='bg-transparent'># Terms</th>
+              <th className='bg-transparent'></th>
             </tr>
           </thead>
           <tbody>
             {dataFiltered?.slice((page-1) * pageSize, page * pageSize).map(el => {
+              
               return (
                 <>
-                  <tr key={el?.pmcid} className={"hover:bg-gray-100 dark:hover:bg-gray-700"}>
+                  <tr key={el?.pmcid}>
                     <td><LinkedTerm term={`${el?.pmcid} `}></LinkedTerm></td>
                     <td>{el?.title}</td>
                     <td>{el?.yr}</td>
@@ -114,11 +115,53 @@ export default function PmcTable({ terms, data, gene_set_ids }: { terms?: Map<st
                       </button>
                     </td>
                   </tr>
-                  {terms?.get(el?.pmcid)?.map(term => {
+                  {terms?.get(el?.pmcid)?.map(async term => {
+                    console.log(term)
+                    const pmcid = term.split('_')[0]
+                    const figure = term.split('_')[2]
+                    const description = term
+                    const figImg = await fetch(`https://pfocr.wikipathways.org/figures/${term}.html`)
+                    .then(response => response.text())
+                    .then(text => {
+                      let regex = /<a[^>]+href="([^"]+)"/i;
+      
+                      let match = text.match(regex);
+      
+                      // Extract the content
+                      if (match && match[1]) {
+                        return match[1];
+                      } else return ''
+                  })
                     return (
                       <tr key={term} id={term} className='hidden'>
-                        <td colSpan={2}>{term}</td>
-                        <td colSpan={4}>
+                        <td colSpan={1}>
+                          <a
+                            className="underline cursor-pointer"
+                            href={`https://www.ncbi.nlm.nih.gov/pmc/articles/${pmcid}/`}
+                            target="_blank"
+                            rel="noreferrer"
+                          >{pmcid}</a>
+                        </td>
+                        <td colSpan={1}>{gene_set_ids?.get(term)?.at(1)}</td>
+                        <td colSpan={1}>
+                          <a
+                            className="underline cursor-pointer"
+                            href={`https://pfocr.wikipathways.org/figures/${term}.html`}
+                            target="_blank"
+                            rel="noreferrer"
+                          >{figure}</a>
+                        </td>
+                        
+                        <td colSpan={3} className='text-left'>
+                        <a
+                            className="underline cursor-pointer"
+                            href={`https://pfocr.wikipathways.org/figures/${term}.html`}
+                            target="_blank"
+                            rel="noreferrer"
+                          ><img src={`https://www.ncbi.nlm.nih.gov/pmc/articles/${pmcid}/bin/${figImg.split('__')[1].replace('.html', '')}.jpg`} style={{ width: 'fit-content', height: '70px', alignContent: 'center', margin: 'auto'}} /></a>
+                        </td>
+                        
+                        <td colSpan={2}>
                           <button
                             className='btn btn-xs btn-outline p-2 h-auto'
                             data-te-toggle="modal"
@@ -130,7 +173,7 @@ export default function PmcTable({ terms, data, gene_set_ids }: { terms?: Map<st
                               setGeneSetId(gene_set_ids?.get(term)?.at(0) || '')
                               setShowModal(true)
                             }}
-                          ><p>View Gene Set ({gene_set_ids?.get(term)?.at(1) || 'n'})</p>
+                          ><p>View Gene Set ({gene_set_ids?.get(term)?.at(2) || 'n'})</p>
                           </button>
                         </td>
                       </tr>)

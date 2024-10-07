@@ -5,7 +5,7 @@ import TermSearchClientPage from './client'
 export async function generateMetadata(props: { searchParams?: { q?: string } }, parent: ResolvingMetadata): Promise<Metadata> {
   const parentMetadata = await parent
   return {
-    title: `${parentMetadata.title?.absolute} | Table title search ${props.searchParams?.q ?? ''}`,
+    title: `${parentMetadata.title?.absolute} | Term search ${props.searchParams?.q ?? ''}`,
     keywords: [
       ...(props.searchParams?.q ? [props.searchParams.q] : []),
       ...(parentMetadata.keywords ?? []),

@@ -65,10 +65,11 @@ query GeneSearch($genes: [String]!, $offset: Int = 0, $first: Int = 10) {
 
 # Term search: find all genesets containing certain term(s)
 query TermSearch($terms: [String]!, $offset: Int = 0, $first: Int = 10) {
-  geneSetTermSearch(terms: $terms, offset: $offset, first: $first) {
+  geneSetTermSearchDesc(terms: $terms, offset: $offset, first: $first) {
     nodes {
       id
       term
+      description
       nGeneIds
     }
     totalCount
@@ -96,11 +97,12 @@ query GetPmcInfoByIds($pmcids: [String]!){
 }
 
 query TermsPmcs($pmcids: [String]!) {
-  termsPmcsCount(pmcids: $pmcids) {
+  termsPmcsCountDesc(pmcids: $pmcids) {
     nodes {
       pmc
       id
       term
+      description
       count
     }
   }

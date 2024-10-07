@@ -7,8 +7,8 @@ module.exports = {
   ],
   theme: {
     fontFamily: {
-      sans: ["Comic Sans MS", "Comic Sans", "system-ui"],
-      mono: ["Comic Mono", "system-ui"],
+      sans: ["Open Sans", "system-ui"],
+      mono: ["Open Sans", "system-ui"],
     }
   },
   plugins: [require("daisyui")],

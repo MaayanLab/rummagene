@@ -1,8 +1,8 @@
-# Rummagene
+# PFCORummage
 
-<https://rummagene.com/>
+<https://PFCORummage.maayanlab.cloud/>
 
-This is a webserver for gene set enrichment analysis on a very large gene set -- one constructed by extracting gene sets from PMC OA. The [bot](https://github.com/MaayanLab/rummagene/tree/main/bot) does the extraction weekly.
+This is a webserver for gene set enrichment analysis on a very large gene set -- one constructed from the . The [bot](https://github.com/MaayanLab/rummagene/tree/main/bot) does the monthly update from the [WikiPathways PFOCR releases](https://data.wikipathways.org/pfocr/current/).
 
 ## Development
 Rather than splitting up the meta and data APIs, all functionality is incorporated into a postgres database.

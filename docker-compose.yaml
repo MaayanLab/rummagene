@@ -1,49 +1,49 @@
 version: '3.9'
 services:
-  rummagene-app:
+  PFCORummage-app:
     build: .
     platform: linux/amd64
-    image: maayanlab/rummagene:0.3.11
+    image: maayanlab/PFCORummage:0.0.1
     environment:
-      - PUBLIC_URL=https://rummagene.com
-      - DATABASE_URL=postgres://$POSTGRES_USER:$POSTGRES_PASSWORD@rummagene-postgres/$POSTGRES_DB
+      - PUBLIC_URL=https://PFCORummage.maayanlab.cloud
+      - DATABASE_URL=postgres://$POSTGRES_USER:$POSTGRES_PASSWORD@PFCORummage-postgres/$POSTGRES_DB
       - AUTHORIZATION_HEADER=$AUTHORIZATION_HEADER
       - NODE_ENV=production
-      - ENRICH_URL=http://rummagene-enrich:8000
+      - ENRICH_URL=http://PFCORummage-enrich:8000
       - NEXT_PUBLIC_GA_MEASUREMENT_ID=$NEXT_PUBLIC_GA_MEASUREMENT_ID
     ports:
       - 3000:3000
     volumes:
       - ./data/bot/output-clean.gmt:/app/public/latest.gmt:ro
-  rummagene-enrich:
+  PFCORummage-enrich:
     build: enrich
     platform: linux/amd64
-    image: maayanlab/rummagene-enrich:0.4.2
+    image: maayanlab/PFCORummage-enrich:0.0.1
     environment:
-      - 'ROCKET_DATABASES={postgres={url="postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@rummagene-postgres/${POSTGRES_DB}"}}'
+      - 'ROCKET_DATABASES={postgres={url="postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@PFCORummage-postgres/${POSTGRES_DB}"}}'
     ports:
       - 8000:8000
-  rummagene-postgres:
+  PFCORummage-postgres:
     build: db
     platform: linux/amd64
-    image: maayanlab/rummagene-postgres:0.1.3
+    image: maayanlab/PFCORummage-postgres:0.0.1
     environment:
       - POSTGRES_DB
       - POSTGRES_USER
       - POSTGRES_PASSWORD
-      - ENRICH_URL=http://rummagene-enrich:8000
+      - ENRICH_URL=http://PFCORummage-enrich:8000
     ports:
       - 5432:5432
     volumes:
       - ./data/postgres/:/var/lib/postgresql/data
-  rummagene-bot:
+  PFCORummage-bot:
     build: bot
     platform: linux/amd64
-    image: maayanlab/rummagene-bot:0.2.1
+    image: maayanlab/PFCORummage-bot:0.0.1
     command: ["bash", "-c", "cd /work/data && touch log && tail -f log"]
     environment:
-      - DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@rummagene-postgres:5432/${POSTGRES_DB}
-      - ENRICH_URL=http://rummagene-enrich:8000
+      - DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@PFCORummage-postgres:5432/${POSTGRES_DB}
+      - ENRICH_URL=http://PFCORummage-enrich:8000
       - API_KEY
       - EMAIL
     volumes:
@@ -58,30 +58,3 @@ services:
       # 1 day of week (monday)
       ofelia.job-exec.update-db.schedule: "0 0 9 * * 1"
       ofelia.job-exec.update-db.command: "/bin/sh -c '/work/bot.sh > /work/data/log 2> /work/data/log'"
-
-  rummagene-backup:
-    image: restic/restic
-    entrypoint: ["/bin/sh", "-c"]
-    command: ["apk add --no-cache postgresql-client && mkdir -p /work/backup && cd /work/backup && touch log && tail -f log"]
-    environment:
-      - DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@rummagene-postgres:5432/${POSTGRES_DB}
-      - RESTIC_REPOSITORY
-      - RESTIC_PASSWORD
-      - AWS_ACCESS_KEY_ID
-      - AWS_SECRET_ACCESS_KEY
-    volumes:
-      - ./data/:/work
-    labels:
-      ofelia.enabled: "true"
-      # Mondays @ 5:00
-      ofelia.job-exec.backup-bot.schedule: "0 0 17 * * 1"
-      ofelia.job-exec.backup-bot.command: "/bin/sh -c 'restic backup /work/bot > /work/backup/log 2> /work/backup/log'"
-      # Mondays @ 5:30
-      ofelia.job-exec.backup-db.schedule: "0 30 17 * * 1"
-      ofelia.job-exec.backup-db.command: "/bin/sh -c 'pg_dump -Fc ${DATABASE_URL} | restic backup --stdin > /work/backup/log 2> /work/backup/log'"
-
-  cron:
-    image: mcuadros/ofelia:latest
-    command: daemon --docker
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro

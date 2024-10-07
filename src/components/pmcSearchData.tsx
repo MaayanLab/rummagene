@@ -4,7 +4,7 @@ import { useSuspenseQuery } from '@apollo/client';
 import PmcTable from './pmcTable';
 
 export default function PmcSearchData({ pmc_terms, pmcs, gene_set_ids}: 
-  { pmc_terms?: Map<string, string[]>, pmcs?: (string | null | undefined)[], gene_set_ids?: Map<string, string[]>}) {
+  { pmc_terms?: Map<string, string[]> | undefined; pmcs?: (string | null | undefined)[] | undefined; gene_set_ids?: Map<string, string[]> | undefined; }) {
 
   const { data: pmcMeta } = useSuspenseQuery<GetPmcInfoByIdsQuery>(GetPmcInfoByIdsDocument, {
     variables: { pmcids: pmcs },

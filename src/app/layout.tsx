@@ -10,8 +10,8 @@ import { RuntimeConfig } from '@/app/runtimeConfig'
 import Analytics from '@/app/analytics'
 
 export const metadata: Metadata = {
-  title: 'Rummagene',
-  description: 'Find published gene sets from supporting tables of PubMed Central (PMC) articles',
+  title: 'PFOCRummage',
+  description: 'Search gene sets extracted from PubMed Central (PMC) article figures',
   keywords: [
     'big data',
     'bioinformatics',
@@ -65,12 +65,12 @@ export const metadata: Metadata = {
     canonical: '/',
   },
   openGraph: {
-    title: 'Rummagene',
+    title: 'PFOCRummage',
     description: 'Find published gene sets from supporting tables of PubMed Central (PMC) articles',
     url: 'https://rummagene.com',
-    siteName: 'Rummagene',
+    siteName: 'PFOCRummage',
     images: [{
-      url: 'https://rummagene.com/images/rummagene_logo.png',
+      url: 'https://rummagene.com/images/PFOCRummageBlack.png',
       width: 640,
       height: 671,
     }],
@@ -103,7 +103,7 @@ export default function RootLayout({
       </head>
       <ApolloWrapper>
         <RuntimeConfig>
-          <body className="min-h-screen flex flex-col">
+          <body className="min-h-screen flex flex-col bg-gradient-to-t from-pink-500 to-white">
             <header>
               <div className="navbar block text-center">
                 <div className="navbar-center">
@@ -118,13 +118,13 @@ export default function RootLayout({
                 </div>
               </div>
             </header>
-            <main className="flex-1 flex flex-col justify-stretch mx-8 md:mx-32">
+            <main className="flex-1 flex flex-col justify-stretch mx-8 md:mx-32 ">
               <React.Suspense fallback={<span className="loading loading-ring loading-lg"></span>}>
                 {children}
               </React.Suspense>
             </main>
-            <footer className="flex-none footer p-5 mt-5 bg-neutral text-neutral-content flex place-content-evenly">
-              <div className="text-center pt-5">
+            <footer className="flex-none footer p-5 mt-5 text-neutral-content flex place-content-evenly">
+              <div className="text-center pt-8">
                 <ul>
                   <li><Link href="mailto:avi.maayan@mssm.edu" target="_blank">Contact Us</Link></li>
                   <li>
@@ -133,6 +133,13 @@ export default function RootLayout({
                     </Link>
                   </li>
                 </ul>
+              </div>
+              <div className="text-center">
+              <p className='mt-7'>
+                  <Link href="https://gladstone.org/people/alex-pico" target="_blank" rel="noopener noreferrer">
+                    <Image src={'/images/GladstoneLogoWh.png'} width={150} height={250} alt={'Gladstone Institutes'}/>
+                  </Link>
+                </p>
               </div>
               <div className="text-center">
               <p>
@@ -148,7 +155,7 @@ export default function RootLayout({
                 </Link>
                 </p>
               </div>
-              <div className="text-center pt-5">
+              <div className="text-center pt-7">
                 <ul>
                   <li>
                     <Link href="https://creativecommons.org/licenses/by-nc-sa/4.0/" target="_blank">
