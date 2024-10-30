@@ -37,12 +37,19 @@ static GLOBAL: tikv_jemallocator::Jemalloc = tikv_jemallocator::Jemalloc;
 #[database("postgres")]
 struct Postgres(sqlx::PgPool);
 
+struct GeneSetIdentity {
+    id: Uuid,
+    term: String,
+    description: String,
+    paper_title: String,
+}
+
 struct Bitmap<B: Integer + Copy + Into<usize>> {
     columns: HashMap<Uuid, B>,
     columns_str: Vec<String>,
     values: Vec<(Uuid, SparseBitVec<B>)>,
     // TODO: should we try to preserve gene list ordering in dump (?)
-    terms: HashMap<Uuid, Vec<(Uuid, String, String)>>,
+    terms: HashMap<Uuid, Vec<GeneSetIdentity>>,
 }
 
 impl<B: Integer + Copy + Into<usize>> Bitmap<B> {
@@ -140,13 +147,16 @@ async fn ensure_index(db: &mut Connection<Postgres>, state: &State<PersistentSta
         }
 
         // compute the index in memory
-        sqlx::query("select id, term, coalesce(description, '') as description, hash, gene_ids from app_public_v2.gene_set;")
+        sqlx::query(
+            "select gene_set.id, gene_set.term, coalesce(gene_set.description, '') as description, gene_set.hash, coalesce(pmc_info.title, '') as paper_title, gene_set.gene_ids from app_public_v2.gene_set left join app_public_v2.gene_set_pmc on gene_set.id = gene_set_pmc.id left join app_public_v2.pmc_info on pmc_info.pmcid = gene_set_pmc.pmc;"
+        )
             .fetch(&mut **db)
             .for_each(|row| {
                 let row = row.unwrap();
                 let gene_set_id: uuid::Uuid = row.try_get("id").unwrap();
                 let term: String = row.try_get("term").unwrap();
                 let description: String = row.try_get("description").unwrap();
+                let paper_title: String = row.try_get("paper_title").unwrap();
                 let gene_set_hash: Result<uuid::Uuid, _> = row.try_get("hash");
                 if let Ok(gene_set_hash) = gene_set_hash {
                     if !bitmap.terms.contains_key(&gene_set_hash) {
@@ -155,7 +165,7 @@ async fn ensure_index(db: &mut Connection<Postgres>, state: &State<PersistentSta
                         let bitset = SparseBitVec::new(&bitmap.columns, &gene_ids);
                         bitmap.values.push((gene_set_hash, bitset));
                     }
-                    bitmap.terms.entry(gene_set_hash).or_default().push((gene_set_id, term, description));
+                    bitmap.terms.entry(gene_set_hash).or_default().push(GeneSetIdentity { id: gene_set_id, term: term, description: description, paper_title: paper_title });
                 }
                 future::ready(())
             })
@@ -208,11 +218,11 @@ async fn get_gmt(
     Ok(TextStream! {
         for (gene_set_hash, gene_set) in bitmap.values.iter() {
             if let Some(terms) = bitmap.terms.get(gene_set_hash) {
-                for (_row_id, term, description) in terms.iter() {
+                for gene_set_ident in terms.iter() {
                     let mut line = String::new();
-                    line.push_str(term);
+                    line.push_str(&gene_set_ident.term);
                     line.push_str("\t");
-                    line.push_str(description);
+                    line.push_str(&gene_set_ident.description);
                     for col_ind in gene_set.v.iter() {
                         line.push_str("\t");
                         line.push_str(&bitmap.columns_str[*col_ind as usize]);
@@ -337,7 +347,10 @@ async fn query(
             let (gene_set_hash, _gene_set) = bitmap.values.get(result.index)?;
             if let Some(filter_term) = &filter_term {
                 if let Some(terms) = bitmap.terms.get(gene_set_hash) {
-                    if !terms.iter().any(|(_gene_set_id, gene_set_term, _gene_set_description)| gene_set_term.to_lowercase().contains(filter_term)) {
+                    if !terms.iter().any(|gene_set_ident|
+                        gene_set_ident.term.to_lowercase().contains(filter_term)
+                        || gene_set_ident.description.to_lowercase().contains(filter_term)
+                        || gene_set_ident.paper_title.to_lowercase().contains(filter_term)) {
                         return None
                     }
                 }
