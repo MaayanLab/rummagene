@@ -41,7 +41,7 @@ struct GeneSetIdentity {
     id: Uuid,
     term: String,
     description: String,
-    paper_title: String,
+    pmc: String,
 }
 
 struct Bitmap<B: Integer + Copy + Into<usize>> {
@@ -50,6 +50,7 @@ struct Bitmap<B: Integer + Copy + Into<usize>> {
     values: Vec<(Uuid, SparseBitVec<B>)>,
     // TODO: should we try to preserve gene list ordering in dump (?)
     terms: HashMap<Uuid, Vec<GeneSetIdentity>>,
+    paper_titles: HashMap<String, String>,
 }
 
 impl<B: Integer + Copy + Into<usize>> Bitmap<B> {
@@ -59,6 +60,7 @@ impl<B: Integer + Copy + Into<usize>> Bitmap<B> {
             columns_str: Vec::new(),
             values: Vec::new(),
             terms: HashMap::new(),
+            paper_titles: HashMap::new(),
         }
     }
 }
@@ -148,7 +150,7 @@ async fn ensure_index(db: &mut Connection<Postgres>, state: &State<PersistentSta
 
         // compute the index in memory
         sqlx::query(
-            "select gene_set.id, gene_set.term, coalesce(gene_set.description, '') as description, gene_set.hash, coalesce(pmc_info.title, '') as paper_title, gene_set.gene_ids from app_public_v2.gene_set left join app_public_v2.gene_set_pmc on gene_set.id = gene_set_pmc.id left join app_public_v2.pmc_info on pmc_info.pmcid = gene_set_pmc.pmc;"
+            "select gene_set.id, gene_set.term, coalesce(gene_set.description, '') as description, gene_set.hash, gene_set.gene_ids, gene_set_pmc.pmc from app_public_v2.gene_set left join app_public_v2.gene_set_pmc on gene_set.id = gene_set_pmc.id;"
         )
             .fetch(&mut **db)
             .for_each(|row| {
@@ -156,7 +158,7 @@ async fn ensure_index(db: &mut Connection<Postgres>, state: &State<PersistentSta
                 let gene_set_id: uuid::Uuid = row.try_get("id").unwrap();
                 let term: String = row.try_get("term").unwrap();
                 let description: String = row.try_get("description").unwrap();
-                let paper_title: String = row.try_get("paper_title").unwrap();
+                let pmc: String = row.try_get("pmc").unwrap();
                 let gene_set_hash: Result<uuid::Uuid, _> = row.try_get("hash");
                 if let Ok(gene_set_hash) = gene_set_hash {
                     if !bitmap.terms.contains_key(&gene_set_hash) {
@@ -165,8 +167,21 @@ async fn ensure_index(db: &mut Connection<Postgres>, state: &State<PersistentSta
                         let bitset = SparseBitVec::new(&bitmap.columns, &gene_ids);
                         bitmap.values.push((gene_set_hash, bitset));
                     }
-                    bitmap.terms.entry(gene_set_hash).or_default().push(GeneSetIdentity { id: gene_set_id, term: term, description: description, paper_title: paper_title });
+                    bitmap.terms.entry(gene_set_hash).or_default().push(GeneSetIdentity { id: gene_set_id, term: term, description: description, pmc: pmc });
                 }
+                future::ready(())
+            })
+            .await;
+
+        sqlx::query(
+            "select pmcid, title from app_public_v2.pmc_info;"
+        )
+            .fetch(&mut **db)
+            .for_each(|row| {
+                let row = row.unwrap();
+                let pmcid: String = row.try_get("pmcid").unwrap();
+                let title: String = row.try_get("title").unwrap();
+                bitmap.paper_titles.insert(pmcid, title.to_lowercase());
                 future::ready(())
             })
             .await;
@@ -348,9 +363,10 @@ async fn query(
             if let Some(filter_term) = &filter_term {
                 if let Some(terms) = bitmap.terms.get(gene_set_hash) {
                     if !terms.iter().any(|gene_set_ident|
+                        // TODO: we could use tsvector overlap for nlogn instead of n^2 term search
                         gene_set_ident.term.to_lowercase().contains(filter_term)
                         || gene_set_ident.description.to_lowercase().contains(filter_term)
-                        || gene_set_ident.paper_title.to_lowercase().contains(filter_term)) {
+                        || bitmap.paper_titles.get(&gene_set_ident.pmc).and_then(|title| Some(title.contains(filter_term))).unwrap_or(false)) {
                         return None
                     }
                 }
