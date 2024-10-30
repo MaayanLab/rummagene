@@ -1,7 +1,5 @@
 query Stats {
-  userGeneSets {
-    totalCount
-  }
+  userGeneSetCount
   geneSets {
     totalCount
   }
