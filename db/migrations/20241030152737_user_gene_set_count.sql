@@ -9,5 +9,5 @@ grant execute on function app_public_v2.user_gene_set_count to guest, authentica
 comment on table app_public_v2.user_gene_set is '@omit all';
 
 -- migrate:down
-comment on app_public_v2.user_gene_set is null;
+comment on table app_public_v2.user_gene_set is null;
 drop function app_public_v2.user_gene_set_count();
