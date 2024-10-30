@@ -18,7 +18,7 @@ services:
   rummagene-enrich:
     build: enrich
     platform: linux/amd64
-    image: maayanlab/rummagene-enrich:0.4.2
+    image: maayanlab/rummagene-enrich:0.5.0
     environment:
       - 'ROCKET_DATABASES={postgres={url="postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@rummagene-postgres/${POSTGRES_DB}"}}'
     ports:
