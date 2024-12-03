@@ -1,7 +1,6 @@
 SET statement_timeout = 0;
 SET lock_timeout = 0;
 SET idle_in_transaction_session_timeout = 0;
-SET transaction_timeout = 0;
 SET client_encoding = 'UTF8';
 SET standard_conforming_strings = on;
 SELECT pg_catalog.set_config('search_path', '', false);
@@ -199,6 +198,7 @@ CREATE FUNCTION app_private_v2.indexed_enrich(background app_public_v2.backgroun
   if filter_term: params['filter_term'] = filter_term
   if offset: params['offset'] = offset
   if first: params['limit'] = first
+  if not gene_ids: return dict(nodes=[], total_count=0)
   req = requests.post(
     f"{os.environ.get('ENRICH_URL', 'http://rummagene-enrich:8000')}/{background['id']}",
     params=params,
@@ -371,7 +371,8 @@ CREATE FUNCTION app_public.gene_set_library_enrich_fixed_background_size(gene_se
       select r.*
       from vectorized, internal.fishers_exact(vectorized.ids, vectorized.a, vectorized.b, vectorized.c, vectorized.d, vectorized.n, fdr, pvalue_less_than, adj_pvalue_less_than) r
     ) r on o.gene_set_id = r.id
-  order by r.pvalue asc;
+  order by r.pvalue asc
+  ;
 $$;
 
 
@@ -416,12 +417,10 @@ CREATE FUNCTION app_public.gene_set_library_enrich_library_background(gene_set_l
     r.pvalue,
     r.adj_pvalue
   from
-    overlap o
-    inner join (
-      select r.*
-      from vectorized, internal.fishers_exact(vectorized.ids, vectorized.a, vectorized.b, vectorized.c, vectorized.d, vectorized.n, fdr, pvalue_less_than, adj_pvalue_less_than) r
-    ) r on o.gene_set_id = r.id
-  order by r.pvalue asc;
+    vectorized,
+    internal.fishers_exact(vectorized.ids, vectorized.a, vectorized.b, vectorized.c, vectorized.d, vectorized.n, fdr, pvalue_less_than, adj_pvalue_less_than) r
+    left join overlap o on o.gene_set_id = r.id
+  ;
 $$;
 
 
@@ -492,12 +491,10 @@ CREATE FUNCTION app_public.gene_set_library_enrich_user_background(gene_set_libr
     r.pvalue,
     r.adj_pvalue
   from
-    overlap o
-    inner join (
-      select r.*
-      from vectorized, internal.fishers_exact(vectorized.ids, vectorized.a, vectorized.b, vectorized.c, vectorized.d, vectorized.n, fdr, pvalue_less_than, adj_pvalue_less_than) r
-    ) r on o.gene_set_id = r.id
-  order by r.pvalue asc;
+    vectorized,
+    internal.fishers_exact(vectorized.ids, vectorized.a, vectorized.b, vectorized.c, vectorized.d, vectorized.n, fdr, pvalue_less_than, adj_pvalue_less_than) r
+    left join overlap o on o.gene_set_id = r.id
+  ;
 $$;
 
 
@@ -593,39 +590,6 @@ CREATE FUNCTION app_public.gene_set_term_search_count(terms character varying[])
   from app_public.gene_set gs
   inner join unnest(terms) ut(term) on gs.term ilike ('%' || ut.term || '%')
   inner join app_public.gene_set_length gsl on gsl.id = gs.id;
-$$;
-
-
---
--- Name: pmc_info; Type: TABLE; Schema: app_public; Owner: -
---
-
-CREATE TABLE app_public.pmc_info (
-    id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
-    pmcid character varying NOT NULL,
-    title character varying,
-    yr integer,
-    doi character varying
-);
-
-
---
--- Name: TABLE pmc_info; Type: COMMENT; Schema: app_public; Owner: -
---
-
-COMMENT ON TABLE app_public.pmc_info IS '@foreignKey (pmcid) references app_public.gene_set_pmc (pmc)';
-
-
---
--- Name: get_pmc_info_by_ids(character varying[]); Type: FUNCTION; Schema: app_public; Owner: -
---
-
-CREATE FUNCTION app_public.get_pmc_info_by_ids(pmcids character varying[]) RETURNS SETOF app_public.pmc_info
-    LANGUAGE sql IMMUTABLE STRICT PARALLEL SAFE
-    AS $$
-  select *
-  from app_public.pmc_info
-  where pmcid = ANY (pmcIds);
 $$;
 
 
@@ -983,28 +947,6 @@ $$;
 
 
 --
--- Name: fishers_exact(uuid[], bigint[], bigint[], bigint[], bigint[], bigint, double precision, double precision, double precision); Type: FUNCTION; Schema: internal; Owner: -
---
-
-CREATE FUNCTION internal.fishers_exact(ids uuid[], a bigint[], b bigint[], c bigint[], d bigint[], n bigint, fdr double precision DEFAULT 0.05, pvalue_less_than double precision DEFAULT 0.05, adj_pvalue_less_than double precision DEFAULT 0.05) RETURNS SETOF internal.fishers_exact_result
-    LANGUAGE plpython3u IMMUTABLE STRICT PARALLEL SAFE
-    AS $$
-  import sigcomlite
-  yield from sigcomlite.fishers_exact(
-    ids=ids,
-    a=a,
-    b=b,
-    c=c,
-    d=d,
-    n=n,
-    fdr=fdr,
-    pvalue_less_than=pvalue_less_than,
-    adj_pvalue_less_than=adj_pvalue_less_than,
-  )
-$$;
-
-
---
 -- Name: gene_id_map_from_genes(character varying[]); Type: FUNCTION; Schema: internal; Owner: -
 --
 
@@ -1272,6 +1214,26 @@ COMMENT ON VIEW app_public.pmc IS '@foreignKey (pmc) references app_public.gene_
 
 
 --
+-- Name: pmc_info; Type: TABLE; Schema: app_public; Owner: -
+--
+
+CREATE TABLE app_public.pmc_info (
+    id uuid DEFAULT public.uuid_generate_v4() NOT NULL,
+    pmcid character varying NOT NULL,
+    title character varying,
+    yr integer,
+    doi character varying
+);
+
+
+--
+-- Name: TABLE pmc_info; Type: COMMENT; Schema: app_public; Owner: -
+--
+
+COMMENT ON TABLE app_public.pmc_info IS '@foreignKey (pmcid) references app_public.gene_set_pmc (pmc)';
+
+
+--
 -- Name: gene_set_pmc; Type: MATERIALIZED VIEW; Schema: app_public_v2; Owner: -
 --
 
@@ -1533,6 +1495,13 @@ CREATE INDEX gene_set_library_id_idx ON app_public.gene_set USING btree (library
 
 
 --
+-- Name: gene_set_pmc_id; Type: INDEX; Schema: app_public; Owner: -
+--
+
+CREATE INDEX gene_set_pmc_id ON app_public.gene_set_pmc USING btree (id);
+
+
+--
 -- Name: gene_set_pmc_id_idx; Type: INDEX; Schema: app_public; Owner: -
 --
 
@@ -1716,4 +1685,5 @@ INSERT INTO public.schema_migrations (version) VALUES
     ('20240108174441'),
     ('20240116174826'),
     ('20240312145213'),
-    ('20241030152737');
+    ('20241030152737'),
+    ('20241203171342');
