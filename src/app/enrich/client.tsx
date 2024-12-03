@@ -33,15 +33,29 @@ type GeneSetModalT = {
   description: string,
 } | undefined
 
+function BreakLong({ children, className = "break-words", long = 16 }: { children: string, className?: string, long?: number }) {
+  const chunks: string[] = []
+  const expr = /[^\w]+/g
+  let m: RegExpExecArray | null = null
+  let i = 0
+  while ((m = expr.exec(children)) !== null) {
+    chunks.push(...array.interpolate<any>(array.even_chunk(children.slice(i, m.index), long), <wbr />))
+    chunks.push(m[0])
+    i = m.index + m.length
+  }
+  chunks.push(...array.interpolate<any>(array.even_chunk(children.slice(i), long), <wbr />))
+  return <span key={i} className={className}>{chunks.map((text, i) => <React.Fragment key={i}>{text}</React.Fragment>)}</span>
+}
+
 function description_markdown(text: string) {
   if (!text) return <span className="italic">No description found</span>
   const m = /\*\*(.+?)\*\*/.exec(text)
-  if (m) return <><span>{text.slice(0, m.index)}</span><span className="font-bold italic">{m[1]}</span><span>{text.slice(m.index + 4 + m[1].length)}</span></>
+  if (m) return <>
+    <BreakLong>{text.slice(0, m.index)}</BreakLong>
+    <BreakLong className="font-bold italic">{m[1]}</BreakLong>
+    <BreakLong>{text.slice(m.index + 4 + m[1].length)}</BreakLong>
+  </>
   return text
-}
-
-function Breakable(props: { children: string }) {
-  return props.children.split('_').map((part, i) => <React.Fragment key={i}>{(i === 0 ? '' : '_') + part}<wbr /></React.Fragment>)
 }
 
 function EnrichmentResults({ userGeneSet, setModalGeneSet }: { userGeneSet?: FetchUserGeneSetQuery, setModalGeneSet: React.Dispatch<React.SetStateAction<GeneSetModalT>> }) {
@@ -174,7 +188,7 @@ function EnrichmentResults({ userGeneSet, setModalGeneSet }: { userGeneSet?: Fet
                             href={`https://www.ncbi.nlm.nih.gov/pmc/articles/${pmcid}/bin/${table}`}
                             target="_blank"
                           >
-                            <Breakable>{table}</Breakable>
+                            <BreakLong>{table}</BreakLong>
                           </a>
                         </td> : null}
                         <td rowSpan={1}>
@@ -188,7 +202,7 @@ function EnrichmentResults({ userGeneSet, setModalGeneSet }: { userGeneSet?: Fet
                                 description: geneSet.term ?? '',
                               })
                             }}
-                          ><Breakable>{column}</Breakable></label>
+                          ><BreakLong>{column}</BreakLong></label>
                         </td>
                         {paperIndex === 0 && tableIndex === 0 && columnIndex === 0 ? <>
                           <td rowSpan={nPaperTableColumns+nPaperTables} className="whitespace-nowrap text-underline cursor-pointer">

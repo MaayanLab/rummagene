@@ -24,3 +24,30 @@ export function partition(str: string, sep: string) {
   if (i === -1) return [str, undefined, undefined] as const
   return [str.substring(0, i), sep, str.substring(i+sep.length)] as const
 }
+
+export function interpolate<T>(L: T[], sep: T) {
+  const I: T[] = []
+  I.push(L[0])
+  for (let i = 1; i < L.length; i++) {
+    I.push(sep)
+    I.push(L[i])
+  }
+  return I
+}
+
+export function even_chunk(text: string, size = 8) {
+  const chunks: string[] = []
+  let i = 0
+  let r = (text.length % size)/size < 0.5 ? text.length % size : 0
+  while (i < text.length) {
+    if (r > 0) {
+      chunks.push(text.slice(i, i+size+1))
+      i += 1
+      r -= 1
+    } else {
+      chunks.push(text.slice(i, i+size))
+    }
+    i += size
+  }
+  return chunks
+}
