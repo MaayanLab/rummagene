@@ -8,14 +8,13 @@ import {
   useOverlapQueryQuery,
   useViewGeneSetQuery
 } from '@/graphql'
-import ensureArray from "@/utils/ensureArray"
 import Loading from '@/components/loading'
 import Pagination from '@/components/pagination'
 import useQsState from '@/utils/useQsState'
 import Stats from '../stats'
 import Image from 'next/image'
 import GeneSetModal from '@/components/geneSetModal'
-import partition from '@/utils/partition'
+import * as array from '@/utils/array'
 
 const pageSize = 10
 
@@ -47,7 +46,7 @@ function Breakable(props: { children: string }) {
 
 function EnrichmentResults({ userGeneSet, setModalGeneSet }: { userGeneSet?: FetchUserGeneSetQuery, setModalGeneSet: React.Dispatch<React.SetStateAction<GeneSetModalT>> }) {
   const genes = React.useMemo(() =>
-    ensureArray(userGeneSet?.userGeneSet?.genes).filter((gene): gene is string => !!gene).map(gene => gene.toUpperCase()),
+    array.ensure(userGeneSet?.userGeneSet?.genes).filter((gene): gene is string => !!gene).map(gene => gene.toUpperCase()),
     [userGeneSet]
   )
   const [queryString, setQueryString] = useQsState({ page:  '1', q: '' })
@@ -134,7 +133,7 @@ function EnrichmentResults({ userGeneSet, setModalGeneSet }: { userGeneSet?: Fet
               let nPaperTables = 0
               let nPaperTableColumns = 0
               for (const node of enrichmentResult?.geneSets.nodes) {
-                const [paper, _, term] = partition(node.term, '-')
+                const [paper, _, term] = array.partition(node.term, '-')
                 const m = term ? /^(.+?\.\w+)-+(.+)$/.exec(term) : null
                 const table = m ? m[1] : ''
                 const column = m ? m[2] : term ?? ''
@@ -287,7 +286,7 @@ export default function EnrichClientPage({
     dataset: string | string[] | undefined
   },
 }) {
-  const dataset = ensureArray(searchParams.dataset)[0]
+  const dataset = array.ensure(searchParams.dataset)[0]
   const { data: userGeneSet } = useFetchUserGeneSetQuery({
     skip: !dataset,
     variables: { id: dataset },

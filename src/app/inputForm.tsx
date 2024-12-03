@@ -1,7 +1,7 @@
 'use client'
 import React from 'react'
 import example from './example.json'
-import uniqueArray from '@/utils/uniqueArray'
+import * as array from '@/utils/array'
 import { useAddUserGeneSetMutation } from '@/graphql'
 import classNames from 'classnames'
 import { useRouter } from 'next/navigation'
@@ -10,7 +10,7 @@ import { useRouter } from 'next/navigation'
 export default function InputForm() {
   const router = useRouter()
   const [rawGenes, setRawGenes] = React.useState('')
-  const genes = React.useMemo(() => uniqueArray(rawGenes.split(/[;,\t\r\n\s]+/).filter(v => v)), [rawGenes])
+  const genes = React.useMemo(() => array.unique(rawGenes.split(/[;,\t\r\n\s]+/).filter(v => v)), [rawGenes])
   const [addUserGeneSetMutation, { loading, error }] = useAddUserGeneSetMutation()
   var fileReader = React.useRef<FileReader | null>(null);
 

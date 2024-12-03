@@ -1,7 +1,6 @@
 import { EnrichmentQueryDocument, EnrichmentQueryQuery, FetchUserGeneSetDocument, FetchUserGeneSetQuery } from "@/graphql"
 import { getClient } from "@/lib/apollo/client"
-import ensureArray from "@/utils/ensureArray"
-import partition from "@/utils/partition"
+import * as array from "@/utils/array"
 import streamTsv from "@/utils/streamTsv"
 
 export const dynamic = 'force-dynamic'
@@ -14,7 +13,7 @@ export async function GET(request: Request) {
     variables: { id: dataset },
   })
   if (userGeneSetError) throw new Error(userGeneSetError.message)
-  const genes = ensureArray(userGeneSet.userGeneSet?.genes).filter((gene): gene is string => !!gene).map(gene => gene.toUpperCase())
+  const genes = array.ensure(userGeneSet.userGeneSet?.genes).filter((gene): gene is string => !!gene).map(gene => gene.toUpperCase())
   const { data: enrichmentResults, error: enrichmentResultsError } = await getClient().query<EnrichmentQueryQuery>({
     query: EnrichmentQueryDocument,
     variables: {
@@ -40,7 +39,7 @@ export async function GET(request: Request) {
       }))),
       item => {
       if (!item?.geneSet) return
-      const [pmcid, _, term] = partition(item.geneSet.term, '-')
+      const [pmcid, _, term] = array.partition(item.geneSet.term, '-')
       const m = term ? /^(.+?\.\w+)-+(.+)$/.exec(term) : null
       const table = m ? m[1] : null
       const column = m ? m[2] : term
