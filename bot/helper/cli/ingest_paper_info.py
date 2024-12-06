@@ -24,8 +24,9 @@ def import_paper_info(plpy):
   ]
 
   # use information from bulk download metadata table (https://ftp.ncbi.nlm.nih.gov/pub/pmc/)
+  oa_file_list = pd.read_csv('https://ftp.ncbi.nlm.nih.gov/pub/pmc/oa_file_list.csv', usecols=['Accession ID', 'License', 'Article Citation'], index_col='Accession ID')
   pmc_meta = pd.read_csv('https://ftp.ncbi.nlm.nih.gov/pub/pmc/PMC-ids.csv.gz', usecols=['PMCID', 'Year', 'DOI'], index_col='PMCID', compression='gzip')
-  pmc_meta = pmc_meta[pmc_meta.index.isin(to_ingest)]
+  pmc_meta = pmc_meta[pmc_meta.index.isin(to_ingest)].merge(oa_file_list, how='inner', left_index=True, right_index=True)
   if pmc_meta.shape[0] == 0:
     return
 
@@ -54,13 +55,15 @@ def import_paper_info(plpy):
 
   if title_dict:
     copy_from_records(
-      plpy.conn, 'app_public_v2.pmc_info', ('pmcid', 'yr', 'doi', 'title'),
+      plpy.conn, 'app_public_v2.pmc_info', ('pmcid', 'yr', 'doi', 'title', 'attribution', 'license'),
       tqdm((
         dict(
           pmcid=pmc,
           yr=int(pmc_meta.at[pmc, 'Year']),
           doi=pmc_meta.at[pmc, 'DOI'],
           title=title_dict[pmc],
+          attribution=pmc_meta.at[pmc, 'Article Citation'],
+          license=pmc_meta.at[pmc, 'License'],
         )
         for pmc in pmc_meta.index.values
         if pmc in title_dict
