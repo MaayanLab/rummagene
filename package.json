@@ -1,6 +1,6 @@
 {
   "name": "rummagene",
-  "version": "0.3.13",
+  "version": "0.3.14",
   "private": true,
   "scripts": {
     "dev": "concurrently \"next dev\" \"npm run generate -- --watch ./src/graphql/**/*.graphql\"",
