@@ -11,7 +11,7 @@ import {
 import Loading from '@/components/loading'
 import Pagination from '@/components/pagination'
 import useQsState from '@/utils/useQsState'
-import Stats from '../stats'
+import Stats from '@/components/stats'
 import Image from 'next/image'
 import GeneSetModal from '@/components/geneSetModal'
 import * as array from '@/utils/array'

@@ -5,7 +5,7 @@ import TermTable from '@/components/termTable'
 import Image from 'next/image'
 import useQsState from '@/utils/useQsState'
 import HomeLayout from '@/app/homeLayout'
-import Stats from '../stats'
+import Stats from '@/components/stats'
 
 export function TermSearchResults({ terms }: { terms: string }) {
   const { data } = useTermSearchQuery({

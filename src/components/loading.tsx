@@ -1,7 +1,7 @@
 
 import React from 'react'
 import Image from 'next/image'
-import Stats from '@/app/stats'
+import Stats from '@/components/stats'
 
 export default function Loading() {
   return (

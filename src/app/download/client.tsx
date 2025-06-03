@@ -1,6 +1,6 @@
 'use client'
 import React from 'react'
-import Stats from "@/app/stats";
+import Stats from "@/components/stats";
 import { useLatestReleaseQuery } from "@/graphql";
 
 // TODO: have downloads as a table in the database

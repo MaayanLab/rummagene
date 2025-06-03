@@ -1,6 +1,6 @@
 import Image from 'next/image'
 import React from 'react'
-import Stats from './stats'
+import Stats from '@/components/stats'
 
 export default function HomeLayout({ children }: React.PropsWithChildren<{}>) {
   return (
