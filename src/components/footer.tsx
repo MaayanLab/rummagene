@@ -2,8 +2,11 @@
 import React from 'react'
 import Link from "next/link"
 import Image from 'next/image'
+import { useSearchParams } from 'next/navigation'
 
 export default function Footer() {
+  const searchParams = useSearchParams()
+  if (searchParams?.get('embed') !== null) return null
   return (
     <footer className="flex-none footer p-5 mt-5 bg-neutral text-neutral-content flex place-content-evenly">
       <div className="text-center pt-5">
