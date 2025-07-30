@@ -3,8 +3,8 @@ import type { NextApiRequest, NextApiResponse } from 'next'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   let { method, body } = req
-  res.statusCode = 200
-  if (method === 'GET') {
+  const path = Array.isArray(req.query.path) ? req.query.path.join('/') : req.query.path ?? ''
+  if (path === 'graphql' && method === 'GET') {
     req.method = 'POST'
     req.body = {
       query: req.query.query,
@@ -12,20 +12,26 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       variables: req.query.variables,
     }
   }
-  await new Promise<void>(
-    (resolve, reject) => postgraphile(req, res,
-      (err) => {
-        req.method = method
-        req.body = body
-        if (err) {
-          reject(err)
-        } else {
-          resolve()
+  try {
+    await new Promise<void>(
+      (resolve, reject) => postgraphile(req, res,
+        (err) => {
+          req.method = method
+          req.body = body
+          if (err) {
+            reject(err)
+          } else {
+            resolve()
+          }
         }
-      }
+      )
     )
-  )
-  res.end()
+    res.statusCode = 200
+  } catch (e) {
+    res.statusCode = 500
+  } finally {
+    res.end()
+  }
 }
 
 export const config = {
