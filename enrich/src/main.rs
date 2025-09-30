@@ -9,6 +9,7 @@ use num::Integer;
 use rocket::http::ContentType;
 use std::future;
 use std::io::Cursor;
+use std::ops::DerefMut;
 use rocket::request::Request;
 use rocket::response::{self, Response, Responder, stream::TextStream};
 use rocket_db_pools::{Database, Connection};
@@ -132,7 +133,8 @@ async fn ensure_index(db: &mut Connection<Postgres>, state: &State<PersistentSta
 
         let background_info = sqlx::query("select id, (select jsonb_object_agg(g.id, g.symbol) from jsonb_each(gene_ids) bg(gene_id, nil) inner join app_public_v2.gene g on bg.gene_id::uuid = g.id) as genes from app_public_v2.background b where id = $1::uuid;")
             .bind(background_id.to_string())
-            .fetch_one(&mut **db).await.map_err(|e| e.to_string())?;
+            .fetch_one(&mut **db.deref_mut())
+            .await.map_err(|e| e.to_string())?;
 
         let background_genes: sqlx::types::Json<HashMap<String, String>> = background_info.try_get("genes").map_err(|e| e.to_string())?;
         let mut background_genes = background_genes.iter().map(|(id, symbol)| Ok((Uuid::parse_str(id).map_err(|e| e.to_string())?, symbol.clone()))).collect::<Result<Vec<_>, String>>()?;
@@ -152,7 +154,7 @@ async fn ensure_index(db: &mut Connection<Postgres>, state: &State<PersistentSta
         sqlx::query(
             "select gene_set.id, gene_set.term, coalesce(gene_set.description, '') as description, gene_set.hash, gene_set.gene_ids, gene_set_pmc.pmc from app_public_v2.gene_set left join app_public_v2.gene_set_pmc on gene_set.id = gene_set_pmc.id;"
         )
-            .fetch(&mut **db)
+            .fetch(&mut **db.deref_mut())
             .for_each(|row| {
                 let row = row.unwrap();
                 let gene_set_id: uuid::Uuid = row.try_get("id").unwrap();
@@ -176,7 +178,7 @@ async fn ensure_index(db: &mut Connection<Postgres>, state: &State<PersistentSta
         sqlx::query(
             "select pmcid, title from app_public_v2.pmc_info;"
         )
-            .fetch(&mut **db)
+            .fetch(&mut **db.deref_mut())
             .for_each(|row| {
                 let row = row.unwrap();
                 let pmcid: String = row.try_get("pmcid").unwrap();

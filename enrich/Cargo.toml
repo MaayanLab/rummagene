@@ -6,22 +6,22 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-rocket = { version = "=0.5.0-rc.3", features = ["json"] }
-uuid = "1.4.1"
-adjustp = "0.1.4"
+rocket = { version = "=0.5.1", features = ["json"] }
+uuid = "1.18"
+adjustp = "0.1.6"
 serde = "1.0"
-rayon = "1.7"
+rayon = "1.11"
 futures = "0.3"
-async-lock = "2.8"
-retainer = "0.3"
-tikv-jemallocator = "0.5.0"
+async-lock = "3.4"
+retainer = "0.4"
+tikv-jemallocator = "0.6"
 num = "0.4"
 
 [dependencies.rocket_db_pools]
-version = "=0.1.0-rc.3"
+version = "0.2.0"
 features = ["sqlx_postgres"]
 
 [dependencies.sqlx]
-version = "0.6"
+version = "0.7"
 default-features = false
 features = ["uuid"]
