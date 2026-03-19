@@ -2,8 +2,7 @@
 # this script is meant to run as a weekly cronjob.
 # it assumes that the rummagene directory is next to the tablemining directory
 
-PYTHON=uv run python
-which $PYTHON > /dev/null || exit 1
+PYTHON="uv run python"
 
 WORK_DIR=data/$(date +%Y-%m-%d)
 if [ -d $WORK_DIR ]; then rm -r $WORK_DIR; fi

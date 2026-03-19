@@ -3,7 +3,7 @@ biopython
 bokeh==2.3.2
 click
 fastcluster
-git+https://github.com/Maayanlab/maayanlab-bioinformatics.git
+maayanlab_bioinformatics @ git+https://github.com/Maayanlab/maayanlab-bioinformatics.git
 html5lib
 jpype1
 lxml

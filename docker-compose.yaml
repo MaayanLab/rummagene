@@ -39,7 +39,7 @@ services:
   rummagene-bot:
     build: bot
     platform: linux/amd64
-    image: maayanlab/rummagene-bot:0.2.2
+    image: maayanlab/rummagene-bot:0.2.3
     command: ["bash", "-c", "cd /work/data && touch log && tail -f log"]
     environment:
       - DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@rummagene-postgres:5432/${POSTGRES_DB}
