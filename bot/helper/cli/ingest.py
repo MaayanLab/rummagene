@@ -87,6 +87,7 @@ def import_gene_set_library(
     ),
     total=len(new_gene_sets) - len(existing),
     desc='Inserting new genesets...'),
+    on_conflict_update=False, # TODO: do we want to update updated description/gene sets? why would it happen?
   )
 
   plpy.execute('refresh materialized view concurrently app_public_v2.gene_set_pmc', [])
