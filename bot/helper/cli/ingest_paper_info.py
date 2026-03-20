@@ -1,7 +1,7 @@
 import traceback
 from tqdm import tqdm
 from helper.cli import cli
-from helper.utils import copy_from_records
+import df2pg
 
 def import_paper_info(plpy):
   import pandas as pd
@@ -53,20 +53,23 @@ def import_paper_info(plpy):
           raise RuntimeError(f'Error connecting to E-utilites api...')
 
   if title_dict:
-    copy_from_records(
-      plpy.conn, 'app_public_v2.pmc_info', ('pmcid', 'yr', 'doi', 'title'),
-      tqdm((
-        dict(
-          pmcid=pmc,
-          yr=int(pmc_meta.at[pmc, 'Year']),
-          doi=pmc_meta.at[pmc, 'DOI'],
-          title=title_dict[pmc],
-        )
-        for pmc in pmc_meta.index.values
-        if pmc in title_dict
-      ),
-      total=len(title_dict),
-      desc='Inserting PMC info..')
+    df2pg.copy_from_records(
+      con=plpy.conn,
+      table='app_public_v2.pmc_info',
+      columns=('pmcid', 'yr', 'doi', 'title'),
+      records=tqdm((
+          dict(
+            pmcid=pmc,
+            yr=int(pmc_meta.at[pmc, 'Year']),
+            doi=pmc_meta.at[pmc, 'DOI'],
+            title=title_dict[pmc],
+          )
+          for pmc in pmc_meta.index.values
+          if pmc in title_dict
+        ),
+        total=len(title_dict),
+        desc='Inserting PMC info..'
+      )
     )
 
 @cli.command()

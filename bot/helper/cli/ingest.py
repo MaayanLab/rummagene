@@ -1,8 +1,8 @@
 import click
+import df2pg
 from pathlib import Path
 from tqdm import tqdm
 from helper.cli import cli
-from helper.utils import copy_from_records
 
 def import_gene_set_library(
   plpy,
@@ -59,9 +59,12 @@ def import_gene_set_library(
     for id in (str(uuid.uuid4()),)
   }
   if new_genes:
-    copy_from_records(
-      plpy.conn, 'app_public_v2.gene', ('id', 'symbol',),
-      tqdm(new_genes.values(), desc='Inserting new genes...'))
+    df2pg.copy_from_records(
+      con=plpy.conn,
+      table='app_public_v2.gene',
+      columns=('id', 'symbol',),
+      records=tqdm(new_genes.values(), desc='Inserting new genes...')
+    )
     gene_map.update({
       new_gene['symbol']: new_gene['id']
       for new_gene in new_genes.values()
@@ -72,22 +75,28 @@ def import_gene_set_library(
     for row in plpy.cursor('select term, description, hash from app_public_v2.gene_set', tuple())
   }
 
-  copy_from_records(
-    plpy.conn, 'app_public_v2.gene_set', ('term', 'description', 'hash', 'gene_ids', 'n_gene_ids'),
-    tqdm((
-      dict(
-        term=gene_set['term'],
-        description=gene_set['description'],
-        hash=gene_set['hash'],
-        gene_ids=json.dumps({gene_map[gene]: position for position, gene in enumerate(gene_set['genes'])}),
-        n_gene_ids=len(gene_set['genes']),
-      )
-      for gene_set in new_gene_sets
-      if (gene_set['term'], gene_set['description'], gene_set['hash']) not in existing
+  df2pg.copy_from_records(
+    con=plpy.conn,
+    table='app_public_v2.gene_set',
+    columns=('term', 'description', 'hash', 'gene_ids', 'n_gene_ids'),
+    records=tqdm((
+        dict(
+          term=gene_set['term'],
+          description=gene_set['description'],
+          hash=gene_set['hash'],
+          gene_ids=json.dumps({gene_map[gene]: position for position, gene in enumerate(gene_set['genes'])}),
+          n_gene_ids=len(gene_set['genes']),
+        )
+        for gene_set in new_gene_sets
+        if (gene_set['term'], gene_set['description'], gene_set['hash']) not in existing
+      ),
+      total=len(new_gene_sets) - len(existing),
+      desc='Inserting new genesets...'
     ),
-    total=len(new_gene_sets) - len(existing),
-    desc='Inserting new genesets...'),
-    on_conflict_update=False, # TODO: do we want to update updated description/gene sets? why would it happen?
+    on=dict(
+      conflict=('term',),
+      update=False,
+    ), # TODO: do we want to update updated description/gene sets? why would it happen?
   )
 
   plpy.execute('refresh materialized view concurrently app_public_v2.gene_set_pmc', [])

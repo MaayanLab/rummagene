@@ -1,8 +1,8 @@
 import urllib.request
+import df2pg
 from tqdm import tqdm
 from pathlib import Path
 from helper.cli import cli
-from helper.utils import copy_from_records
 
 def ensure_gene_info(organism='Mammalia/Homo_sapiens'):
   gene_info_path = Path(f"{organism}.gene_info.gz")
@@ -93,20 +93,26 @@ def import_gene_info(plpy):
   df = df.drop_duplicates(subset='Symbol').set_index('Symbol').loc[genes_without_info, ['GeneID', 'description', 'summary']]
 
   if df.shape[0] > 0:
-    copy_from_records(
-      plpy.conn, 'app_public_v2.gene', ('symbol', 'ncbi_gene_id', 'description', 'summary'),
-      tqdm((
-        dict(
-          symbol=symbol,
-          ncbi_gene_id=row['GeneID'],
-          description=row['description'],
-          summary=row['summary'],
-        )
-        for symbol, row in df.iterrows()
+    df2pg.copy_from_records(
+      con=plpy.conn,
+      table='app_public_v2.gene',
+      columns=('symbol', 'ncbi_gene_id', 'description', 'summary'),
+      records=tqdm((
+          dict(
+            symbol=symbol,
+            ncbi_gene_id=row['GeneID'],
+            description=row['description'],
+            summary=row['summary'],
+          )
+          for symbol, row in df.iterrows()
+        ),
+        total=df.shape[0],
+        desc='Inserting gene info'
       ),
-      total=df.shape[0],
-      desc='Inserting gene info'),
-      on_conflict_update=('symbol',),
+      on=dict(
+        conflict=('symbol',),
+        update=True,
+      ),
     )
 
 @cli.command()

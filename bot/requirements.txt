@@ -26,3 +26,4 @@ tabula-py
 tqdm
 umap-learn
 xlrd
+df2pg @ git+https://gist.github.com/44d39f35c779192f4a34bf5279356ae3.git
