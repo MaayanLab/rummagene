@@ -176,7 +176,7 @@ function EnrichmentResults({ userGeneSet, setModalGeneSet }: { userGeneSet?: Fet
                         {tableIndex === 0 && columnIndex === 0 ? <th rowSpan={nTableColumns+Object.keys(tables).length}>
                           <a
                             className="underline cursor-pointer"
-                            href={`https://www.ncbi.nlm.nih.gov/pmc/articles/${pmcid}/`}
+                            href={`https://pmc.ncbi.nlm.nih.gov/articles/${pmcid}/`}
                             target="_blank"
                             rel="noreferrer"
                           >{pmcid}</a>
@@ -185,7 +185,7 @@ function EnrichmentResults({ userGeneSet, setModalGeneSet }: { userGeneSet?: Fet
                         {columnIndex === 0 ? <td rowSpan={Object.keys(columns).length}>
                           <a
                             className="underline cursor-pointer"
-                            href={`https://www.ncbi.nlm.nih.gov/pmc/articles/${pmcid}/bin/${table}`}
+                            href={`https://pmc.ncbi.nlm.nih.gov/articles/instance/${pmcid.substring('PMC'.length)}/bin/${table}`}
                             target="_blank"
                           >
                             <BreakLong>{table}</BreakLong>

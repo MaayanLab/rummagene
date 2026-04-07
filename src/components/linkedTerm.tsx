@@ -15,7 +15,7 @@ export default function LinkedTerm({ term }: { term?: string | null }) {
       {paper ?
         <a
           className="underline cursor-pointer"
-          href={`https://www.ncbi.nlm.nih.gov/pmc/articles/${paper}/`}
+          href={`https://pmc.ncbi.nlm.nih.gov/articles/${paper}/`}
           target="_blank"
           rel="noreferrer"
         >{paper}</a>
