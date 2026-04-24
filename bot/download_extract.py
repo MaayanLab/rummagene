@@ -352,7 +352,7 @@ def fetch_oa_file_list(data_dir = Path()):
   '''
   oa_file_list = data_dir / 'oa_file_list.csv'
   if not oa_file_list.exists():
-    df = pd.read_csv('https://ftp.ncbi.nlm.nih.gov/pub/pmc/oa_file_list.csv')
+    df = pd.read_csv('https://ftp.ncbi.nlm.nih.gov/pub/pmc/deprecated/oa_file_list.csv')
     ts_col = df.columns[-3]
     df[ts_col] = pd.to_datetime(df[ts_col])
     df.sort_values(ts_col, ascending=False, inplace=True)
@@ -392,7 +392,7 @@ def fetch_extract_gmt_from_oa_package(oa_package):
   ''' Given the oa_package name from the oa_file_list, we'll download it temporarily and then extract a gmt out of it
   '''
   with tempfile.NamedTemporaryFile(prefix='rummagene-', suffix=''.join(PurePosixPath(oa_package).suffixes)) as tmp:
-    with urllib.request.urlopen(f"https://ftp.ncbi.nlm.nih.gov/pub/pmc/{oa_package}") as fr:
+    with urllib.request.urlopen(f"https://ftp.ncbi.nlm.nih.gov/pub/pmc/deprecated/{oa_package}") as fr:
       shutil.copyfileobj(fr, tmp)
     tmp.flush()
     return list(extract_gmt_from_oa_package(tmp.name))
