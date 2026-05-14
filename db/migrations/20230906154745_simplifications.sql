@@ -128,7 +128,7 @@ grant all privileges on table app_public_v2.background to authenticated;
 --     let a = n_overlap_gene_id as u32;
 --     let b = (n_user_gene_id as u32) - a;
 --     let c = (n_gs_gene_id as u32) - a;
---     let d = (n_background as u32) - b - c + a;
+--     let d = (n_background as u32) - b - c - a;
 --     let table = [a, b, c, d];
 --     let result = fishers_exact(&table).unwrap();
 --     pvalues.push(result.greater_pvalue);

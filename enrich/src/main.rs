@@ -328,7 +328,7 @@ async fn query(
                     let a = n_overlap;
                     let b = n_user_gene_id - a;
                     let c = n_gs_gene_id - a;
-                    let d = n_background - b - c + a;
+                    let d = n_background - b - c - a;
                     let pvalue = fisher.get_p_value(a as usize, b as usize, c as usize, d as usize);
                     if pvalue > pvalue_le {
                         return None
