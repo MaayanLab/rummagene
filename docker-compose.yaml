@@ -1,11 +1,13 @@
-version: '3.9'
 services:
   rummagene-app:
     build: .
     platform: linux/amd64
     image: maayanlab/rummagene:0.3.19
+    x-kubernetes:
+      annotations:
+        maayanlab.cloud/ingress: https://rummagene.k8s.maayanlab.cloud
     environment:
-      - PUBLIC_URL=https://rummagene.com
+      - PUBLIC_URL=https://rummagene.k8s.maayanlab.cloud
       - DATABASE_URL=postgres://$POSTGRES_USER:$POSTGRES_PASSWORD@rummagene-postgres/$POSTGRES_DB
       - AUTHORIZATION_HEADER=$AUTHORIZATION_HEADER
       - NODE_ENV=production
@@ -13,8 +15,6 @@ services:
       - NEXT_PUBLIC_GA_MEASUREMENT_ID=$NEXT_PUBLIC_GA_MEASUREMENT_ID
     ports:
       - 3000:3000
-    volumes:
-      - ./data/bot/output-clean.gmt:/app/public/latest.gmt:ro
   rummagene-enrich:
     build: enrich
     platform: linux/amd64
@@ -35,23 +35,23 @@ services:
     ports:
       - 5432:5432
     volumes:
-      - ./data/postgres/:/var/lib/postgresql/data
+      - rummagene-postgres:/var/lib/postgresql/data
+
   rummagene-bot:
     build: bot
     platform: linux/amd64
     image: maayanlab/rummagene-bot:0.3.0
-    restart: never
     pull_policy: missing
     deploy:
       replicas: 0
     x-kubernetes:
-      # 0 second
+      restartPolicy: Never
       # 0 minute
       # 9 hour
       # * day of month
       # * month of year
       # 1 day of week (monday)
-      cron: '0 0 9 * * 1'
+      cron: '0 9 * * 1'
     environment:
       - DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@rummagene-postgres:5432/${POSTGRES_DB}
       - ENRICH_URL=http://rummagene-enrich:8000
@@ -64,29 +64,12 @@ services:
       - RCLONE_CONFIG_S3_ACCESS_KEY_ID
       - RCLONE_CONFIG_S3_SECRET_ACCESS_KEY
 
-  rummagene-backup:
-    image: restic/restic
-    entrypoint: ["/bin/sh", "-c"]
-    command: ["apk add --no-cache postgresql-client && mkdir -p /work/backup && cd /work/backup && touch log && tail -f log"]
-    environment:
-      - DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@rummagene-postgres:5432/${POSTGRES_DB}
-      - RESTIC_REPOSITORY
-      - RESTIC_PASSWORD
-      - AWS_ACCESS_KEY_ID
-      - AWS_SECRET_ACCESS_KEY
-    volumes:
-      - ./data/:/work
-    labels:
-      ofelia.enabled: "true"
-      # Mondays @ 5:00
-      ofelia.job-exec.backup-bot.schedule: "0 0 17 * * 1"
-      ofelia.job-exec.backup-bot.command: "/bin/sh -c 'restic backup /work/bot > /work/backup/log 2> /work/backup/log'"
-      # Mondays @ 5:30
-      ofelia.job-exec.backup-db.schedule: "0 30 17 * * 1"
-      ofelia.job-exec.backup-db.command: "/bin/sh -c 'pg_dump -Fc ${DATABASE_URL} | restic backup --stdin > /work/backup/log 2> /work/backup/log'"
+volumes:
+  rummagene-postgres:
+    x-kubernetes:
+      class: ceph-block
+      size: 24G
 
-  cron:
-    image: mcuadros/ofelia:latest
-    command: daemon --docker
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
+x-kubernetes:
+  name: rummagene
+  namespace: rummagene
