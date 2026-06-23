@@ -15,6 +15,15 @@ services:
       - NEXT_PUBLIC_GA_MEASUREMENT_ID=$NEXT_PUBLIC_GA_MEASUREMENT_ID
     ports:
       - 3000:3000
+  rummagene-latest:
+    image: maayanlab/proxy:1.2.16
+    x-kubernetes:
+      annotations:
+        maayanlab.cloud/ingress: https://rummagene.k8s.maayanlab.cloud/latest.gmt
+    ports:
+    - 80
+    environment:
+    - "nginx_redirect_00=/latest.gmt https://s3.k8s.maayanlab.cloud/rummagene/latest/output.gmt"
   rummagene-enrich:
     build: enrich
     platform: linux/amd64
