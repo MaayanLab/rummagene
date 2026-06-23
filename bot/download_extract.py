@@ -38,7 +38,7 @@ def _run_with_timeout(send, fn, *args):
   except Exception as e:
     send.put((e, None))
 
-def run_with_timeout(fn, *args, timeout: int = 60):
+def run_with_timeout(fn, *args, timeout: int = 300):
   mp_spawn = mp.get_context('spawn')
   recv = mp_spawn.Queue()
   proc = mp_spawn.Process(target=_run_with_timeout, args=(recv, fn, *args))
