@@ -23,7 +23,7 @@ services:
     ports:
     - 80
     environment:
-    - "nginx_redirect_00=/latest.gmt https://s3.k8s.maayanlab.cloud/rummagene/latest/output.gmt"
+    - "nginx_redirect_00=/latest.gmt https://s3.k8s.maayanlab.cloud/rummagene/database/latest/output-clean.gmt"
   rummagene-enrich:
     build: enrich
     platform: linux/amd64
