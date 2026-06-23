@@ -1,2 +1,3 @@
 default-jre
 libreoffice-common
+rclone

@@ -39,25 +39,30 @@ services:
   rummagene-bot:
     build: bot
     platform: linux/amd64
-    image: maayanlab/rummagene-bot:0.2.5
-    command: ["bash", "-c", "cd /work/data && touch log && tail -f log"]
-    environment:
-      - DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@rummagene-postgres:5432/${POSTGRES_DB}
-      - ENRICH_URL=http://rummagene-enrich:8000
-      - API_KEY
-      - EMAIL
-    volumes:
-      - ./data/bot/:/work/data
-    labels:
-      ofelia.enabled: "true"
+    image: maayanlab/rummagene-bot:0.3.0
+    restart: unless-stopped
+    pull_policy: missing
+    deploy:
+      replicas: 0
+    x-kubernetes:
       # 0 second
       # 0 minute
       # 9 hour
       # * day of month
       # * month of year
       # 1 day of week (monday)
-      ofelia.job-exec.update-db.schedule: "0 0 9 * * 1"
-      ofelia.job-exec.update-db.command: "/bin/sh -c '/work/bot.sh > /work/data/log 2> /work/data/log'"
+      cron: '0 0 9 * * 1'
+    environment:
+      - DATABASE_URL=postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@rummagene-postgres:5432/${POSTGRES_DB}
+      - ENRICH_URL=http://rummagene-enrich:8000
+      - API_KEY
+      - EMAIL
+      - RCLONE_PATH
+      - RCLONE_CONFIG_S3_TYPE
+      - RCLONE_CONFIG_S3_PROVIDER
+      - RCLONE_CONFIG_S3_ENDPOINT
+      - RCLONE_CONFIG_S3_ACCESS_KEY_ID
+      - RCLONE_CONFIG_S3_SECRET_ACCESS_KEY
 
   rummagene-backup:
     image: restic/restic

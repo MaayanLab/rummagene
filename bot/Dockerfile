@@ -20,3 +20,5 @@ ADD ./helper helper
 ADD ./download_extract.py .
 ADD ./bot.sh .
 RUN chmod +x bot.sh
+
+CMD ["./bot.sh"]

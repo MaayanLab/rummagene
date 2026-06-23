@@ -1,13 +1,24 @@
 #!/bin/sh
 # this script is meant to run as a weekly cronjob.
-# it assumes that the rummagene directory is next to the tablemining directory
+# it stores stuff in rclone path
 
 PYTHON="uv run python"
 
-WORK_DIR=data/$(date +%Y-%m-%d)
-if [ -d $WORK_DIR ]; then rm -r $WORK_DIR; fi
-mkdir -p $WORK_DIR
-ln -s ../done.txt $WORK_DIR/done.txt
+# Example:
+# RCLONE_PATH=s3:rummagene
+# RCLONE_CONFIG_S3_TYPE=s3
+# RCLONE_CONFIG_S3_PROVIDER=Other
+# RCLONE_CONFIG_S3_ENDPOINT=https://s3.amazonaws.com
+# RCLONE_CONFIG_S3_ACCESS_KEY_ID=
+# RCLONE_CONFIG_S3_SECRET_ACCESS_KEY=
+
+test ! -z "$RCLONE_PATH" || echo "Missing RCLONE_PATH and (with RCLONE_CONFIG)"
+test ! -z "$RCLONE_PATH" || exit 1
+
+TIMESTAMP=$(date +%Y-%m-%d)
+WORK_DIR=$(mktemp -d)
+
+rclone copy -P $RCLONE_PATH/latest/done.txt $WORK_DIR || exit 1
 
 echo "assembling output.gmt... (new gene sets extracted from PMC articles)"
 PTH=$WORK_DIR $PYTHON ./download_extract.py || exit 1
@@ -17,6 +28,16 @@ test -f $WORK_DIR/done.new.txt || exit 1
 echo "assembling output-clean.gmt... (pruned, and normalized gene sets)"
 $PYTHON -m helper clean -i $WORK_DIR/output.gmt -o $WORK_DIR/output-clean.gmt || exit 1
 test -f $WORK_DIR/output-clean.gmt || exit 1
+
+echo "adding to RCLONE_PATH..."
+rclone copy -P $WORK_DIR/output.gmt $RCLONE_PATH/$TIMESTAMP/ || exit 1
+rclone copy -P $WORK_DIR/output-clean.gmt $RCLONE_PATH/$TIMESTAMP/ || exit 1
+rclone copy -P $WORK_DIR/done.new.txt $RCLONE_PATH/$TIMESTAMP/ || exit 1
+
+echo "updating latest..."
+cat <(rclone cat $RCLONE_PATH/latest/output.gmt) $WORK_DIR/output.gmt | rclone rcat $RCLONE_PATH/latest/output.gmt
+cat <(rclone cat $RCLONE_PATH/latest/output-clean.gmt) $WORK_DIR/output-clean.gmt | rclone rcat $RCLONE_PATH/latest/output-clean.gmt
+cat $WORK_DIR/done.txt $WORK_DIR/done.new.txt | rclone rcat $RCLONE_PATH/latest/done.txt
 
 echo "ingesting new gene sets..."
 $PYTHON -m helper ingest -i $WORK_DIR/output-clean.gmt || exit 1
@@ -30,13 +51,5 @@ $PYTHON -m helper ingest-gene-info || exit 1
 echo "registering a new release..."
 $PYTHON -m helper create-release "$(wc -l $WORK_DIR/done.new.txt | awk '{ print $1 }')" || exit 1
 
-echo "adding to output.gmt..."
-cat $WORK_DIR/output.gmt >> data/output.gmt
-cat $WORK_DIR/output-clean.gmt >> data/output-clean.gmt
-cat $WORK_DIR/done.new.txt >> data/done.txt
-
 echo "updating app background..."
 ENRICH_URL=$ENRICH_URL $PYTHON -m helper update-background || exit 1
-
-# echo "cleanup work_dir..."
-# rm $WORK_DIR
