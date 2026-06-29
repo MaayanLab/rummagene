@@ -1,24 +1,12 @@
-FROM python:3.11
+FROM maayanlab/base:1.6.0
+COPY deps.txt deps.txt
+RUN /install.sh && rm deps.txt
+COPY requirements.txt requirements.txt
+RUN PYTHON_VERSION=3.11 /install.sh && rm requirements.txt
 
-COPY deps.txt /tmp/deps.txt
-RUN set -x \
-  && apt-get update -y \
-  && xargs apt-get -y install < /tmp/deps.txt \
-  && rm -rf /var/lib/apt/lists/* /tmp/deps.txt \
-  && pip install uv --break-system-packages
-
-WORKDIR /work
-VOLUME ["/work/data"]
-
-ADD ./requirements.txt requirements.txt
-RUN set -x \
-  && uv venv \
-  && uv pip install -r requirements.txt \
-  && rm requirements.txt
-
-ADD ./helper helper
-ADD ./download_extract.py .
-ADD ./bot.sh .
+COPY --chown=ubuntu ./helper helper
+COPY --chown=ubuntu ./download_extract.py .
+COPY --chown=ubuntu ./bot.sh .
 RUN chmod +x bot.sh
 
 CMD ["./bot.sh"]
