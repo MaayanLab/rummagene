@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 # this script is meant to run as a weekly cronjob.
 # it stores stuff in rclone path
 
