@@ -27,6 +27,11 @@ def try_fetch_json(url, tries=1):
       time.sleep(5)
 
 def ensure_gene_summary(chunk_size=100):
+  import pandas as pd
+  gene_info = pd.read_csv(ensure_gene_info(), sep='\t', compression='gzip')
+  return fetch_gene_summary(gene_info, chunk_size=chunk_size)
+
+def fetch_gene_summary(gene_info_without_summary, chunk_size=100):
   # Primary credit to https://www.biostars.org/p/2144/
   # I modified it to:
   #  1. work with python3
@@ -34,10 +39,9 @@ def ensure_gene_summary(chunk_size=100):
   #  3. try again if API returns an error
   import numpy as np
   import pandas as pd
-
   gene_summary_path = Path('data/Homo_sapiens.gene_summary.tsv')
-  gene_info = pd.read_csv(ensure_gene_info(), sep='\t', compression='gzip')
-  gene_ids = gene_info['GeneID'].unique()
+  gene_summary_path.parent.mkdir(exist_ok=True, parents=True)
+  gene_ids = gene_info_without_summary['GeneID'].unique()
   if gene_summary_path.exists():
     results = pd.read_csv(gene_summary_path, sep='\t')
     gene_ids = np.setdiff1d(gene_ids, results['GeneID'].unique())
@@ -50,7 +54,7 @@ def ensure_gene_summary(chunk_size=100):
     result = []
     for g in chunk_genes:
       result.append([g, data['result'][str(g)]['summary'] if str(g) in data['result'] else ''])
-    pd.DataFrame(result, columns=['GeneID', 'summary']).to_csv(gene_summary_path, index=False, mode='a', sep='\t', header=(i==0))
+    pd.DataFrame(result, columns=['GeneID', 'summary']).to_csv(gene_summary_path, index=False, mode='a', sep='\t', header=not gene_summary_path.exists())
   return gene_summary_path
 
 def ensure_gene_info_complete():
@@ -79,8 +83,8 @@ def ensure_gene_info_complete():
 
 def import_gene_info(plpy):
   import pandas as pd
-  df = pd.read_csv(ensure_gene_info_complete(), sep='\t')
-  symbols = set(df['Symbol'].unique())
+  gene_info = pd.read_csv(ensure_gene_info(), sep='\t', compression='gzip')
+  symbols = set(gene_info['Symbol'].unique())
   genes_without_info = [
     row['symbol']
     for row in plpy.cursor('''
@@ -90,9 +94,16 @@ def import_gene_info(plpy):
     ''', tuple())
     if row['symbol'] in symbols
   ]
-  df = df.drop_duplicates(subset='Symbol').set_index('Symbol').loc[genes_without_info, ['GeneID', 'description', 'summary']]
+  gene_info_without_summary = gene_info.drop_duplicates(subset='Symbol').set_index('Symbol').loc[genes_without_info, ['GeneID', 'description']]
 
-  if df.shape[0] > 0:
+  if gene_info_without_summary.shape[0] > 0:
+    gene_info_with_summary = pd.merge(
+      left=gene_info_without_summary,
+      left_on='GeneID',
+      right=pd.read_csv(fetch_gene_summary(gene_info_without_summary), sep='\t'),
+      right_on='GeneID',
+      how='left',
+    )
     df2pg.copy_from_records(
       con=plpy.conn,
       table='app_public_v2.gene',
@@ -104,9 +115,9 @@ def import_gene_info(plpy):
             description=row['description'],
             summary=row['summary'],
           )
-          for symbol, row in df.iterrows()
+          for symbol, row in gene_info_with_summary.iterrows()
         ),
-        total=df.shape[0],
+        total=gene_info_with_summary.shape[0],
         desc='Inserting gene info'
       ),
       on=dict(
