@@ -361,32 +361,6 @@ def fetch_oa_file_list(data_dir = Path()):
     df = pd.read_csv(oa_file_list)
   return df
 
-def find_pmc_ids(term):
-  ''' Given a term, return all PMC ids matching that term
-  '''
-  import os, itertools
-  from Bio import Entrez
-  Entrez.email = os.environ['EMAIL']
-  batch = 1000000
-  for i in itertools.count():
-    try:
-      handle = Entrez.esearch(db="pmc", term=term, api_key=os.environ['API_KEY'], retstart=i*batch, retmax=batch)
-      records = Entrez.read(handle)
-      if not records['IdList']:
-        break
-      for id in records['IdList']:
-        yield f"PMC{id}"
-    except KeyboardInterrupt:
-      raise
-    except:
-      import traceback
-      traceback.print_exc()
-      break
-
-def filter_oa_file_list_by(oa_file_list, pmc_ids):
-  ''' Filter oa_file_list by PMC IDs
-  '''
-  return oa_file_list[oa_file_list['Accession ID'].isin(list(pmc_ids))]
 
 def fetch_extract_gmt_from_oa_package(oa_package):
   ''' Given the oa_package name from the oa_file_list, we'll download it temporarily and then extract a gmt out of it
