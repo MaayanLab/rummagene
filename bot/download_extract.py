@@ -3,22 +3,31 @@ import io
 import os
 import csv
 import sys
+import json
 import queue
 import shutil
-import tarfile
 import tempfile
 import traceback
 import contextlib
 import subprocess
 import multiprocessing as mp
 from multiprocessing.pool import ThreadPool
-import urllib.request
+import urllib.parse
 import xml.etree.ElementTree as ET
 from pathlib import Path, PurePosixPath
 
 import tqdm
 import numpy as np
 import pandas as pd
+
+import boto3
+import botocore, botocore.config
+s3 = boto3.client('s3', config=botocore.config.Config(signature_version=botocore.UNSIGNED))
+
+def s3_get(uri):
+  uri_parsed = urllib.parse.urlparse(uri)
+  assert uri_parsed.scheme == 's3'
+  return s3.get_object(Bucket=uri_parsed.hostname, Key=uri_parsed.path[1:])
 
 java = shutil.which('java')
 assert java, 'Missing java, necessary for tabula-py'
@@ -77,6 +86,14 @@ def register_ext_handler(*exts):
     return func
   return decorator
 
+def ensure_seek(fr):
+  if fr.seekable(): return fr
+  else:
+    fh = io.BytesIO()
+    shutil.copyfileobj(fr, fh)
+    fh.seek(0)
+    return fh
+
 def _read_docx_tab(tab):
   '''  This converts from a docx table object into a pandas dataframe
   '''
@@ -92,7 +109,7 @@ def read_docx_tables(f):
   '''
   with contextlib.redirect_stderr(_DevNull()):
     from docx import Document
-    doc = Document(f)
+    doc = Document(ensure_seek(f))
   for i, tab in enumerate(doc.tables):
     yield str(i), _read_docx_tab(tab)
 
@@ -101,10 +118,7 @@ def prepare_docx(fr):
   ''' This calls read_docx_tables, first copying the reader into a ByteIO since
   tarfile reader doesn't support seeks.
   '''
-  fh = io.BytesIO()
-  shutil.copyfileobj(fr, fh)
-  fh.seek(0)
-  yield from read_docx_tables(fh)
+  yield from read_docx_tables(ensure_seek(fr))
 
 @register_ext_handler('.doc')
 def read_doc_as_docx(fr):
@@ -124,15 +138,15 @@ def read_doc_as_docx(fr):
     yield from read_docx_tables(tmpdir/'table.docx')
 
 @register_ext_handler('.xls', '.xlsb', '.xlsm','.odf','.ods','.odt')
-def read_excel_tables(f, engine=None):
+def read_excel_tables(fr, engine=None):
   ''' Use pandas read_excel function for these files, return all tables from all sheets
   '''
-  for sheet, df in pd.read_excel(f, sheet_name=None, engine=engine).items():
+  for sheet, df in pd.read_excel(ensure_seek(fr), sheet_name=None, engine=engine).items():
     yield sheet, df
 
 @register_ext_handler('.xlsx')
-def read_xlsx_tables(f):
-  yield from read_excel_tables(f, engine='openpyxl')
+def read_xlsx_tables(fr):
+  yield from read_excel_tables(ensure_seek(fr), engine='openpyxl')
 
 @register_ext_handler('.csv')
 def read_csv_tables(f):
@@ -253,8 +267,12 @@ def _read_xml_tables(root, member_path: PurePosixPath):
       for column, gene_set in gene_sets:
         yield f"{member_path.parent.name}-{member_path.name}-{slugify(label)}-{slugify(column)}", description, gene_set
 
-def _read_xml_supplement(tar: tarfile.TarFile, root: ET.Element):
-  members = {member_name.name: (member_name, member) for member in tar.getmembers() for member_name in (PurePosixPath(member.name),)}
+def _read_xml_supplement(metadata, root: ET.Element):
+  members = {
+    member_name: (PurePosixPath(f"{metadata['pmcid']}/{member_name}"), member)
+    for member in metadata.get('media_urls', [])
+    for member_name in (PurePosixPath(urllib.parse.urlparse(member).path[1:]).name,)
+  }
   for supplementary_material in root.findall('.//supplementary-material'):
     gene_sets = []
     supplementary_material_caption = _read_xml_text(supplementary_material.find('./caption')).rstrip('.')
@@ -266,7 +284,8 @@ def _read_xml_supplement(tar: tarfile.TarFile, root: ET.Element):
       handler = ext_handlers.get(member_name.suffix.lower())
       if not handler: continue
       media_gene_sets = []
-      for sheet, df in handler(tar.extractfile(member)):
+      member_response = s3_get(member)
+      for sheet, df in handler(member_response['Body']):
         for column, gene_set in extract_gene_set_columns(df):
           media_gene_sets.append((f"{slugify(sheet)}-{slugify(column)}", gene_set))
       #
@@ -282,18 +301,18 @@ def _read_xml_supplement(tar: tarfile.TarFile, root: ET.Element):
         description = '  '.join(filter(None, (mention, caption,)))
         yield term, description, gene_set
 
-def extract_tables_from_xml(tar: tarfile.TarFile, member_path: PurePosixPath, f):
+def extract_tables_from_xml(metadata, member_path, f):
   parsed = ET.parse(f)
   root = parsed.getroot()
   yield from _read_xml_tables(root, member_path)
-  yield from _read_xml_supplement(tar, root)
+  yield from _read_xml_supplement(metadata, root)
 
 @register_ext_handler('.pdf')
 def read_pdf_tables(f):
   ''' pdf tables read by tabula library
   '''
   import tabula
-  results = tabula.read_pdf(f, pages='all', multiple_tables=True, silent=True)
+  results = tabula.read_pdf(ensure_seek(f), pages='all', multiple_tables=True, silent=True)
   if type(results) == list:
     for i, df in enumerate(results):
       yield f"{i}", df
@@ -303,16 +322,13 @@ def read_pdf_tables(f):
   else:
     raise NotImplementedError()
 
-def extract_gmt_from_oa_package(oa_package):
-  ''' Given a oa_package (open access bundle with paper & figures) extract all applicable gene sets
+def extract_gmt_from_pmc_s3(metadata):
+  ''' Given PMC opendata metadata (open access listing with paper & figures) extract all applicable gene sets
    from all applicable tables
   '''
-  with tarfile.open(oa_package) as tar:
-    for member in tar.getmembers():
-      if not member.isfile(): continue
-      member_path = PurePosixPath(member.name)
-      if member_path.suffix.lower() not in ('.nxml', '.xml'): continue
-      yield from extract_tables_from_xml(tar, member_path, tar.extractfile(member))
+  if 'xml_url' in metadata:
+    response = s3_get(metadata['xml_url'])
+    yield from extract_tables_from_xml(metadata, PurePosixPath(f"{metadata['pmcid']}/v{metadata['version']}.xml"), response['Body'])
 
 lookup = None
 def gene_lookup(value):
@@ -345,69 +361,36 @@ def slugify(s):
   '''
   return re.sub(r'[^\w\d-]+', '_', s).strip('_')
 
-def fetch_oa_file_list(data_dir = Path()):
-  ''' Fetch the PMCID, PMID, oa_file listing; we sort it newest first.
-  ['File'] has the oa_package which is a relative path to a tar.gz archive containing
-   the paper and all figures.
-  '''
-  oa_file_list = data_dir / 'oa_file_list.csv'
-  if not oa_file_list.exists():
-    df = pd.read_csv('https://ftp.ncbi.nlm.nih.gov/pub/pmc/deprecated/oa_file_list.csv')
-    ts_col = df.columns[-3]
-    df[ts_col] = pd.to_datetime(df[ts_col])
-    df.sort_values(ts_col, ascending=False, inplace=True)
-    df.to_csv(oa_file_list, index=None)
-  else:
-    df = pd.read_csv(oa_file_list)
-  return df
+def fetch_vpmcids(current_vpmcids: set[str]):
+  paginator = s3.get_paginator('list_objects_v2')
+  page_iterator = paginator.paginate(Bucket='pmc-oa-opendata', Prefix='metadata/')
+  for page in page_iterator:
+    if 'Contents' in page:
+      for item in page['Contents']:
+        m = re.match(r'^metadata/((.+?)\.(\d+))\.json$', item['Key'])
+        if not m: continue
+        # TODO: deal with version changes
+        vpmcid = m.group(1)
+        pmcid = m.group(2)
+        if vpmcid in current_vpmcids or pmcid in current_vpmcids: continue
+        yield vpmcid
 
-def find_pmc_ids(term):
-  ''' Given a term, return all PMC ids matching that term
-  '''
-  import os, itertools
-  from Bio import Entrez
-  Entrez.email = os.environ['EMAIL']
-  batch = 1000000
-  for i in itertools.count():
-    try:
-      handle = Entrez.esearch(db="pmc", term=term, api_key=os.environ['API_KEY'], retstart=i*batch, retmax=batch)
-      records = Entrez.read(handle)
-      if not records['IdList']:
-        break
-      for id in records['IdList']:
-        yield f"PMC{id}"
-    except KeyboardInterrupt:
-      raise
-    except:
-      import traceback
-      traceback.print_exc()
-      break
+def fetch_extract_gmt_from_pmc_s3(vpmcid):
+  response = s3_get(f"s3://pmc-oa-opendata/metadata/{vpmcid}.json")
+  metadata = json.load(response['Body'])
+  return list(extract_gmt_from_pmc_s3(metadata))
 
-def filter_oa_file_list_by(oa_file_list, pmc_ids):
-  ''' Filter oa_file_list by PMC IDs
-  '''
-  return oa_file_list[oa_file_list['Accession ID'].isin(list(pmc_ids))]
-
-def fetch_extract_gmt_from_oa_package(oa_package):
-  ''' Given the oa_package name from the oa_file_list, we'll download it temporarily and then extract a gmt out of it
-  '''
-  with tempfile.NamedTemporaryFile(prefix='rummagene-', suffix=''.join(PurePosixPath(oa_package).suffixes)) as tmp:
-    with urllib.request.urlopen(f"https://ftp.ncbi.nlm.nih.gov/pub/pmc/deprecated/{oa_package}") as fr:
-      shutil.copyfileobj(fr, tmp)
-    tmp.flush()
-    return list(extract_gmt_from_oa_package(tmp.name))
-
-def task(record):
+def task(vpmcid):
   try:
-    return record, None, run_with_timeout(fetch_extract_gmt_from_oa_package, record['File'], timeout=60*5)
+    return vpmcid, None, run_with_timeout(fetch_extract_gmt_from_pmc_s3, vpmcid, timeout=60*5)
   except KeyboardInterrupt:
     raise
   except:
-    return record, traceback.format_exc(), None
+    return vpmcid, traceback.format_exc(), None
 
-def main(data_dir = Path(), oa_file_list = None, progress = 'done.txt', progress_output = 'done.new.txt', output = 'output.gmt'):
+def main(data_dir = Path(), vpmcids = None, progress = 'done.txt', progress_output = 'done.new.txt', output = 'output.gmt'):
   '''
-  Work through oa_file_list (see: fetch_oa_file_list)
+  Work through vpmcids (see: fetch_vpmcids)
     -- you can filter it and provide it to this function
   Track progress by storing oa_packages already processed in done.txt
   Write all results to output.gmt
@@ -443,31 +426,31 @@ def main(data_dir = Path(), oa_file_list = None, progress = 'done.txt', progress
   if done_file.exists():
     with done_file.open('r') as fr:
       done = set(filter(None, map(str.strip, fr)))
+    # convert old format
+    done = {
+      m.group(1) if m else item
+      for item in done
+      for m in (re.match(r'^.+?/(PMC\d+)\.tar\.gz$', item),)
+    }
   else:
     done = set()
 
   # find out what there remains to process
-  if oa_file_list is None:
-    oa_file_list = fetch_oa_file_list(data_dir)
-
-  oa_file_list_size = oa_file_list.shape[0]
-  oa_file_list = oa_file_list[~oa_file_list['File'].isin(list(done))]
+  if vpmcids is None:
+    vpmcids = fetch_vpmcids(done)
 
   # fetch and extract gmts from oa_packages using a process pool
   #  append gmt term, gene sets as they are ready into one gmt file
   with new_done_file.open('a') as done_file_fh:
     with output_file.open('a') as output_fh:
       with ThreadPool() as pool:
-        for record, err, res in tqdm.tqdm(
+        for vpmcid, err, res in tqdm.tqdm(
           pool.imap_unordered(
             task,
-            (
-              { 'File': row['File'] }
-              for _, row in oa_file_list.iterrows()
-            )
+            vpmcids
           ),
-          initial=oa_file_list_size - oa_file_list.shape[0],
-          total=oa_file_list_size
+          # initial=len(vpmcids),
+          # total=len(vpmcids) + len(done),
         ):
           if err is None:
             for term, description, gene_set in res:
@@ -480,7 +463,7 @@ def main(data_dir = Path(), oa_file_list = None, progress = 'done.txt', progress
               )
           else:
             print(err, file=sys.stderr)
-          print(record['File'], file=done_file_fh)
+          print(vpmcid, file=done_file_fh)
           output_fh.flush()
           done_file_fh.flush()
 
