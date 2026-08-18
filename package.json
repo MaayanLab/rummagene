@@ -9,7 +9,7 @@
     "start": "next start",
     "lint": "next lint",
     "generate": "graphql-codegen --config graphql.config.yml",
-    "version": "npm run build && ts-node src/cli/version-compose.ts && docker-compose build rummagene-app",
+    "version": "ts-node src/cli/version-compose.ts && docker-compose build rummagene-app",
     "postversion": "docker-compose push rummagene-app"
   },
   "dependencies": {
