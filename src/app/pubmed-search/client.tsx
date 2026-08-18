@@ -61,7 +61,7 @@ function PubMedSearchResults({ search }: { search: string }) {
       <h2 className="text-md font-bold">
         Your query returned {Intl.NumberFormat("en-US", {}).format(pmcCount)} articles from PubMed Central. {pmcCount > 5000
           ? <>Since there are more than 5,000 papers that match your query, we only display {Intl.NumberFormat("en-US", {}).format(gene_set_ids.size)} gene sets from {Intl.NumberFormat("en-US", {}).format(pmc_terms.size)} publications containing gene sets from the first 5,000 publications returned from your query. Please narrow your search to obtain better results.</>
-          : <>Rummagene <Image className="inline-block rounded" src="/images/rummagene_logo.jpg" width={50} height={100} alt="Rummagene"></Image> found {Intl.NumberFormat("en-US", {}).format(gene_set_ids.size)} gene sets from {Intl.NumberFormat("en-US", {}).format(pmc_terms.size)} publications containing gene sets from the publications returned from your query.</>}
+          : <>Rummagene <img className="inline-block rounded" src="/images/rummagene_logo.jpg" width={50} height={100} alt="Rummagene"></img> found {Intl.NumberFormat("en-US", {}).format(gene_set_ids.size)} gene sets from {Intl.NumberFormat("en-US", {}).format(pmc_terms.size)} publications containing gene sets from the publications returned from your query.</>}
       </h2>
       <PmcSearchColumns pmc_terms={pmc_terms} pmcs={pmcsInDb} gene_set_ids={gene_set_ids}></PmcSearchColumns>
     </div>
