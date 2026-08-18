@@ -76,7 +76,7 @@ function EnrichmentResults({ userGeneSet, setModalGeneSet }: { userGeneSet?: Fet
       <h2 className="text-md font-bold">
         {!enrichmentResults?.currentBackground?.enrich ?
           <>Rummaging through <Stats show_gene_sets />.</>
-          : <>After rummaging through <Stats show_gene_sets />. Rummagene <img className="inline-block rounded" src="/images/rummagene_logo.jpg" width={50} height={100} alt="Rummagene"></img> found {Intl.NumberFormat("en-US", {}).format(enrichmentResults?.currentBackground?.enrich?.totalCount || 0)} statistically significant matches.</>}
+          : <>After rummaging through <Stats show_gene_sets />. Rummagene <Image className="inline-block rounded" src="/images/rummagene_logo.jpg" width={50} height={100} alt="Rummagene"></Image> found {Intl.NumberFormat("en-US", {}).format(enrichmentResults?.currentBackground?.enrich?.totalCount || 0)} statistically significant matches.</>}
       </h2>
       <form
         className="join flex flex-row place-content-end place-items-center"
