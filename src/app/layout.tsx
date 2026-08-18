@@ -68,7 +68,7 @@ export const metadata: Metadata = {
     url: 'https://rummagene.com',
     siteName: 'Rummagene',
     images: [{
-      url: 'https://rummagene.com/images/rummagene_logo.png',
+      url: 'https://rummagene.com/images/rummagene_logo.jpg',
       width: 640,
       height: 671,
     }],
