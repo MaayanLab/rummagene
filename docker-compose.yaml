@@ -50,7 +50,7 @@ services:
   rummagene-bot:
     build: bot
     platform: linux/amd64
-    image: maayanlab/rummagene-bot:0.3.4
+    image: maayanlab/rummagene-bot:0.3.5
     pull_policy: if_not_present
     deploy:
       replicas: 0
