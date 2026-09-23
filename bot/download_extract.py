@@ -374,6 +374,7 @@ def fetch_vpmcids(current_vpmcids: set[str]):
         pmcid = m.group(2)
         if vpmcid in current_vpmcids or pmcid in current_vpmcids: continue
         yield vpmcid
+        current_vpmcids.add(pmcid)
 
 def fetch_extract_gmt_from_pmc_s3(vpmcid):
   response = s3_get(f"s3://pmc-oa-opendata/metadata/{vpmcid}.json")
