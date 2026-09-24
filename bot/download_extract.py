@@ -15,6 +15,7 @@ from multiprocessing.pool import ThreadPool
 import urllib.parse
 import xml.etree.ElementTree as ET
 from pathlib import Path, PurePosixPath
+from pandas.api.types import is_string_dtype
 
 import tqdm
 import numpy as np
@@ -365,7 +366,7 @@ def extract_gene_set_columns(df):
   ''' Given a pandas dataframe, find columns containing mostly mappable genes
   '''
   for col in df.columns:
-    if df[col].dtype != np.dtype('O'): continue
+    if not is_string_dtype(df[col]): continue
     unique_genes = pd.Series(df[col].dropna().unique())
     if unique_genes.shape[0] >= 5:
       unique_genes_mapped = unique_genes.apply(gene_lookup).dropna()
