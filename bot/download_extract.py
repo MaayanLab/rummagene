@@ -29,6 +29,18 @@ def s3_get(uri):
   assert uri_parsed.scheme == 's3'
   return s3.get_object(Bucket=uri_parsed.hostname, Key=uri_parsed.path[1:])
 
+def s3_list_bucket_prefix(Bucket, Prefix):
+  paginator = s3.get_paginator('list_objects_v2')
+  page_iterator = paginator.paginate(Bucket=Bucket, Prefix=Prefix)
+  for page in page_iterator:
+    if 'Contents' in page:
+      for item in page['Contents']:
+        yield item
+
+def s3_list(uri):
+  uri_parsed = urllib.parse.urlparse(uri)
+  yield from s3_list_bucket_prefix(uri_parsed.hostname, Prefix=uri_parsed.path[1:].rstrip('/')+'/')
+
 java = shutil.which('java')
 assert java, 'Missing java, necessary for tabula-py'
 
@@ -94,6 +106,14 @@ def ensure_seek(fr):
     fh.seek(0)
     return fh
 
+@contextlib.contextmanager
+def ensure_file(fr, fname):
+  with tempfile.TemporaryDirectory(prefix='rummagene-') as tmpdir:
+    tmpdir = Path(tmpdir)
+    with (tmpdir / fname).open('wb') as fw:
+      shutil.copyfileobj(fr, fw)
+    yield tmpdir / fname
+
 def _read_docx_tab(tab):
   '''  This converts from a docx table object into a pandas dataframe
   '''
@@ -124,18 +144,15 @@ def prepare_docx(fr):
 def read_doc_as_docx(fr):
   ''' For doc support, convert .doc to .docx in a temporary directory and call read_docx_tables
   '''
-  with tempfile.TemporaryDirectory(prefix='rummagene-') as tmpdir:
-    tmpdir = Path(tmpdir)
-    with (tmpdir / 'table.doc').open('wb') as fw:
-      shutil.copyfileobj(fr, fw)
+  with ensure_file(fr, f"table.doc") as f:
     subprocess.call(
-      [soffice, '--headless', '--convert-to', 'docx', str(tmpdir/'table.doc')],
-      cwd=tmpdir,
+      [soffice, '--headless', '--convert-to', 'docx', str(f)],
+      cwd=str(f.parent),
       stderr=subprocess.DEVNULL,
       stdout=subprocess.DEVNULL,
       timeout=60,
     )
-    yield from read_docx_tables(tmpdir/'table.docx')
+    yield from read_docx_tables(f.with_stem('.docx'))
 
 @register_ext_handler('.xls', '.xlsb', '.xlsm','.odf','.ods','.odt')
 def read_excel_tables(fr, engine=None):
@@ -146,7 +163,7 @@ def read_excel_tables(fr, engine=None):
 
 @register_ext_handler('.xlsx')
 def read_xlsx_tables(fr):
-  yield from read_excel_tables(ensure_seek(fr), engine='openpyxl')
+  yield from read_excel_tables(fr, engine='openpyxl')
 
 @register_ext_handler('.csv')
 def read_csv_tables(f):
@@ -269,9 +286,9 @@ def _read_xml_tables(root, member_path: PurePosixPath):
 
 def _read_xml_supplement(metadata, root: ET.Element):
   members = {
-    member_name: (PurePosixPath(f"{metadata['pmcid']}/{member_name}"), member)
-    for member in metadata.get('media_urls', [])
-    for member_name in (PurePosixPath(urllib.parse.urlparse(member).path[1:]).name,)
+    member_name: (PurePosixPath(f"{metadata['pmcid']}/{member_name}"), f"s3://pmc-oa-opendata/{member['Key']}")
+    for member in s3_list(f"s3://pmc-oa-opendata/{metadata['pmcid']}.{metadata['version']}")
+    for member_name in (PurePosixPath(member['Key']).name,)
   }
   for supplementary_material in root.findall('.//supplementary-material'):
     gene_sets = []
@@ -362,19 +379,15 @@ def slugify(s):
   return re.sub(r'[^\w\d-]+', '_', s).strip('_')
 
 def fetch_vpmcids(current_vpmcids: set[str]):
-  paginator = s3.get_paginator('list_objects_v2')
-  page_iterator = paginator.paginate(Bucket='pmc-oa-opendata', Prefix='metadata/')
-  for page in page_iterator:
-    if 'Contents' in page:
-      for item in page['Contents']:
-        m = re.match(r'^metadata/((.+?)\.(\d+))\.json$', item['Key'])
-        if not m: continue
-        # TODO: deal with version changes
-        vpmcid = m.group(1)
-        pmcid = m.group(2)
-        if vpmcid in current_vpmcids or pmcid in current_vpmcids: continue
-        yield vpmcid
-        current_vpmcids.add(pmcid)
+  for item in s3_list('s3://pmc-oa-opendata/metadata/'):
+    m = re.match(r'^metadata/((.+?)\.(\d+))\.json$', item['Key'])
+    if not m: continue
+    # TODO: deal with version changes i.e. actually associate gene list with versioned instead of not
+    vpmcid = m.group(1)
+    pmcid = m.group(2)
+    if vpmcid in current_vpmcids or pmcid in current_vpmcids: continue
+    yield vpmcid
+    current_vpmcids.add(pmcid)
 
 def fetch_extract_gmt_from_pmc_s3(vpmcid):
   response = s3_get(f"s3://pmc-oa-opendata/metadata/{vpmcid}.json")
