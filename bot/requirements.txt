@@ -1,6 +1,6 @@
 beautifulsoup4
 biopython
-bokeh==2.3.2
+bokeh>=3.8.2
 click
 fastcluster
 maayanlab_bioinformatics @ git+https://github.com/Maayanlab/maayanlab-bioinformatics.git

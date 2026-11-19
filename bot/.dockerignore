@@ -1,1 +1,9 @@
-__pycache__
+.git
+.env
+Dockerfile
+.dockerignore
+**/__pycache__
+**/.venv
+**/node_modules
+**/.Rproj.user
+**/.Rhistory

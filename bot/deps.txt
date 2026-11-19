@@ -1,4 +1,0 @@
-default-jre
-git
-libreoffice-common
-rclone
